@@ -410,7 +410,7 @@ $('btn-toggle-sidebar').addEventListener('click',function(){$('sidebar').classLi
 $('btn-prev-pg').addEventListener('click',prevPage);$('btn-next-pg').addEventListener('click',nextPage);
 $('btn-prev-ch').addEventListener('click',prevChapter);$('btn-next-ch').addEventListener('click',nextChapter);
 $('btn-cache-mgr').addEventListener('click',async function(){let stats=await db.getCacheStats(),si=await db.getStorageEstimate();showModal('cache-mgr',{stats,storageInfo:si})});$('bs-settings-btn').addEventListener('click',function(){showModal('settings')});
-$('btn-settings').addEventListener('click',function(){showModal('settings')});$('btn-set-cover').addEventListener('click',async function(){if(!currentSeries)return;showModal('set-cover',{sid:currentSeries})});
+$('btn-settings').addEventListener('click',function(){showModal('settings')});const setCoverBtn=$('btn-set-cover');if(setCoverBtn)setCoverBtn.addEventListener('click',function(){if(!currentSeries)return;showModal('set-cover',{sid:currentSeries})});
 $('bs-search').addEventListener('input',function(){searchQuery=this.value;renderBookshelf()});
 $('bs-sort').addEventListener('change',function(){sortMode=this.value;renderBookshelf()});
 $('bs-add-folder').addEventListener('click',function(){_pendingFilesMode='folder';showAddModal()});
