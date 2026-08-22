@@ -14,6 +14,18 @@
 
 状态约定：`[x]` 通过，`[ ]` 未验证，`[!]` 有问题。
 
+## 自动验收结果（2026-08-22）
+
+- [x] `app.js`、`db.js`、`server.js` 语法检查通过。
+- [x] `/`、`index.html`、`app.js`、`db.js` 和本地字体资源均返回 HTTP 200。
+- [x] 必需 DOM 元素存在：`bs-grid`、`bs-add-files`、`hidden-file-input`、`hidden-cover-input`、`rack-pager`、`btn-set-cover`、阅读器和弹窗节点。
+- [x] 关键导入、阅读、进度、封面和条漫函数均存在。
+- [x] IndexedDB 的 `bookshelf`、`pdf-cache`、`settings`、`covers` 四个 store 仍存在。
+- [x] 静态事件绑定引用的 HTML 元素均存在；其余动态 ID（模态框字段和导入进度）由运行时创建，属于预期行为。
+- [x] `git diff --check` 通过，工作区无未提交业务代码改动。
+
+自动验收不能替代真实浏览器交互；文件选择器、PDF 实际渲染、视觉动画和刷新后的 IndexedDB 恢复仍需按下方清单手动确认。
+
 ## 1. 启动与基础页面
 
 - [x] 启动 `node server.js` 后访问 `http://localhost:8765/` 返回页面。
