@@ -1,0 +1,19 @@
+# Local manga files and generated caches
+*.pdf
+.cache/
+cache/
+tmp/
+temp/
+
+# Runtime / editor noise
+node_modules/
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+.env.*
+!.env.example
