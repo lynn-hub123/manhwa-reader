@@ -2,8 +2,8 @@
 
 ## 项目启动与架构
 
-- 主检出目录：`F:\manhwa-reader`，当前为 `master@ba00baf`；本轮未在主检出目录修改文件。
-- 功能工作树：`F:\manhwa-reader\.worktrees\recommended-cover-capture`，分支 `feature/recommended-cover-capture`；固定 100% 取景实现为 `8bbd130`，审查修复代码为 `cad5ebc`。
+- 主检出目录：`F:\manhwa-reader`，当前为 `master@3e81d3d`；本轮普通 PDF 页内进度功能已合并到主分支。
+- 固定 100% 截图功能此前已合并；本轮在隔离工作树完成普通分页进度保存/恢复后已清理工作树。
 - 本地启动：`node server.js`，访问 `http://localhost:8765`；`启动阅读器.bat` 为快捷启动入口。
 - 当前功能工作树验收服务使用 `http://localhost:8766/`；`8765` 与 `8766` 属于不同浏览器 origin，IndexedDB 数据互不共享。
 - `index.html`：页面骨架与全部 CSS；`app.js`：导入、书架、阅读器、PDF.js canvas 渲染及交互；`db.js`：IndexedDB 封装；`server.js`：Node.js 静态服务器；`fonts/`：本地字体。
@@ -37,6 +37,15 @@
 - `tests/capture-canonical-source.test.js`：PDF.js `scale:1` 偏移窗口渲染，证明不分配超长整页中间 canvas。
 - `tests/cover-capture-canonical.test.js`：60%/100%/150%/200%/适应宽度的焦点一致性、边界夹取与独立画布坐标映射。
 
+## 普通分页 PDF 页内进度（已实现）
+
+1. 普通分页除 `lastPage` 外，还保存 `lastPageProgress`（0～1），表示阅读锚点落在当前页内的比例；滚动同一页时也会更新。
+2. 重新打开时先按保存页码建立页面布局，再按页内比例恢复到同一段漫画内容；缩放比例和窗口大小变化不会把位置固定在原始像素。
+3. 旧记录没有 `lastPageProgress` 时回退到原来的该页页首行为；条漫仍使用原有整体滚动百分比恢复。
+4. 章节切换和异步加载带 token 保护，旧章节恢复不会覆盖新章节进度。
+
+对应模块和测试：`reading-progress.js`、`tests/reading-progress.test.js`、`tests/normal-pdf-progress-flow.test.js`。
+
 ## 本任务自动化证据（2026-08-23）
 
 以下命令均在 feature worktree 执行并返回成功：
@@ -51,8 +60,11 @@ node tests/cover-capture-geometry.test.js         PASS
 node tests/capture-start.test.js                  PASS
 node tests/capture-canonical-source.test.js       PASS
 node tests/cover-capture-canonical.test.js        PASS
+node tests/normal-pdf-progress-flow.test.js       PASS
+node tests/reading-progress.test.js               PASS
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/capture-ui-contract.test.ps1  PASS
 node --check app.js                             PASS
+node --check reading-progress.js                 PASS
 node --check cover-capture.js                   PASS
 node --check db.js                              PASS
 node --check server.js                          PASS
@@ -71,9 +83,9 @@ git diff --check                                PASS
 
 - 目前只提供一个推荐；没有人物/人脸识别，也没有外部服务或 AI 模型。
 - 固定 100% 取景、独立调整画布与跨缩放对比的核心观感已由用户确认通过；移动触摸手感、日/夜视觉层叠和完整刷新持久化清单未单独确认。
-- 高瘦普通分页页面的页内阅读进度恢复仍未修复（条漫滚动百分比恢复与本功能无关）。
+- 高瘦普通分页页面的页内阅读进度保存/恢复已实现；仍需用户在真实 PDF 上做一次刷新/重进人工验收。
 - `CURRENT-PROGRESS.md` 是当前简要交接；`CURRENTPROGRESS.md` 是旧的 Phase 1→2J 完整参考，不能当作当前状态。
 
 ## 下一步
 
-选择将 `feature/recommended-cover-capture` 本地合并到 `master`、推送创建 PR，或暂时保留分支。整合完成后再处理高瘦普通分页的页内阅读进度恢复。
+启动 `node server.js` 后，用一个有较高页面的普通分页 PDF：在第 2 页中段滚动、返回书架或刷新，再重新打开，确认回到同一段内容；再切换缩放比例重复一次，并确认条漫百分比恢复没有变化。
