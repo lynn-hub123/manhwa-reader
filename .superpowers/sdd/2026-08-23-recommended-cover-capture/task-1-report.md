@@ -30,7 +30,7 @@ Before creating `cover-capture.js`, running `node tests/cover-capture-geometry.t
 
 ## Commit
 
-`3bf7a4d` (amended after report update).
+Implementation commit: `c43fa801a9af1e4a454449253ad1b8115df65b54`.
 
 ## Self-review
 
