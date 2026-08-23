@@ -142,6 +142,15 @@ assert.deepStrictEqual(loadingHarness.toasts, ['正在分析当前画面…', '�
 assert(!loadingHarness.modalOverlay.classList.contains('show'), 'a null recommendation must not open a preview');
 assert.deepStrictEqual(loadingHarness.saves, []);
 
+const unavailablePreviewHarness = makeHarness();
+unavailablePreviewHarness.setRecommendation({ rect: capture.rect, dataUrl: null });
+unavailablePreviewHarness.context.startCoverCapture('series-1');
+unavailablePreviewHarness.flushFrame();
+assert.deepStrictEqual(unavailablePreviewHarness.toasts, ['正在分析当前画面…', '当前画面还未加载完成'], 'a recommendation without preview data must report the same loading failure');
+assert(!unavailablePreviewHarness.modalOverlay.classList.contains('show'), 'a recommendation without preview data must not open a preview');
+assert.deepStrictEqual(unavailablePreviewHarness.saves, []);
+assert.deepStrictEqual(unavailablePreviewHarness.adjustments, []);
+
 const acceptHarness = makeHarness();
 acceptHarness.setRecommendation(capture);
 acceptHarness.context.startCoverCapture('series-1');

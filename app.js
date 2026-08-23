@@ -263,7 +263,7 @@ function startCoverCapture(sid){
     const modalOverlay=$('modal-overlay');
     if(modalOverlay)modalOverlay.classList.remove('show');
     showToast('正在分析当前画面…');
-    const analyze=function(){let capture=null;try{capture=recommendVisibleCoverCrop()}catch(e){}if(!capture){showToast('当前画面还未加载完成');return}showCoverRecommendation(sid,capture)};
+    const analyze=function(){let capture=null;try{capture=recommendVisibleCoverCrop()}catch(e){}if(!capture||!capture.dataUrl){showToast('当前画面还未加载完成');return}showCoverRecommendation(sid,capture)};
     if(typeof requestAnimationFrame==='function')requestAnimationFrame(analyze);else setTimeout(analyze,0);
   }catch(e){console.warn('capture fail',e);showToast('截图失败')}
 }
