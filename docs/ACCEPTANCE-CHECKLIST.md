@@ -4,7 +4,7 @@
 >
 > 验收方式：每项实际操作后勾选；发现问题时记录复现步骤、浏览器和控制台错误。
 >
-> 当前基线：功能工作树 `F:\manhwa-reader\.worktrees\recommended-cover-capture` 的 `feature/recommended-cover-capture` 分支；固定 100% 取景与审查修复为 `8bbd130`、`cad5ebc`。主检出仍为 `master@ba00baf`，最终合并仍待真实浏览器验收。
+> 当前基线：功能工作树 `F:\manhwa-reader\.worktrees\recommended-cover-capture` 的 `feature/recommended-cover-capture` 分支；固定 100% 取景与审查修复为 `8bbd130`、`cad5ebc`。主检出仍为 `master@ba00baf`，最终合并等待用户选择。
 
 ## 0. 验收记录
 
@@ -12,7 +12,7 @@
 - 浏览器与版本：
 - 测试 PDF：
 - 测试设备/窗口尺寸：
-- 总体结论：未完成
+- 总体结论：用户已确认固定 100% 取景、独立调整画布及跨缩放对比的核心流程通过；其余全量清单未据此自动勾选。
 
 状态约定：`[x]` 通过，`[ ]` 未验证，`[!]` 有问题。
 
