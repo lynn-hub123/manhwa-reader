@@ -46,6 +46,14 @@
 
 对应模块和测试：`reading-progress.js`、`tests/reading-progress.test.js`、`tests/normal-pdf-progress-flow.test.js`。
 
+## 缩放阅读锚点（已实现）
+
+1. 普通 PDF 在缩放、适应宽度和窗口变化前，按当前阅读窗口 30% 锚点即时确定页面与页内比例，不依赖滚动事件的防抖状态。
+2. 重渲染完成后恢复同一页面内的内容位置；条漫继续恢复整体滚动百分比。
+3. 快速连续缩放使用恢复代次保护，旧的异步渲染不能覆盖最后一次缩放结果。
+
+对应测试：`tests/zoom-anchor.test.js`。
+
 ## 本任务自动化证据（2026-08-23）
 
 以下命令均在 feature worktree 执行并返回成功：
@@ -62,6 +70,7 @@ node tests/capture-canonical-source.test.js       PASS
 node tests/cover-capture-canonical.test.js        PASS
 node tests/normal-pdf-progress-flow.test.js       PASS
 node tests/reading-progress.test.js               PASS
+node tests/zoom-anchor.test.js                    PASS
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/capture-ui-contract.test.ps1  PASS
 node --check app.js                             PASS
 node --check reading-progress.js                 PASS
