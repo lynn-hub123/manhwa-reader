@@ -126,6 +126,7 @@ function makeHarness() {
   const saveResults = [];
   const readerActions = [];
   let recommendation = null;
+  let canonicalBuild = Promise.resolve({ sourceKind: 'canonical100' });
   document = Object.assign(documentEvents, {
     activeElement: null,
     contains() { return true; },
@@ -140,7 +141,7 @@ function makeHarness() {
     requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
     setTimeout(callback) { frames.push(callback); return frames.length; },
     getVisibleCaptureSource() { return { pageNumber: 1 }; },
-    buildCanonicalCaptureSource() { return Promise.resolve({ sourceKind: 'canonical100' }); },
+    buildCanonicalCaptureSource() { return canonicalBuild; },
     recommendVisibleCoverCrop() { return recommendation; },
     async setSeriesCover(sid, dataUrl, options) {
       saves.push([sid, dataUrl, options]);
@@ -191,6 +192,7 @@ function makeHarness() {
     priorFocus,
     setSaveResults(...results) { saveResults.push(...results); },
     setRecommendation(value) { recommendation = value; },
+    setCanonicalBuild(value) { canonicalBuild = value; },
     async flushFrame() { assert.strictEqual(frames.length, 1, 'capture analysis must queue exactly one frame'); await frames.shift()(); },
     escape() {
       const event = { key: 'Escape', target: document.activeElement, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } };
@@ -247,6 +249,23 @@ await loadingHarness.flushFrame();
 assert.deepStrictEqual(loadingHarness.toasts, ['正在生成 100% 截图画面…', '100% 画面生成失败，请重试']);
 assert(loadingHarness.modalOverlay.classList.contains('show'), 'a null recommendation keeps the setup modal open for retry');
 assert.deepStrictEqual(loadingHarness.saves, []);
+
+const preparationHarness = makeHarness();
+const pendingCanonical = deferred();
+preparationHarness.setCanonicalBuild(pendingCanonical.promise);
+preparationHarness.modalOverlay.classList.add('show');
+preparationHarness.modalContent._modalCleanup = function () { preparationHarness.modalOverlay.classList.remove('show'); preparationHarness.modalContent._modalCleanup = null; };
+preparationHarness.context.startCoverCapture('series-1');
+const pendingPreparation = preparationHarness.flushFrame();
+['ArrowRight', 'f', 'b'].forEach((key) => preparationHarness.key(key));
+assert.deepStrictEqual(preparationHarness.readerActions, [], 'reader shortcuts must remain isolated while the 100% source render is pending');
+const preparationEscape = preparationHarness.escape();
+assert(preparationEscape.prevented && preparationEscape.stopped, 'Escape must be handled by capture preparation');
+assert(!preparationHarness.modalOverlay.classList.contains('show'), 'Escape must cancel the visible preparation modal');
+pendingCanonical.resolve({ sourceKind: 'canonical100' });
+await pendingPreparation;
+assert(!preparationHarness.modalOverlay.classList.contains('show'), 'a cancelled preparation must not reopen recommendation when rendering finishes');
+assert.strictEqual(preparationHarness.context.captureUiActive, false, 'cancelled preparation must release the shared capture UI guard');
 
 const unavailablePreviewHarness = makeHarness();
 unavailablePreviewHarness.setRecommendation({ rect: capture.rect, dataUrl: null });

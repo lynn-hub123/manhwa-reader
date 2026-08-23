@@ -19,6 +19,15 @@ const zoomScenarios = [
   {
     canvasRect: { left: -300, top: -1750, width: 1200, height: 4000 },
     visibleBounds: { x: 0, y: 0, width: 600, height: 500 }
+  },
+  {
+    canvasRect: { left: 120, top: -350, width: 360, height: 1200 },
+    visibleBounds: { x: 120, y: 0, width: 360, height: 500 }
+  },
+  {
+    canvasRect: { left: 20, top: -883.3333333333333, width: 680, height: 2266.6666666666665 },
+    visibleBounds: { x: 20, y: 0, width: 680, height: 500 },
+    viewportSize: { width: 720, height: 500 }
   }
 ];
 
@@ -26,11 +35,13 @@ const windows = zoomScenarios.map((scenario) => CoverCapture.computeCanonicalWin
   scenario.canvasRect,
   scenario.visibleBounds,
   canonicalPage,
-  viewer
+  scenario.viewportSize || viewer
 ));
 
 windows.forEach((windowBounds) => {
-  assert.deepStrictEqual(windowBounds, { x: 0, y: 750, width: 600, height: 500 }, '100%, 150%, and 200% must resolve to the same canonical window at the same reading focus');
+  assert(Math.abs(windowBounds.x) < 1e-9 && Math.abs(windowBounds.y - 750) < 1e-9, '60%, 100%, 150%, 200%, and fit-width must preserve the same canonical reading focus');
+  assert.strictEqual(windowBounds.width, 600);
+  assert.strictEqual(windowBounds.height, 500);
 });
 
 const nearTop = CoverCapture.computeCanonicalWindow(

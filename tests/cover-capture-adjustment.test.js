@@ -119,7 +119,7 @@ function makeHarness() {
     },
     showToast(message) { toasts.push(message); },
     captureUiActive: false,
-    window: { innerWidth: 800, innerHeight: 700 },
+    window: makeEvents({ innerWidth: 800, innerHeight: 700 }),
     console
   };
   vm.createContext(context);
@@ -355,8 +355,12 @@ async function main() {
   assert.strictEqual(canonicalHarness.rect().style.left, '275px');
   assert.strictEqual(canonicalHarness.rect().style.top, '175px');
   assert.strictEqual(canonicalOverlay.querySelector('.cover-adjustment-tip').textContent, '100% 画面 · 拖动或拉角调整 · 固定 5:7');
-  canonicalHarness.button('cover-adjustment-cancel').click();
-  assert.strictEqual(canonicalHarness.overlay(), null, 'closing canonical adjustment removes its standalone stage');
+  canonicalHarness.context.window.innerWidth = 700;
+  canonicalHarness.context.window.innerHeight = 800;
+  canonicalHarness.context.window.dispatch('resize', {});
+  assert.strictEqual(canonicalHarness.overlay(), null, 'viewport resize closes the stale standalone adjustment stage');
+  assert.deepStrictEqual(canonicalHarness.toasts.slice(-1), ['窗口尺寸已变化，请重新调整封面']);
+  assert.strictEqual(canonicalHarness.context.window.count('resize'), 0, 'viewport resize cleanup removes its listener');
   console.log('cover-capture-adjustment: PASS');
 }
 

@@ -41,14 +41,14 @@ function makeCanvas() {
 }
 
 let requestedScale = null;
-let renderedCanvas = null;
+let renderOptions = null;
 const page = {
   getViewport({ scale }) {
     requestedScale = scale;
     return { width: 600 * scale, height: 2000 * scale };
   },
-  render({ canvasContext, viewport }) {
-    renderedCanvas = { canvasContext, viewport };
+  render(options) {
+    renderOptions = options;
     return { promise: Promise.resolve() };
   }
 };
@@ -75,12 +75,14 @@ async function main() {
   const result = await context.buildCanonicalCaptureSource(currentSource);
 
   assert.strictEqual(requestedScale, 1, 'the PDF page must be rendered at the canonical 100% scale');
-  assert(renderedCanvas, 'the canonical PDF page must be rendered before extracting the window');
+  assert(renderOptions, 'the canonical PDF page must be rendered into the extracted window');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(renderOptions.transform)), [1, 0, 0, 1, 0, -750], 'PDF.js must render with the canonical window offset instead of allocating the full page');
+  assert.strictEqual(canvases.length, 1, 'a long page must allocate only the viewport-sized capture canvas');
   assert.strictEqual(canvases[0].width, 600);
-  assert.strictEqual(canvases[0].height, 2000);
+  assert.strictEqual(canvases[0].height, 500);
   assert.strictEqual(result.canvas.width, 600);
   assert.strictEqual(result.canvas.height, 500);
-  assert.deepStrictEqual(drawCalls[0].slice(1), [0, 750, 600, 500, 0, 0, 600, 500], 'the result must contain the 100% window centered on the current reading focus');
+  assert.deepStrictEqual(drawCalls, [], 'window extraction must not copy from a full-page intermediate canvas');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(result.visibleBounds)), { x: 0, y: 0, width: 600, height: 500 });
   assert.deepStrictEqual(JSON.parse(JSON.stringify(result.canvasRect)), { left: 0, top: 0, width: 600, height: 500 });
   assert.strictEqual(context.zoom, 1.5, 'capture preparation must not mutate the reader zoom');

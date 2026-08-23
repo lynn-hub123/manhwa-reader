@@ -49,6 +49,9 @@ const context = {
   buildCanonicalCaptureSource(source) { assert.strictEqual(source, visibleSource); return Promise.resolve(canonicalSource); },
   recommendVisibleCoverCrop(source) { recommendationInputs.push(source); return recommendation; },
   showCoverRecommendation(sid, result) { shown.push([sid, result]); },
+  captureUiActive: false,
+  beginCaptureUi(cleanup) { context.captureUiActive = true; context.captureCleanup = cleanup; return null; },
+  endCaptureUi(cleanup) { if (context.captureCleanup === cleanup) { context.captureUiActive = false; context.captureCleanup = null; } },
   requestAnimationFrame(callback) { frames.push(callback); },
   console,
 };

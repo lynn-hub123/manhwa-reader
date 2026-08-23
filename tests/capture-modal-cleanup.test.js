@@ -80,6 +80,9 @@ const context = {
   buildCanonicalCaptureSource() { return Promise.resolve({ sourceKind: 'canonical100' }); },
   recommendVisibleCoverCrop() { return { dataUrl: 'data:image/jpeg;base64,recommended' }; },
   showCoverRecommendation() { overlay.classList.add('show'); },
+  captureUiActive: false,
+  beginCaptureUi(cleanup) { context.captureUiActive = true; context.captureCleanup = cleanup; return null; },
+  endCaptureUi(cleanup) { if (context.captureCleanup === cleanup) { context.captureUiActive = false; context.captureCleanup = null; } },
   console
 };
 vm.createContext(context);
@@ -95,7 +98,7 @@ async function main() {
     assert.strictEqual(overlay.count('click'), 1, 'set-cover round ' + round + ' owns one backdrop listener');
     controls['set-cover-capture'].click();
     assert(overlay.classList.contains('show'), '100% preparation keeps the setup modal visible');
-    assert.strictEqual(overlay.count('click'), 1, 'preparation retains exactly one setup backdrop listener');
+    assert.strictEqual(overlay.count('click'), 2, 'preparation owns one setup listener and one capture-cancellation listener');
     assert.strictEqual(frames.length, 1, 'each capture start schedules one analysis frame');
     await frames.shift()();
     assert(overlay.classList.contains('show'), 'successful preparation transitions to the recommendation preview');

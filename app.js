@@ -209,14 +209,13 @@ function getVisibleCaptureSource(){
 function buildCanonicalCaptureSource(source){
   if(!pdfDoc||!source||!Number.isFinite(source.pageNumber))return Promise.reject(new Error('canonical capture source unavailable'));
   return pdfDoc.getPage(source.pageNumber).then(page=>{
-    const viewport=page.getViewport({scale:1}),pageCanvas=document.createElement('canvas');
-    pageCanvas.width=Math.max(1,Math.round(viewport.width));pageCanvas.height=Math.max(1,Math.round(viewport.height));
-    const pageContext=pageCanvas.getContext('2d'),renderTask=page.render({canvasContext:pageContext,viewport,background:'#fff'});
+    const viewport=page.getViewport({scale:1});
+    const canonicalWindow=CoverCapture.computeCanonicalWindow(source.canvasRect,source.visibleBounds,{width:viewport.width,height:viewport.height},source.viewportSize);
+    const viewCanvas=document.createElement('canvas');viewCanvas.width=Math.max(1,Math.round(canonicalWindow.width));viewCanvas.height=Math.max(1,Math.round(canonicalWindow.height));
+    const viewContext=viewCanvas.getContext('2d');viewContext.fillStyle='#fff';if(viewContext.fillRect)viewContext.fillRect(0,0,viewCanvas.width,viewCanvas.height);
+    const offsetX=canonicalWindow.x===0?0:-canonicalWindow.x,offsetY=canonicalWindow.y===0?0:-canonicalWindow.y;
+    const renderTask=page.render({canvasContext:viewContext,viewport,transform:[1,0,0,1,offsetX,offsetY],background:'#fff'});
     return renderTask.promise.then(()=>{
-      const canonicalWindow=CoverCapture.computeCanonicalWindow(source.canvasRect,source.visibleBounds,{width:pageCanvas.width,height:pageCanvas.height},source.viewportSize);
-      const viewCanvas=document.createElement('canvas');viewCanvas.width=Math.max(1,Math.round(canonicalWindow.width));viewCanvas.height=Math.max(1,Math.round(canonicalWindow.height));
-      const viewContext=viewCanvas.getContext('2d');viewContext.fillStyle='#fff';if(viewContext.fillRect)viewContext.fillRect(0,0,viewCanvas.width,viewCanvas.height);
-      viewContext.drawImage(pageCanvas,canonicalWindow.x,canonicalWindow.y,canonicalWindow.width,canonicalWindow.height,0,0,viewCanvas.width,viewCanvas.height);
       return {sourceKind:'canonical100',canvas:viewCanvas,canvasRect:{left:0,top:0,width:viewCanvas.width,height:viewCanvas.height},visibleBounds:{x:0,y:0,width:viewCanvas.width,height:viewCanvas.height},pageNumber:source.pageNumber,canonicalWindow};
     });
   });
@@ -307,7 +306,7 @@ function cropCanvasToDataUrl(capture){
 function startCoverAdjustment(sid,capture){
   if(!capture||!capture.rect||!capture.originalRect||!capture.visibleBounds)return;
   if(document._coverAdjustmentCleanup)document._coverAdjustmentCleanup();
-  const ratio=5/7;
+  const ratio=5/7,hasCanonicalStage=capture.sourceKind==='canonical100';
   const overlay=document.createElement('div'),tip=document.createElement('div'),rectEl=document.createElement('div'),actions=document.createElement('div');
   overlay.className='cover-adjustment-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','调整封面截图');
   tip.className='cover-adjustment-tip';tip.textContent='拖动或拉角调整 · 固定 5:7';
@@ -318,7 +317,7 @@ function startCoverAdjustment(sid,capture){
   restoreBtn.id='cover-adjustment-restore';restoreBtn.textContent='恢复推荐位置';
   cancelBtn.id='cover-adjustment-cancel';cancelBtn.textContent='取消';
   actions.appendChild(saveBtn);actions.appendChild(restoreBtn);actions.appendChild(cancelBtn);
-  if(capture.sourceKind==='canonical100'){
+  if(hasCanonicalStage){
     const sourceBounds={x:capture.visibleBounds.x,y:capture.visibleBounds.y,width:capture.visibleBounds.width,height:capture.visibleBounds.height};
     const stageScale=Math.min(1,Math.max(1,window.innerWidth-32)/sourceBounds.width,Math.max(1,window.innerHeight-152)/sourceBounds.height);
     const stageBounds={x:(window.innerWidth-sourceBounds.width*stageScale)/2,y:(window.innerHeight-sourceBounds.height*stageScale)/2,width:sourceBounds.width*stageScale,height:sourceBounds.height*stageScale};
@@ -367,11 +366,13 @@ function startCoverAdjustment(sid,capture){
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||/^[adwsfb]$/i.test(e.key)){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation()}
   }
   function onWheel(e){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation()}
+  function onViewportChange(){if(closed)return;cleanup();showToast('窗口尺寸已变化，请重新调整封面')}
   function cleanup(){
     if(closed)return;closed=true;stopActive();
     overlay.removeEventListener('pointerdown',onRectPointerDown);overlay.removeEventListener('pointermove',onPointerMove);overlay.removeEventListener('pointerup',onPointerEnd);overlay.removeEventListener('pointercancel',onPointerEnd);
     Object.keys(handles).forEach(corner=>handles[corner].removeEventListener('pointerdown',handleDown));
     document.removeEventListener('keydown',onKeyDown,true);document.removeEventListener('wheel',onWheel,wheelListenerOptions);
+    if(hasCanonicalStage&&window.removeEventListener){window.removeEventListener('resize',onViewportChange);window.removeEventListener('orientationchange',onViewportChange)}
     saveBtn.onclick=null;restoreBtn.onclick=null;cancelBtn.onclick=null;
     if(overlay.parentNode)overlay.parentNode.removeChild(overlay);
     if(document._coverAdjustmentCleanup===cleanup)document._coverAdjustmentCleanup=null;
@@ -393,6 +394,7 @@ function startCoverAdjustment(sid,capture){
   Object.keys(handles).forEach(corner=>handles[corner].addEventListener('pointerdown',handleDown));
   const wheelListenerOptions={capture:true,passive:false};
   document.addEventListener('keydown',onKeyDown,true);document.addEventListener('wheel',onWheel,wheelListenerOptions);document._coverAdjustmentCleanup=cleanup;
+  if(hasCanonicalStage&&window.addEventListener){window.addEventListener('resize',onViewportChange);window.addEventListener('orientationchange',onViewportChange)}
   previousFocus=beginCaptureUi(cleanup);apply(copyRect(capture.rect));saveBtn.focus();
 }
 function recommendVisibleCoverCrop(sourceOverride){
@@ -423,9 +425,33 @@ function recommendVisibleCoverCrop(sourceOverride){
 function startCoverCapture(sid){
   try{
     const modalOverlay=$('modal-overlay'),modalContent=$('modal-content');
-    const captureBtn=modalContent?Qs('#set-cover-capture',modalContent):null;
+    const captureBtn=modalContent?Qs('#set-cover-capture',modalContent):null,setupCancelBtn=modalContent?Qs('#modal-cancel',modalContent):null;
     if(captureBtn&&captureBtn._capturePreparing)return;
     if(captureBtn){captureBtn._capturePreparing=!0;captureBtn.disabled=!0;captureBtn.textContent='正在生成 100% 画面…'}
+    const setupCleanup=modalContent&&modalContent._modalCleanup;
+    let cancelled=!1,preparationClosed=!1,previousFocus=null;
+    function releasePreparation(restoreSetupCleanup){
+      if(preparationClosed)return;preparationClosed=!0;
+      if(document.removeEventListener)document.removeEventListener('keydown',onPreparationKeyDown,!0);
+      if(modalOverlay&&modalOverlay.removeEventListener)modalOverlay.removeEventListener('click',onPreparationBackdrop,!0);
+      if(setupCancelBtn&&setupCancelBtn.removeEventListener)setupCancelBtn.removeEventListener('click',onPreparationCancel,!0);
+      if(modalContent&&modalContent._modalCleanup===cancelPreparation)modalContent._modalCleanup=restoreSetupCleanup?setupCleanup:null;
+      if(captureBtn){captureBtn._capturePreparing=!1;captureBtn.disabled=!1;captureBtn.textContent='当前画面截图'}
+      endCaptureUi(cancelPreparation,previousFocus);
+    }
+    function cancelPreparation(){
+      if(cancelled)return;cancelled=!0;
+      if(setupCleanup)setupCleanup();else if(modalOverlay&&modalOverlay.classList)modalOverlay.classList.remove('show');
+      releasePreparation(!1);
+    }
+    function onPreparationKeyDown(e){if(e.key==='Escape'){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();cancelPreparation()}}
+    function onPreparationBackdrop(e){if(e.target===modalOverlay){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();cancelPreparation()}}
+    function onPreparationCancel(e){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();cancelPreparation()}
+    if(modalContent&&setupCleanup)modalContent._modalCleanup=cancelPreparation;
+    if(document.addEventListener)document.addEventListener('keydown',onPreparationKeyDown,!0);
+    if(modalOverlay&&modalOverlay.addEventListener)modalOverlay.addEventListener('click',onPreparationBackdrop,!0);
+    if(setupCancelBtn&&setupCancelBtn.addEventListener)setupCancelBtn.addEventListener('click',onPreparationCancel,!0);
+    previousFocus=beginCaptureUi(cancelPreparation);
     showToast('正在生成 100% 截图画面…');
     const stillOpen=()=>!modalOverlay||!modalOverlay.classList||!modalOverlay.classList.contains||modalOverlay.classList.contains('show');
     const stillCurrent=()=>!captureBtn||!modalContent||!modalContent.contains||modalContent.contains(captureBtn);
@@ -434,13 +460,14 @@ function startCoverCapture(sid){
         const visibleSource=getVisibleCaptureSource();
         if(!visibleSource)throw new Error('current page is not ready');
         const canonicalSource=await buildCanonicalCaptureSource(visibleSource);
-        if(!stillOpen()||!stillCurrent())return;
+        if(cancelled||!stillOpen()||!stillCurrent())return;
         const capture=recommendVisibleCoverCrop(canonicalSource);
         if(!capture||!capture.dataUrl)throw new Error('canonical recommendation unavailable');
-        if(modalContent&&modalContent._modalCleanup)modalContent._modalCleanup();
+        if(setupCleanup)setupCleanup();
+        releasePreparation(!1);
         showCoverRecommendation(sid,capture);
-      }catch(e){if(stillOpen()&&stillCurrent()){console.warn('canonical capture fail',e);showToast('100% 画面生成失败，请重试')}}
-      finally{if(captureBtn&&stillCurrent()){captureBtn._capturePreparing=!1;captureBtn.disabled=!1;captureBtn.textContent='当前画面截图'}}
+      }catch(e){if(!cancelled&&stillOpen()&&stillCurrent()){console.warn('canonical capture fail',e);showToast('100% 画面生成失败，请重试')}}
+      finally{if(!preparationClosed)releasePreparation(!cancelled&&stillOpen()&&stillCurrent())}
     };
     if(typeof requestAnimationFrame==='function')requestAnimationFrame(analyze);else setTimeout(analyze,0);
   }catch(e){console.warn('capture fail',e);showToast('截图失败')}
