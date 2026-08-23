@@ -11,6 +11,7 @@ let settings={zoom:'1.5',direction:'scroll',dualPage:!1,sidebarOpen:!0,theme:'ni
 let searchQuery='',sortMode='recent';
 let isWebtoon=!1,webtoonScrollPct=0;let rackPage=0;
 let captureUiActive=!1;
+let restoringProgress=!1;
 
 function $(id){return document.getElementById(id)}
 function Qs(sel,el){return el?el.querySelector(sel):document.querySelector(sel)}
@@ -656,10 +657,10 @@ async function loadCoverCandidates(sid){
     return cands.slice(0,12);
   }catch(e){return[]}
 }
-function openSeries(id){let s=findSeries(id);if(!s)return;currentSeries=id;chapters=s.chapters;currentChIdx=-1;currentPage=1;isWebtoon=!1;webtoonScrollPct=0;renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;renderedPages.clear();prefetchQueue=[];prefetching=!1;chapterLoadToken++;(function fadeOpen(){let bs=$('bookshelf'),rd=$('reader');bs.style.transition='opacity .2s ease';bs.style.opacity='0';setTimeout(function(){bs.classList.add('hidden');bs.style.opacity='';rd.classList.remove('hidden');rd.style.opacity='0';void rd.offsetWidth;rd.style.transition='opacity .2s ease';rd.style.opacity='1'},200)})();$('ch-info').textContent=s.name+' — 共 '+chapters.length+' 章';$('ch-count').textContent=chapters.length+' 章';$('page-info').textContent='- / -';$('page-container').innerHTML='';renderChapterList();if(chapters.length>0){let si=0;if(s.lastChNum){let f=chapters.findIndex(c=>c.chapterNum===s.lastChNum);if(f>=0)si=f}loadChapter(si);if(s.lastPage&&chapters[si]&&s.lastChNum===chapters[si].chapterNum)setTimeout(()=>{if(!isWebtoon)goToPage(s.lastPage);else restoreWebtoonScroll(s.lastPage)},500)}}
+function openSeries(id){let s=findSeries(id);if(!s)return;currentSeries=id;chapters=s.chapters;currentChIdx=-1;currentPage=1;isWebtoon=!1;webtoonScrollPct=0;restoringProgress=!1;renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;renderedPages.clear();prefetchQueue=[];prefetching=!1;chapterLoadToken++;(function fadeOpen(){let bs=$('bookshelf'),rd=$('reader');bs.style.transition='opacity .2s ease';bs.style.opacity='0';setTimeout(function(){bs.classList.add('hidden');bs.style.opacity='';rd.classList.remove('hidden');rd.style.opacity='0';void rd.offsetWidth;rd.style.transition='opacity .2s ease';rd.style.opacity='1'},200)})();$('ch-info').textContent=s.name+' — 共 '+chapters.length+' 章';$('ch-count').textContent=chapters.length+' 章';$('page-info').textContent='- / -';$('page-container').innerHTML='';renderChapterList();if(chapters.length>0){let si=0;if(s.lastChNum){let f=chapters.findIndex(c=>c.chapterNum===s.lastChNum);if(f>=0)si=f}const restoreState=s.lastPage&&chapters[si]&&s.lastChNum===chapters[si].chapterNum?{page:s.lastPage,pageProgress:s.lastPageProgress}:null;loadChapter(si,restoreState)}}
 
 function closeReader(){// Fire-and-forget: UI first, save in background
-  let s=null;if(currentSeries){s=findSeries(currentSeries);if(s&&currentChIdx>=0&&currentChIdx<chapters.length){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastPage=isWebtoon?getScrollProgress():currentPage;if(chapters[currentChIdx].status==='reading')chapters[currentChIdx].status='read'}}
+  let s=null;if(currentSeries){s=findSeries(currentSeries);if(s&&currentChIdx>=0&&currentChIdx<chapters.length){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastPage=isWebtoon?getScrollProgress():currentPage;if(!isWebtoon){let ratio=getNormalPageProgress();if(ratio!==null)s.lastPageProgress=ratio}if(chapters[currentChIdx].status==='reading')chapters[currentChIdx].status='read'}}
   chapterLoadToken++;markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;currentSeries=null;chapters=[];currentChIdx=-1;isWebtoon=!1;renderedPages.clear();
   (function fadeClose(){let rd=$('reader'),bs=$('bookshelf');rd.style.transition='opacity .2s ease';rd.style.opacity='0';setTimeout(function(){rd.classList.add('hidden');rd.style.opacity='';$('page-container').innerHTML='';bs.classList.remove('hidden');bs.style.opacity='0';void bs.offsetWidth;bs.style.transition='opacity .2s ease';bs.style.opacity='1';renderBookshelf()},200)})();
   if(s)saveSeriesBg(s);
@@ -672,12 +673,14 @@ function setChapterStatus(i,status){let c=chapters[i];if(c)c.status=status;let e
 // Webtoon detection
 function detectWebtoon(){if(!pdfDoc||!settings.webtoonAuto)return!1;try{for(let p=1;p<=Math.min(pdfDoc.numPages,3);p++){let pg=pdfDoc.getPage(p);if(pg){let vp=pg.getViewport({scale:1});if(vp.height/vp.width>3)return!0}}}catch(e){console.warn('webtoon detect fail',e)}return!1}
 function getScrollProgress(){let va=$('viewer-area'),pc=$('page-container');if(!va||!pc)return 0;let top=va.scrollTop,maxH=Math.max(pc.scrollHeight-va.clientHeight,1);return Math.round(top/maxH*100)}
-function restoreWebtoonScroll(pct){setTimeout(()=>{let va=$('viewer-area'),pc=$('page-container');if(va&&pc){let maxH=Math.max(pc.scrollHeight-va.clientHeight,1);va.scrollTop=maxH*pct/100}},200)}
+function restoreWebtoonScroll(pct,token){return new Promise(resolve=>{let started=Date.now();function apply(){let va=$('viewer-area'),pc=$('page-container');if(token!==undefined&&token!==chapterLoadToken){resolve(!1);return}if(!va||!pc){resolve(!1);return}let maxH=pc.scrollHeight-va.clientHeight;if(maxH>0||Date.now()-started>=2000){va.scrollTop=Math.max(maxH,1)*pct/100;resolve(!0);return}setTimeout(apply,16)}apply()})}
+function getNormalPageProgress(){if(!window.ReadingProgress||isWebtoon)return null;let va=$('viewer-area'),w=$('page-container').querySelector('[data-page="'+currentPage+'"]');if(!va||!w)return null;return window.ReadingProgress.pageRatioAtAnchor(va.getBoundingClientRect(),w.getBoundingClientRect())}
+async function restoreNormalPageProgress(state,token){if(!state||isWebtoon||!pdfDoc)return!1;let page=Math.max(1,Math.min(pdfDoc.numPages,parseInt(state.page,10)||1));for(let p=1;p<=page;p++){if(token!==chapterLoadToken)return!1;await renderPage(p)}if(token!==chapterLoadToken)return!1;let va=$('viewer-area'),w=$('page-container').querySelector('[data-page="'+page+'"]');if(!va||!w)return!1;currentPage=page;$('page-slider').value=page;updatePageInfo();if(page===pdfDoc.numPages)setChapterStatus(currentChIdx,'read');let ratio=window.ReadingProgress.normalizePageRatio(state.pageProgress);if(ratio===null)w.scrollIntoView({behavior:'auto',block:'start'});else{let vr=va.getBoundingClientRect();vr={top:vr.top,height:vr.height,scrollTop:va.scrollTop};let target=window.ReadingProgress.scrollTopForPageRatio(vr,w.getBoundingClientRect(),ratio),maxTop=Math.max(0,va.scrollHeight-va.clientHeight);if(target!==null)va.scrollTop=Math.max(0,Math.min(maxTop,target))}return!0}
 
-async function loadChapter(i){
+async function loadChapter(i,restoreState){
   if(i<0||i>=chapters.length)return;if(currentChIdx>=0&&currentChIdx<chapters.length&&currentChIdx!==i&&chapters[currentChIdx].status==='reading')setChapterStatus(currentChIdx,'read');
   markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;renderedPages.clear();isWebtoon=!1;webtoonScrollPct=0;
-  const myToken=++chapterLoadToken;currentChIdx=i;let c=chapters[i];setChapterStatus(i,'reading');
+  const myToken=++chapterLoadToken;restoringProgress=!1;currentChIdx=i;let c=chapters[i];setChapterStatus(i,'reading');
   $('ch-info').textContent=(currentSeries?(findSeries(currentSeries)?.name+' — '):'')+'第'+c.chapterNum+'话 · '+c.name;highlightChapter(i);updateNavButtons();
   $('loading').classList.add('show');$('load-text').textContent='正在加载 第'+c.chapterNum+'话...';
   $('chapter-list').style.pointerEvents='none';$('page-slider').disabled=!0;
@@ -691,7 +694,19 @@ async function loadChapter(i){
   $('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';$('page-slider').disabled=!1;
   currentPage=1;if(!isWebtoon){$('page-slider').max=c.pages;$('page-slider').value=1;updatePageInfo()}else{$('page-slider').style.display='none';updatePageInfo()}let pc=$('page-container');pc.innerHTML='';
   for(let p=1;p<=c.pages;p++){let w=document.createElement('div');w.className='page-wrapper';w.dataset.page=p;w.dataset.captureRenderState='idle';let cv=document.createElement('canvas');cv.dataset.captureRenderState='idle';w.appendChild(cv);let l=document.createElement('div');l.className='page-label';l.textContent=isWebtoon?'':(p+' / '+c.pages);pc.appendChild(w);pc.appendChild(l)}
-  $('viewer-area').scrollTop=0;renderVisiblePages();saveProgress();prefetchNextSafe(i);
+  $('viewer-area').scrollTop=0;
+  if(restoreState&&!isWebtoon){
+    restoringProgress=!0;
+    try{await restoreNormalPageProgress(restoreState,myToken)}finally{if(myToken===chapterLoadToken)restoringProgress=!1}
+  }else if(restoreState&&isWebtoon){
+    restoringProgress=!0;
+    renderVisiblePages();
+    try{await restoreWebtoonScroll(restoreState.page,myToken)}finally{if(myToken===chapterLoadToken)restoringProgress=!1}
+  }
+  if(myToken!==chapterLoadToken)return;
+  renderVisiblePages();
+  if(!restoreState||isWebtoon)saveProgress();
+  prefetchNextSafe(i);
 }
 
 function prefetchNextSafe(idx){let n1=idx+1,n2=idx+2;if(n1<chapters.length&&chapters[n1].cached&&!chapters[n1].loaded&&!prefetchQueue.includes(n1))prefetchQueue.push(n1);if(n2<chapters.length&&chapters[n2].cached&&!chapters[n2].loaded&&!prefetchQueue.includes(n2))prefetchQueue.push(n2);if(!prefetching)drainPrefetchSafe()}
@@ -717,7 +732,7 @@ async function renderPage(pn){
 function renderVisiblePages(){if(!pdfDoc)return;let cr=$('viewer-area').getBoundingClientRect(),ws=$('page-container').querySelectorAll('.page-wrapper'),tr=[];for(let w of ws){let r=w.getBoundingClientRect();if(r.bottom>=cr.top-400&&r.top<=cr.bottom+400){let p=parseInt(w.dataset.page);if(!renderedPages.has(p))tr.push(p)}}for(let i=0;i<tr.length;i+=3)tr.slice(i,i+3).forEach(p=>renderPage(p))}
 function reRenderAll(){markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];renderedPages.clear();renderVisiblePages()}
 
-function goToPage(n){if(!pdfDoc||isWebtoon)return;n=Math.max(1,Math.min(pdfDoc.numPages,n));currentPage=n;$('page-slider').value=n;updatePageInfo();let w=$('page-container').querySelector('[data-page="'+n+'"]');if(w)w.scrollIntoView({behavior:'smooth',block:'start'});if(n===pdfDoc.numPages)setChapterStatus(currentChIdx,'read');saveProgress()}
+function goToPage(n,options){if(!pdfDoc||isWebtoon)return;options=options||{};n=Math.max(1,Math.min(pdfDoc.numPages,n));currentPage=n;$('page-slider').value=n;updatePageInfo();let w=$('page-container').querySelector('[data-page="'+n+'"]');if(w)w.scrollIntoView({behavior:options.behavior||'smooth',block:'start'});if(n===pdfDoc.numPages)setChapterStatus(currentChIdx,'read');if(!options.suppressSave)saveProgress(0)}
 function nextPage(){if(!pdfDoc)return;if(isWebtoon){scrollWebtoon(.5);return}if(currentPage<pdfDoc.numPages)goToPage(currentPage+1);else nextChapter()}
 function prevPage(){if(!pdfDoc)return;if(isWebtoon){scrollWebtoon(-.5);return}if(currentPage>1)goToPage(currentPage-1);else prevChapter()}
 function scrollWebtoon(dir){let va=$('viewer-area'),h=va.clientHeight*.7;va.scrollBy({top:dir*h,behavior:'smooth'})}
@@ -725,10 +740,10 @@ async function nextChapter(){if(currentChIdx+1<chapters.length){setChapterStatus
 async function prevChapter(){if(currentChIdx>0){setChapterStatus(currentChIdx,'read');await loadChapter(currentChIdx-1);if(!isWebtoon)goToPage(chapters[currentChIdx].pages||1);showToast('◀ 第'+chapters[currentChIdx].chapterNum+'话')}else showToast('已经是第一章了')}
 function updateNavButtons(){$('btn-prev-ch').disabled=currentChIdx<=0;$('btn-next-ch').disabled=currentChIdx>=chapters.length-1}
 function updatePageInfo(){if(!pdfDoc){$('page-info').textContent='- / -';return}if(isWebtoon){$('page-info').textContent='滚动 '+getScrollProgress()+'%'}else{$('page-info').textContent=currentPage+' / '+pdfDoc.numPages}}
-async function saveProgress(){if(currentChIdx<0||!currentSeries)return;let s=findSeries(currentSeries);if(s){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastPage=isWebtoon?getScrollProgress():currentPage;saveSeriesBg(s)}}
+async function saveProgress(pageProgressOverride){if(currentChIdx<0||!currentSeries||restoringProgress)return;let s=findSeries(currentSeries);if(s){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastPage=isWebtoon?getScrollProgress():currentPage;if(!isWebtoon){let ratio=pageProgressOverride===undefined?getNormalPageProgress():window.ReadingProgress.normalizePageRatio(pageProgressOverride);if(ratio!==null)s.lastPageProgress=ratio}saveSeriesBg(s)}}
 
 // ===== Event Bindings =====
-$('viewer-area').addEventListener('scroll',()=>{if(scrollTimer)clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(!pdfDoc)return;if(!isWebtoon){let cr=$('viewer-area').getBoundingClientRect(),my=cr.top+cr.height*.3,ws=$('page-container').querySelectorAll('.page-wrapper'),bp=currentPage,bd=Infinity;for(let w of ws){let r=w.getBoundingClientRect(),d=Math.abs(r.top-my);if(d<bd){bd=d;bp=parseInt(w.dataset.page)}}if(bp!==currentPage){currentPage=bp;$('page-slider').value=currentPage;updatePageInfo();saveProgress()}}else{updatePageInfo();saveProgress();if(getScrollProgress()>=99&&currentChIdx<chapters.length){chapters[currentChIdx].status='read'}}renderVisiblePages()},150)});
+$('viewer-area').addEventListener('scroll',()=>{if(scrollTimer)clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(!pdfDoc)return;if(!isWebtoon){let cr=$('viewer-area').getBoundingClientRect(),my=cr.top+cr.height*.3,ws=$('page-container').querySelectorAll('.page-wrapper'),bp=currentPage,bd=Infinity;for(let w of ws){let r=w.getBoundingClientRect(),d=Math.abs(r.top-my);if(d<bd){bd=d;bp=parseInt(w.dataset.page)}}if(bp!==currentPage){currentPage=bp;$('page-slider').value=currentPage;updatePageInfo()}saveProgress()}else{updatePageInfo();saveProgress();if(getScrollProgress()>=99&&currentChIdx<chapters.length){chapters[currentChIdx].status='read'}}renderVisiblePages()},150)});
 $('page-slider').addEventListener('input',function(){goToPage(parseInt(this.value))});
 $('zoom-select').addEventListener('change',function(){let v=this.value;fitWidth=v==='fit';if(!fitWidth)zoom=parseFloat(v);reRenderAll();settings.zoom=v;db.saveSetting('zoom',v)});
 $('btn-back').addEventListener('click',closeReader);
