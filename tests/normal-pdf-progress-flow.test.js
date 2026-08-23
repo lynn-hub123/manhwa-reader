@@ -64,6 +64,7 @@ function makeHarness() {
     chapters: [{ chapterNum: 7 }],
     isWebtoon: false,
     restoringProgress: false,
+    viewRestoreGeneration: 0,
     pdfDoc: { numPages: 2 },
     chapterLoadToken: 1,
     findSeries: () => series,
@@ -76,8 +77,10 @@ function makeHarness() {
     rendered: []
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction('getNormalPageProgressAt'), context);
   vm.runInContext(extractFunction('getNormalPageProgress'), context);
   vm.runInContext(extractFunction('saveProgress'), context);
+  vm.runInContext(extractFunction('restoreTokenIsCurrent'), context);
   vm.runInContext(extractFunction('restoreWebtoonScroll'), context);
   vm.runInContext(extractFunction('restoreNormalPageProgress'), context);
   return { context, viewer, wrappers, series };
