@@ -1,7 +1,9 @@
 # 韩漫阅读器完整功能验收清单
 
-> 验收环境：`http://localhost:8766/`（功能工作树；`8765` 是未合并的 master）  
-> 验收方式：每项实际操作后勾选；发现问题时记录复现步骤、浏览器和控制台错误。  
+> 验收环境：`http://localhost:8766/`（功能工作树；`8765` 是未合并的 master）
+>
+> 验收方式：每项实际操作后勾选；发现问题时记录复现步骤、浏览器和控制台错误。
+>
 > 当前基线：功能工作树 `F:\manhwa-reader\.worktrees\recommended-cover-capture` 的 `feature/recommended-cover-capture` 分支；固定 100% 取景与审查修复为 `8bbd130`、`cad5ebc`。主检出仍为 `master@ba00baf`，最终合并仍待真实浏览器验收。
 
 ## 0. 验收记录
