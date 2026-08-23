@@ -76,7 +76,10 @@ const context = {
   setTimeout(callback) { timers.push(callback); return timers.length; },
   requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
   showToast(message) { toasts.push(message); },
-  recommendVisibleCoverCrop() { return null; },
+  getVisibleCaptureSource() { return { pageNumber: 1 }; },
+  buildCanonicalCaptureSource() { return Promise.resolve({ sourceKind: 'canonical100' }); },
+  recommendVisibleCoverCrop() { return { dataUrl: 'data:image/jpeg;base64,recommended' }; },
+  showCoverRecommendation() { overlay.classList.add('show'); },
   console
 };
 vm.createContext(context);
@@ -85,14 +88,19 @@ vm.runInContext(extractFunction('showModal'), context);
 
 function flushTimers() { while (timers.length) timers.shift()(); }
 
-for (let round = 1; round <= 2; round += 1) {
-  context.showModal('set-cover', { sid: 'series-1' });
-  flushTimers();
-  assert.strictEqual(overlay.count('click'), 1, 'Minor 2: set-cover round ' + round + ' owns one backdrop listener');
-  controls['set-cover-capture'].click();
-  assert(!overlay.classList.contains('show'), 'Minor 2: capture closes the setup modal immediately');
-  assert.strictEqual(overlay.count('click'), 0, 'Minor 2: capture round ' + round + ' removes its backdrop listener through modal cleanup');
+async function main() {
+  for (let round = 1; round <= 2; round += 1) {
+    context.showModal('set-cover', { sid: 'series-1' });
+    flushTimers();
+    assert.strictEqual(overlay.count('click'), 1, 'set-cover round ' + round + ' owns one backdrop listener');
+    controls['set-cover-capture'].click();
+    assert(overlay.classList.contains('show'), '100% preparation keeps the setup modal visible');
+    assert.strictEqual(overlay.count('click'), 1, 'preparation retains exactly one setup backdrop listener');
+    assert.strictEqual(frames.length, 1, 'each capture start schedules one analysis frame');
+    await frames.shift()();
+    assert(overlay.classList.contains('show'), 'successful preparation transitions to the recommendation preview');
+    assert.strictEqual(overlay.count('click'), 0, 'transitioning to recommendation removes the old setup backdrop listener');
+  }
 }
 
-assert.strictEqual(frames.length, 2, 'each capture start schedules one analysis frame');
-console.log('capture-modal-cleanup: PASS');
+main().then(() => console.log('capture-modal-cleanup: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });

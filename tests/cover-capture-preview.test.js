@@ -139,6 +139,8 @@ function makeHarness() {
     Qs: (selector, root) => root.querySelector(selector),
     requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
     setTimeout(callback) { frames.push(callback); return frames.length; },
+    getVisibleCaptureSource() { return { pageNumber: 1 }; },
+    buildCanonicalCaptureSource() { return Promise.resolve({ sourceKind: 'canonical100' }); },
     recommendVisibleCoverCrop() { return recommendation; },
     async setSeriesCover(sid, dataUrl, options) {
       saves.push([sid, dataUrl, options]);
@@ -158,7 +160,7 @@ function makeHarness() {
     closeReader() { readerActions.push('closeReader'); },
     captureUiActive: false,
     fitWidth: false,
-    console
+    console: { warn() {}, error: console.error }
   };
   const zoomSelect = { tagName: 'SELECT', value: '1' };
   const sidebar = { classList: { toggle() { readerActions.push('sidebar'); } } };
@@ -189,7 +191,7 @@ function makeHarness() {
     priorFocus,
     setSaveResults(...results) { saveResults.push(...results); },
     setRecommendation(value) { recommendation = value; },
-    flushFrame() { assert.strictEqual(frames.length, 1, 'capture analysis must queue exactly one frame'); frames.shift()(); },
+    async flushFrame() { assert.strictEqual(frames.length, 1, 'capture analysis must queue exactly one frame'); await frames.shift()(); },
     escape() {
       const event = { key: 'Escape', target: document.activeElement, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } };
       document.dispatch('keydown', event);
@@ -237,28 +239,30 @@ assert.deepStrictEqual(focusHarness.readerActions, ['nextPage'], 'Important 3: r
 const loadingHarness = makeHarness();
 loadingHarness.modalOverlay.classList.add('show');
 loadingHarness.context.startCoverCapture('series-1');
-assert(!loadingHarness.modalOverlay.classList.contains('show'), 'start must close the setup modal before analysis');
-assert.deepStrictEqual(loadingHarness.toasts, ['正在分析当前画面…']);
+assert(loadingHarness.modalOverlay.classList.contains('show'), '100% preparation keeps the setup modal visible');
+assert.deepStrictEqual(loadingHarness.toasts, ['正在生成 100% 截图画面…']);
 assert.strictEqual(loadingHarness.frames.length, 1, 'analysis must wait for the next frame');
 loadingHarness.setRecommendation(null);
-loadingHarness.flushFrame();
-assert.deepStrictEqual(loadingHarness.toasts, ['正在分析当前画面…', '当前画面还未加载完成']);
-assert(!loadingHarness.modalOverlay.classList.contains('show'), 'a null recommendation must not open a preview');
+await loadingHarness.flushFrame();
+assert.deepStrictEqual(loadingHarness.toasts, ['正在生成 100% 截图画面…', '100% 画面生成失败，请重试']);
+assert(loadingHarness.modalOverlay.classList.contains('show'), 'a null recommendation keeps the setup modal open for retry');
 assert.deepStrictEqual(loadingHarness.saves, []);
 
 const unavailablePreviewHarness = makeHarness();
 unavailablePreviewHarness.setRecommendation({ rect: capture.rect, dataUrl: null });
+unavailablePreviewHarness.modalOverlay.classList.add('show');
 unavailablePreviewHarness.context.startCoverCapture('series-1');
-unavailablePreviewHarness.flushFrame();
-assert.deepStrictEqual(unavailablePreviewHarness.toasts, ['正在分析当前画面…', '当前画面还未加载完成'], 'a recommendation without preview data must report the same loading failure');
-assert(!unavailablePreviewHarness.modalOverlay.classList.contains('show'), 'a recommendation without preview data must not open a preview');
+await unavailablePreviewHarness.flushFrame();
+assert.deepStrictEqual(unavailablePreviewHarness.toasts, ['正在生成 100% 截图画面…', '100% 画面生成失败，请重试'], 'a recommendation without preview data must report the canonical rendering failure');
+assert(unavailablePreviewHarness.modalOverlay.classList.contains('show'), 'a recommendation without preview data keeps retry available');
 assert.deepStrictEqual(unavailablePreviewHarness.saves, []);
 assert.deepStrictEqual(unavailablePreviewHarness.adjustments, []);
 
 const acceptHarness = makeHarness();
 acceptHarness.setRecommendation(capture);
+acceptHarness.modalOverlay.classList.add('show');
 acceptHarness.context.startCoverCapture('series-1');
-acceptHarness.flushFrame();
+await acceptHarness.flushFrame();
 assert(acceptHarness.modalOverlay.classList.contains('show'));
 assert.match(acceptHarness.modalContent.innerHTML, /系统推荐/);
 assert.match(acceptHarness.modalContent.innerHTML, /src="data:image\/jpeg;base64,recommended-cover"/);

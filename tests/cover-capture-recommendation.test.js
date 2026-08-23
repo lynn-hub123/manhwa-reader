@@ -223,6 +223,29 @@ assert.match(recommendation.dataUrl, /^data:image\/jpeg;base64,/);
 assert(scoredCandidates.length > 0);
 scoredCandidates.forEach((rect) => assert(Math.abs(rect.width / rect.height - 5 / 7) < 1e-10, 'every candidate passed to the scorer must have a 5:7 ratio'));
 
+const canonicalCandidates = [];
+CoverCapture.chooseCandidate = function (candidates, scorer) {
+  return originalChooseCandidate(candidates, function (rect) {
+    canonicalCandidates.push(rect);
+    return scorer(rect);
+  });
+};
+const canonicalBounds = { x: 0, y: 0, width: 500, height: 500 };
+const canonicalRecommendation = context.recommendVisibleCoverCrop({
+  sourceKind: 'canonical100',
+  canvas: secondCanvas,
+  canvasRect: { left: 0, top: 0, width: 500, height: 500 },
+  visibleBounds: canonicalBounds
+});
+CoverCapture.chooseCandidate = originalChooseCandidate;
+const largestCanonicalCrop = CoverCapture.fitRect(canonicalBounds, 5 / 7, 0);
+assert(canonicalRecommendation, 'canonical source must produce a recommendation');
+assert(canonicalCandidates.length > 0, 'canonical source must score position candidates');
+canonicalCandidates.forEach((rect) => {
+  assert.strictEqual(rect.width, largestCanonicalCrop.width, 'canonical recommendation may change position but must not shrink below the largest 5:7 crop');
+  assert.strictEqual(rect.height, largestCanonicalCrop.height, 'canonical recommendation must retain the largest available 5:7 height');
+});
+
 pixelAccessDenied = true;
 const scoringFallback = context.recommendVisibleCoverCrop();
 pixelAccessDenied = false;

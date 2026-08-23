@@ -70,6 +70,10 @@ function makeElement(tagName) {
     querySelector(selector) { return find(this, selector); },
     querySelectorAll(selector) { return findAll(this, selector); }
   });
+  if (tagName.toLowerCase() === 'canvas') {
+    element.width = 0;element.height = 0;element._drawCalls = [];
+    element.getContext = function () { return { drawImage: (...args) => element._drawCalls.push(args) }; };
+  }
   Object.defineProperty(element, 'innerHTML', {
     get() { return this._innerHTML || ''; },
     set(value) { this._innerHTML = value; }
@@ -115,6 +119,7 @@ function makeHarness() {
     },
     showToast(message) { toasts.push(message); },
     captureUiActive: false,
+    window: { innerWidth: 800, innerHeight: 700 },
     console
   };
   vm.createContext(context);
@@ -327,6 +332,31 @@ async function main() {
   assert.strictEqual(harness.document.count('keydown', true), 1, 'reopening after exit has one adjustment keyboard listener');
   assert.strictEqual(harness.document.querySelectorAll('.cover-adjustment-overlay').length, 1, 'reopening has one overlay/action set');
   harness.button('cover-adjustment-cancel').click();
+
+  const canonicalHarness = makeHarness();
+  const canonicalCanvas = { width: 600, height: 500 };
+  const canonicalCapture = {
+    sourceKind: 'canonical100',
+    canvas: canonicalCanvas,
+    canvasRect: { left: 0, top: 0, width: 600, height: 500 },
+    visibleBounds: { x: 0, y: 0, width: 600, height: 500 },
+    rect: { x: 175, y: 75, width: 250, height: 350 },
+    originalRect: { x: 175, y: 75, width: 250, height: 350 }
+  };
+  canonicalHarness.context.startCoverAdjustment('series-canonical', canonicalCapture);
+  const canonicalOverlay = canonicalHarness.overlay();
+  const stage = canonicalOverlay.querySelector('.cover-adjustment-stage');
+  assert(stage, 'the canonical adjustment must display a standalone comic stage');
+  assert.strictEqual(stage.tagName, 'CANVAS');
+  assert.deepStrictEqual(stage._drawCalls, [[canonicalCanvas, 0, 0]], 'the standalone stage must display the canonical 100% source');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(canonicalCapture.canvasRect)), { left: 100, top: 100, width: 600, height: 500 }, 'the crop source must map to the centered standalone stage');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(canonicalCapture.visibleBounds)), { x: 100, y: 100, width: 600, height: 500 });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(canonicalCapture.rect)), { x: 275, y: 175, width: 250, height: 350 }, 'the recommendation must keep its source position when mapped onto the standalone stage');
+  assert.strictEqual(canonicalHarness.rect().style.left, '275px');
+  assert.strictEqual(canonicalHarness.rect().style.top, '175px');
+  assert.strictEqual(canonicalOverlay.querySelector('.cover-adjustment-tip').textContent, '100% 画面 · 拖动或拉角调整 · 固定 5:7');
+  canonicalHarness.button('cover-adjustment-cancel').click();
+  assert.strictEqual(canonicalHarness.overlay(), null, 'closing canonical adjustment removes its standalone stage');
   console.log('cover-capture-adjustment: PASS');
 }
 

@@ -202,9 +202,24 @@ function getVisibleCaptureSource(){
     const canvasRect=canvas.getBoundingClientRect();
     const left=Math.max(canvasRect.left,limit.left),top=Math.max(canvasRect.top,limit.top),right=Math.min(canvasRect.right,limit.right),bottom=Math.min(canvasRect.bottom,limit.bottom);
     const width=Math.max(0,right-left),height=Math.max(0,bottom-top),area=width*height;
-    if(area>0&&(!best||area>best.area))best={canvas,canvasRect,visibleBounds:{x:left,y:top,width,height},area};
+    if(area>0&&(!best||area>best.area))best={canvas,canvasRect,visibleBounds:{x:left,y:top,width,height},pageNumber:parseInt(wrapper&&wrapper.dataset?wrapper.dataset.page:'',10),area};
   });
-  return best?{canvas:best.canvas,canvasRect:best.canvasRect,visibleBounds:best.visibleBounds}:null;
+  return best?{canvas:best.canvas,canvasRect:best.canvasRect,visibleBounds:best.visibleBounds,pageNumber:best.pageNumber,viewportSize:{width:Math.max(0,limit.right-limit.left),height:Math.max(0,limit.bottom-limit.top)}}:null;
+}
+function buildCanonicalCaptureSource(source){
+  if(!pdfDoc||!source||!Number.isFinite(source.pageNumber))return Promise.reject(new Error('canonical capture source unavailable'));
+  return pdfDoc.getPage(source.pageNumber).then(page=>{
+    const viewport=page.getViewport({scale:1}),pageCanvas=document.createElement('canvas');
+    pageCanvas.width=Math.max(1,Math.round(viewport.width));pageCanvas.height=Math.max(1,Math.round(viewport.height));
+    const pageContext=pageCanvas.getContext('2d'),renderTask=page.render({canvasContext:pageContext,viewport,background:'#fff'});
+    return renderTask.promise.then(()=>{
+      const canonicalWindow=CoverCapture.computeCanonicalWindow(source.canvasRect,source.visibleBounds,{width:pageCanvas.width,height:pageCanvas.height},source.viewportSize);
+      const viewCanvas=document.createElement('canvas');viewCanvas.width=Math.max(1,Math.round(canonicalWindow.width));viewCanvas.height=Math.max(1,Math.round(canonicalWindow.height));
+      const viewContext=viewCanvas.getContext('2d');viewContext.fillStyle='#fff';if(viewContext.fillRect)viewContext.fillRect(0,0,viewCanvas.width,viewCanvas.height);
+      viewContext.drawImage(pageCanvas,canonicalWindow.x,canonicalWindow.y,canonicalWindow.width,canonicalWindow.height,0,0,viewCanvas.width,viewCanvas.height);
+      return {sourceKind:'canonical100',canvas:viewCanvas,canvasRect:{left:0,top:0,width:viewCanvas.width,height:viewCanvas.height},visibleBounds:{x:0,y:0,width:viewCanvas.width,height:viewCanvas.height},pageNumber:source.pageNumber,canonicalWindow};
+    });
+  });
 }
 function scoreCaptureCandidate(canvas,canvasRect,candidate,visibleBounds){
   try{
@@ -292,7 +307,7 @@ function cropCanvasToDataUrl(capture){
 function startCoverAdjustment(sid,capture){
   if(!capture||!capture.rect||!capture.originalRect||!capture.visibleBounds)return;
   if(document._coverAdjustmentCleanup)document._coverAdjustmentCleanup();
-  const bounds=capture.visibleBounds,ratio=5/7;
+  const ratio=5/7;
   const overlay=document.createElement('div'),tip=document.createElement('div'),rectEl=document.createElement('div'),actions=document.createElement('div');
   overlay.className='cover-adjustment-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','调整封面截图');
   tip.className='cover-adjustment-tip';tip.textContent='拖动或拉角调整 · 固定 5:7';
@@ -303,7 +318,21 @@ function startCoverAdjustment(sid,capture){
   restoreBtn.id='cover-adjustment-restore';restoreBtn.textContent='恢复推荐位置';
   cancelBtn.id='cover-adjustment-cancel';cancelBtn.textContent='取消';
   actions.appendChild(saveBtn);actions.appendChild(restoreBtn);actions.appendChild(cancelBtn);
+  if(capture.sourceKind==='canonical100'){
+    const sourceBounds={x:capture.visibleBounds.x,y:capture.visibleBounds.y,width:capture.visibleBounds.width,height:capture.visibleBounds.height};
+    const stageScale=Math.min(1,Math.max(1,window.innerWidth-32)/sourceBounds.width,Math.max(1,window.innerHeight-152)/sourceBounds.height);
+    const stageBounds={x:(window.innerWidth-sourceBounds.width*stageScale)/2,y:(window.innerHeight-sourceBounds.height*stageScale)/2,width:sourceBounds.width*stageScale,height:sourceBounds.height*stageScale};
+    capture.rect=CoverCapture.mapRectBetweenBounds(capture.rect,sourceBounds,stageBounds);
+    capture.originalRect=CoverCapture.mapRectBetweenBounds(capture.originalRect,sourceBounds,stageBounds);
+    capture.canvasRect={left:stageBounds.x,top:stageBounds.y,width:stageBounds.width,height:stageBounds.height};
+    capture.visibleBounds={x:stageBounds.x,y:stageBounds.y,width:stageBounds.width,height:stageBounds.height};
+    const stage=document.createElement('canvas');stage.className='cover-adjustment-stage';stage.width=capture.canvas.width;stage.height=capture.canvas.height;
+    stage.style.left=stageBounds.x+'px';stage.style.top=stageBounds.y+'px';stage.style.width=stageBounds.width+'px';stage.style.height=stageBounds.height+'px';
+    const stageContext=stage.getContext('2d');stageContext.drawImage(capture.canvas,0,0);overlay.appendChild(stage);
+    tip.textContent='100% 画面 · 拖动或拉角调整 · 固定 5:7';
+  }
   overlay.appendChild(tip);overlay.appendChild(rectEl);overlay.appendChild(actions);document.body.appendChild(overlay);
+  const bounds=capture.visibleBounds;
   const handles={};
   ['nw','ne','sw','se'].forEach(corner=>{const handle=document.createElement('button');handle.type='button';handle.className='cover-adjustment-handle cover-adjustment-handle-'+corner;handle.dataset.corner=corner;handle.setAttribute('aria-label','调整 '+corner+' 角');rectEl.appendChild(handle);handles[corner]=handle});
   let active=null,closed=false,saving=false,previousFocus=null;
@@ -366,14 +395,20 @@ function startCoverAdjustment(sid,capture){
   document.addEventListener('keydown',onKeyDown,true);document.addEventListener('wheel',onWheel,wheelListenerOptions);document._coverAdjustmentCleanup=cleanup;
   previousFocus=beginCaptureUi(cleanup);apply(copyRect(capture.rect));saveBtn.focus();
 }
-function recommendVisibleCoverCrop(){
-  const source=getVisibleCaptureSource();
+function recommendVisibleCoverCrop(sourceOverride){
+  const source=sourceOverride||getVisibleCaptureSource();
   if(!source)return null;
   const fallback=CoverCapture.fitRect(source.visibleBounds,5/7,0);
   let rect=fallback;
   try{
     let scoringFailed=false;
-    const candidate=CoverCapture.chooseCandidate(CoverCapture.buildCandidates(source.visibleBounds,5/7),candidateRect=>{
+    let candidates=CoverCapture.buildCandidates(source.visibleBounds,5/7);
+    if(source.sourceKind==='canonical100'){
+      const epsilon=Math.max(1,fallback.width)*1e-9;
+      candidates=candidates.filter(candidateRect=>Math.abs(candidateRect.width-fallback.width)<=epsilon&&Math.abs(candidateRect.height-fallback.height)<=epsilon);
+      if(!candidates.length)candidates=[fallback];
+    }
+    const candidate=CoverCapture.chooseCandidate(candidates,candidateRect=>{
       const score=scoreCaptureCandidate(source.canvas,source.canvasRect,candidateRect,source.visibleBounds);
       if(score<=-1000000)scoringFailed=true;
       return score;
@@ -383,15 +418,30 @@ function recommendVisibleCoverCrop(){
   rect={x:rect.x,y:rect.y,width:rect.width,height:rect.height};
   let dataUrl=null;
   try{dataUrl=cropCanvasToDataUrl({canvas:source.canvas,canvasRect:source.canvasRect,rect});if(!dataUrl)throw new Error('capture preview unavailable')}catch(e){rect={x:fallback.x,y:fallback.y,width:fallback.width,height:fallback.height};try{dataUrl=cropCanvasToDataUrl({canvas:source.canvas,canvasRect:source.canvasRect,rect})}catch(ignore){}}
-  return {canvas:source.canvas,canvasRect:source.canvasRect,visibleBounds:{x:source.visibleBounds.x,y:source.visibleBounds.y,width:source.visibleBounds.width,height:source.visibleBounds.height},rect,originalRect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},dataUrl};
+  return {sourceKind:source.sourceKind,canvas:source.canvas,canvasRect:source.canvasRect,visibleBounds:{x:source.visibleBounds.x,y:source.visibleBounds.y,width:source.visibleBounds.width,height:source.visibleBounds.height},rect,originalRect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},dataUrl};
 }
 function startCoverCapture(sid){
   try{
     const modalOverlay=$('modal-overlay'),modalContent=$('modal-content');
-    if(modalContent&&modalContent._modalCleanup)modalContent._modalCleanup();
-    else if(modalOverlay)modalOverlay.classList.remove('show');
-    showToast('正在分析当前画面…');
-    const analyze=function(){let capture=null;try{capture=recommendVisibleCoverCrop()}catch(e){}if(!capture||!capture.dataUrl){showToast('当前画面还未加载完成');return}showCoverRecommendation(sid,capture)};
+    const captureBtn=modalContent?Qs('#set-cover-capture',modalContent):null;
+    if(captureBtn&&captureBtn._capturePreparing)return;
+    if(captureBtn){captureBtn._capturePreparing=!0;captureBtn.disabled=!0;captureBtn.textContent='正在生成 100% 画面…'}
+    showToast('正在生成 100% 截图画面…');
+    const stillOpen=()=>!modalOverlay||!modalOverlay.classList||!modalOverlay.classList.contains||modalOverlay.classList.contains('show');
+    const stillCurrent=()=>!captureBtn||!modalContent||!modalContent.contains||modalContent.contains(captureBtn);
+    const analyze=async function(){
+      try{
+        const visibleSource=getVisibleCaptureSource();
+        if(!visibleSource)throw new Error('current page is not ready');
+        const canonicalSource=await buildCanonicalCaptureSource(visibleSource);
+        if(!stillOpen()||!stillCurrent())return;
+        const capture=recommendVisibleCoverCrop(canonicalSource);
+        if(!capture||!capture.dataUrl)throw new Error('canonical recommendation unavailable');
+        if(modalContent&&modalContent._modalCleanup)modalContent._modalCleanup();
+        showCoverRecommendation(sid,capture);
+      }catch(e){if(stillOpen()&&stillCurrent()){console.warn('canonical capture fail',e);showToast('100% 画面生成失败，请重试')}}
+      finally{if(captureBtn&&stillCurrent()){captureBtn._capturePreparing=!1;captureBtn.disabled=!1;captureBtn.textContent='当前画面截图'}}
+    };
     if(typeof requestAnimationFrame==='function')requestAnimationFrame(analyze);else setTimeout(analyze,0);
   }catch(e){console.warn('capture fail',e);showToast('截图失败')}
 }

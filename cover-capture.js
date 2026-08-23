@@ -82,5 +82,34 @@
     return { x: x, y: y, width: width, height: height };
   }
 
-  return { fitRect: fitRect, buildCandidates: buildCandidates, chooseCandidate: chooseCandidate, clampRect: clampRect };
+  function computeCanonicalWindow(canvasRect, visibleBounds, canonicalSize, viewportSize) {
+    var canvasWidth = positive(canvasRect && canvasRect.width, 1);
+    var canvasHeight = positive(canvasRect && canvasRect.height, 1);
+    var canonicalWidth = positive(canonicalSize && canonicalSize.width, 1);
+    var canonicalHeight = positive(canonicalSize && canonicalSize.height, 1);
+    var viewportWidth = positive(viewportSize && viewportSize.width, canonicalWidth);
+    var viewportHeight = positive(viewportSize && viewportSize.height, canonicalHeight);
+    var visibleCenterX = visibleBounds.x + visibleBounds.width / 2;
+    var visibleCenterY = visibleBounds.y + visibleBounds.height / 2;
+    var focusX = Math.min(1, Math.max(0, (visibleCenterX - canvasRect.left) / canvasWidth));
+    var focusY = Math.min(1, Math.max(0, (visibleCenterY - canvasRect.top) / canvasHeight));
+    var width = Math.min(canonicalWidth, viewportWidth);
+    var height = Math.min(canonicalHeight, viewportHeight);
+    var x = Math.min(canonicalWidth - width, Math.max(0, focusX * canonicalWidth - width / 2));
+    var y = Math.min(canonicalHeight - height, Math.max(0, focusY * canonicalHeight - height / 2));
+    return { x: x, y: y, width: width, height: height };
+  }
+
+  function mapRectBetweenBounds(rect, fromBounds, toBounds) {
+    var scaleX = positive(toBounds && toBounds.width, 1) / positive(fromBounds && fromBounds.width, 1);
+    var scaleY = positive(toBounds && toBounds.height, 1) / positive(fromBounds && fromBounds.height, 1);
+    return {
+      x: toBounds.x + (rect.x - fromBounds.x) * scaleX,
+      y: toBounds.y + (rect.y - fromBounds.y) * scaleY,
+      width: rect.width * scaleX,
+      height: rect.height * scaleY
+    };
+  }
+
+  return { fitRect: fitRect, buildCandidates: buildCandidates, chooseCandidate: chooseCandidate, clampRect: clampRect, computeCanonicalWindow: computeCanonicalWindow, mapRectBetweenBounds: mapRectBetweenBounds };
 }));
