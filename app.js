@@ -239,6 +239,72 @@ function cropCanvasToDataUrl(capture){
   out.getContext('2d').drawImage(canvas,left,top,width,height,0,0,out.width,out.height);
   return out.toDataURL('image/jpeg',0.92);
 }
+function startCoverAdjustment(sid,capture){
+  if(!capture||!capture.rect||!capture.originalRect||!capture.visibleBounds)return;
+  if(document._coverAdjustmentCleanup)document._coverAdjustmentCleanup();
+  const bounds=capture.visibleBounds,ratio=5/7;
+  const overlay=document.createElement('div'),tip=document.createElement('div'),rectEl=document.createElement('div'),actions=document.createElement('div');
+  overlay.className='cover-adjustment-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-label','调整封面截图');
+  tip.className='cover-adjustment-tip';tip.textContent='拖动或拉角调整 · 固定 5:7';
+  rectEl.className='cover-adjustment-rect';
+  actions.className='cover-adjustment-actions';
+  const saveBtn=document.createElement('button'),restoreBtn=document.createElement('button'),cancelBtn=document.createElement('button');
+  saveBtn.id='cover-adjustment-save';saveBtn.className='accent';saveBtn.textContent='保存为封面';
+  restoreBtn.id='cover-adjustment-restore';restoreBtn.textContent='恢复推荐位置';
+  cancelBtn.id='cover-adjustment-cancel';cancelBtn.textContent='取消';
+  actions.appendChild(saveBtn);actions.appendChild(restoreBtn);actions.appendChild(cancelBtn);
+  overlay.appendChild(tip);overlay.appendChild(rectEl);overlay.appendChild(actions);document.body.appendChild(overlay);
+  const handles={};
+  ['nw','ne','sw','se'].forEach(corner=>{const handle=document.createElement('button');handle.type='button';handle.className='cover-adjustment-handle cover-adjustment-handle-'+corner;handle.dataset.corner=corner;handle.setAttribute('aria-label','调整 '+corner+' 角');rectEl.appendChild(handle);handles[corner]=handle});
+  let active=null,closed=false,saving=false;
+  function copyRect(rect){return{x:rect.x,y:rect.y,width:rect.width,height:rect.height}}
+  function minimumWidth(){return Math.min(80,Math.min(bounds.width,bounds.height*ratio))}
+  function apply(rect){capture.rect=CoverCapture.clampRect(rect,bounds,ratio,minimumWidth());render()}
+  function render(){const rect=capture.rect;rectEl.style.left=rect.x+'px';rectEl.style.top=rect.y+'px';rectEl.style.width=rect.width+'px';rectEl.style.height=rect.height+'px'}
+  function stopActive(e){if(!active)return;if(e&&e.pointerId!==active.pointerId)return;const pointerId=active.pointerId,target=active.target;active=null;if(target&&target.releasePointerCapture)try{target.releasePointerCapture(pointerId)}catch(ignore){}}
+  function onPointerMove(e){
+    if(!active||e.pointerId!==active.pointerId)return;
+    if(e.preventDefault)e.preventDefault();
+    const dx=e.clientX-active.startX,dy=e.clientY-active.startY,start=active.rect;
+    if(active.mode==='move'){apply({x:start.x+dx,y:start.y+dy,width:start.width,height:start.height});return}
+    const right=start.x+start.width,bottom=start.y+start.height;let width=start.width,x=start.x,y=start.y;
+    if(active.corner==='nw'){width=right-e.clientX;x=right-width;y=bottom-width/ratio}
+    else if(active.corner==='ne'){width=e.clientX-start.x;x=start.x;y=bottom-width/ratio}
+    else if(active.corner==='sw'){width=right-e.clientX;x=right-width;y=start.y}
+    else{width=e.clientX-start.x;x=start.x;y=start.y}
+    apply({x,y,width});
+  }
+  function onPointerDown(e,mode,corner){
+    if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();
+    active={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,rect:copyRect(capture.rect),mode,corner,target:e.currentTarget||e.target};
+    if(active.target&&active.target.setPointerCapture)try{active.target.setPointerCapture(e.pointerId)}catch(ignore){}
+  }
+  function onKeyDown(e){if(e.key==='Escape'){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();cleanup()}}
+  function onWheel(e){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation()}
+  function cleanup(){
+    if(closed)return;closed=true;stopActive();
+    overlay.removeEventListener('pointerdown',onRectPointerDown);overlay.removeEventListener('pointermove',onPointerMove);overlay.removeEventListener('pointerup',onPointerEnd);overlay.removeEventListener('pointercancel',onPointerEnd);
+    Object.keys(handles).forEach(corner=>handles[corner].removeEventListener('pointerdown',handleDown));
+    document.removeEventListener('keydown',onKeyDown,true);document.removeEventListener('wheel',onWheel,true);
+    saveBtn.onclick=null;restoreBtn.onclick=null;cancelBtn.onclick=null;
+    if(overlay.parentNode)overlay.parentNode.removeChild(overlay);
+    if(document._coverAdjustmentCleanup===cleanup)document._coverAdjustmentCleanup=null;
+  }
+  function onRectPointerDown(e){if(e.target!==rectEl)return;onPointerDown(e,'move')}
+  function handleDown(e){onPointerDown(e,'resize',e.currentTarget.dataset.corner)}
+  function onPointerEnd(e){stopActive(e)}
+  saveBtn.onclick=async function(){
+    if(saving||closed)return;saving=true;
+    let dataUrl=null;try{dataUrl=cropCanvasToDataUrl(capture)}catch(e){}
+    if(!dataUrl){showToast('封面保存失败，请重试');saving=false;return}
+    try{if(await setSeriesCover(sid,dataUrl,{errorMessage:'封面保存失败，请重试'}))cleanup()}finally{saving=false}
+  };
+  restoreBtn.onclick=function(){apply(copyRect(capture.originalRect))};cancelBtn.onclick=cleanup;
+  overlay.addEventListener('pointerdown',onRectPointerDown);overlay.addEventListener('pointermove',onPointerMove);overlay.addEventListener('pointerup',onPointerEnd);overlay.addEventListener('pointercancel',onPointerEnd);
+  Object.keys(handles).forEach(corner=>handles[corner].addEventListener('pointerdown',handleDown));
+  document.addEventListener('keydown',onKeyDown,true);document.addEventListener('wheel',onWheel,true);document._coverAdjustmentCleanup=cleanup;
+  apply(copyRect(capture.rect));
+}
 function recommendVisibleCoverCrop(){
   const source=getVisibleCaptureSource();
   if(!source)return null;
@@ -256,7 +322,7 @@ function recommendVisibleCoverCrop(){
   rect={x:rect.x,y:rect.y,width:rect.width,height:rect.height};
   let dataUrl=null;
   try{dataUrl=cropCanvasToDataUrl({canvas:source.canvas,canvasRect:source.canvasRect,rect});if(!dataUrl)throw new Error('capture preview unavailable')}catch(e){rect={x:fallback.x,y:fallback.y,width:fallback.width,height:fallback.height};try{dataUrl=cropCanvasToDataUrl({canvas:source.canvas,canvasRect:source.canvasRect,rect})}catch(ignore){}}
-  return {canvas:source.canvas,canvasRect:source.canvasRect,rect,originalRect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},dataUrl};
+  return {canvas:source.canvas,canvasRect:source.canvasRect,visibleBounds:{x:source.visibleBounds.x,y:source.visibleBounds.y,width:source.visibleBounds.width,height:source.visibleBounds.height},rect,originalRect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},dataUrl};
 }
 function startCoverCapture(sid){
   try{
@@ -283,13 +349,14 @@ async function pickImageCover(sid){
     ni.click();
   });
 }
-async function setSeriesCover(sid,dataUrl){
+async function setSeriesCover(sid,dataUrl,options){
   try{
-    if(!dataUrl)return;
+    if(!dataUrl)return false;
     await db.saveCover(sid,dataUrl);covers[sid]=dataUrl;
     if(!currentSeries)renderBookshelf();
-    showToast('封面已设置');
-  }catch(e){showToast('设置失败')}
+    showToast(options&&options.successMessage||'封面已设置');
+    return true;
+  }catch(e){showToast(options&&options.errorMessage||'设置失败');return false}
 }
 function showAddModal(){showModal('add-choose')}
 function showModal(type,data){

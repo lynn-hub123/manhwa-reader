@@ -182,6 +182,8 @@ CoverCapture.buildCandidates = originalBuildCandidates;
 CoverCapture.chooseCandidate = originalChooseCandidate;
 assert.strictEqual(recommendation.canvas, secondCanvas);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(recommendation.canvasRect)), secondCanvas.getBoundingClientRect());
+assert.deepStrictEqual(JSON.parse(JSON.stringify(recommendation.visibleBounds)), { x: 300, y: 200, width: 400, height: 300 }, 'recommendation must retain the selected current-visible bounds');
+assert.notStrictEqual(recommendation.visibleBounds, visible.visibleBounds, 'recommendation bounds must be an independent copy for later adjustment');
 assert(Math.abs(recommendation.rect.width / recommendation.rect.height - 5 / 7) < 1e-10, 'recommendation ratio must remain 5:7');
 assert.notStrictEqual(recommendation.rect, recommendation.originalRect, 'originalRect must be an independent copy');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(recommendation.rect)), JSON.parse(JSON.stringify(recommendation.originalRect)));
