@@ -103,6 +103,23 @@ function testCaptureUsesFreshAnchorPage() {
   assert.strictEqual(state.pageProgress, 0.73);
 }
 
+function testAnchorIgnoresUnrenderedPages() {
+  const viewer = { getBoundingClientRect: () => ({ top: 0, height: 500 }) };
+  const wrappers = [
+    { getBoundingClientRect: () => ({ top: 100, height: 400 }), dataset: { page: '2' } },
+    { getBoundingClientRect: () => ({ top: 145, height: 0 }), dataset: { page: '3' } }
+  ];
+  const context = {
+    isWebtoon: false,
+    currentPage: 2,
+    $: id => id === 'viewer-area' ? viewer : { querySelectorAll: () => wrappers },
+    console
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction('getNormalPageAtAnchor'), context);
+  assert.strictEqual(context.getNormalPageAtAnchor(), 2, 'zero-height unrendered pages must not steal the reading anchor');
+}
+
 async function testLatestRerenderWins() {
   const resolvers = [];
   const context = {
@@ -150,4 +167,5 @@ normal.pdfDoc = null;
 assert.strictEqual(normal.captureReaderViewState(), null, 'zoom without an active document should not create restore state');
 
 testCaptureUsesFreshAnchorPage();
+testAnchorIgnoresUnrenderedPages();
 testRerenderPreservesState().then(testLatestRerenderWins).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });
