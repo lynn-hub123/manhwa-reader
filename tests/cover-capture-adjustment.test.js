@@ -4,6 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const CoverCapture = require('../cover-capture.js');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
@@ -26,10 +27,11 @@ function makeEvents(target) {
   const listeners = new Map();
   target.addEventListener = function (type, listener, options) {
     if (!listeners.has(type)) listeners.set(type, []);
-    listeners.get(type).push({ listener, capture: options === true || !!(options && options.capture) });
+    listeners.get(type).push({ listener, capture: options === true || !!(options && options.capture), passive: !!(options && options.passive), options });
   };
-  target.removeEventListener = function (type, listener) {
-    listeners.set(type, (listeners.get(type) || []).filter((item) => item.listener !== listener));
+  target.removeEventListener = function (type, listener, options) {
+    const capture = options === true || !!(options && options.capture);
+    listeners.set(type, (listeners.get(type) || []).filter((item) => item.listener !== listener || item.capture !== capture));
   };
   target.dispatch = function (type, event) {
     const dispatched = event || {};
@@ -40,6 +42,7 @@ function makeEvents(target) {
     (listeners.get(type) || []).slice().sort((a, b) => Number(b.capture) - Number(a.capture)).forEach((item) => { if (!stopped) item.listener(dispatched); });
   };
   target.count = function (type, capture) { const items = listeners.get(type) || []; return capture === undefined ? items.length : items.filter((item) => item.capture === capture).length; };
+  target.listenerOptions = function (type) { return (listeners.get(type) || []).map((item) => ({ capture: item.capture, passive: item.passive })); };
   target.types = function () { return Array.from(listeners.keys()).filter((type) => target.count(type)); };
   return target;
 }
@@ -55,13 +58,15 @@ function makeElement(tagName) {
     textContent: '',
     id: '',
     onclick: null,
+    disabled: false,
     setAttribute(name, value) { this[name] = value; },
+    focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this; },
     appendChild(child) { child.parentNode = this; this.children.push(child); return child; },
     removeChild(child) { this.children = this.children.filter((item) => item !== child); child.parentNode = null; },
     remove() { if (this.parentNode) this.parentNode.removeChild(this); },
     setPointerCapture() { this.pointerCaptured = true; },
     releasePointerCapture() { this.pointerReleased = true; },
-    click() { const result = this.onclick && this.onclick({ currentTarget: this, preventDefault() {} }); this.dispatch('click', { currentTarget: this, preventDefault() {} }); return result; },
+    click() { if (this.disabled) return undefined; const result = this.onclick && this.onclick({ currentTarget: this, preventDefault() {} }); this.dispatch('click', { currentTarget: this, preventDefault() {} }); return result; },
     querySelector(selector) { return find(this, selector); },
     querySelectorAll(selector) { return findAll(this, selector); }
   });
@@ -88,7 +93,10 @@ function find(root, selector) { return findAll(root, selector)[0] || null; }
 
 function makeHarness() {
   const document = makeEvents({ body: makeElement('body') });
-  document.createElement = makeElement;
+  document.body.ownerDocument = document;
+  document.activeElement = null;
+  document.contains = () => true;
+  document.createElement = function (tagName) { const element = makeElement(tagName); element.ownerDocument = document; return element; };
   document.querySelector = (selector) => find(document.body, selector);
   document.querySelectorAll = (selector) => findAll(document.body, selector);
   const toasts = [];
@@ -98,19 +106,7 @@ function makeHarness() {
   let cropResult = 'data:image/jpeg;base64,adjusted';
   const context = {
     document,
-    CoverCapture: {
-      clampRect(rect, bounds, ratio, minWidth) {
-        const maxWidth = Math.min(bounds.width, bounds.height * ratio);
-        const width = Math.min(maxWidth, Math.max(maxWidth >= minWidth ? minWidth : 0, rect.width));
-        const height = width / ratio;
-        return {
-          x: Math.min(bounds.x + bounds.width - width, Math.max(bounds.x, rect.x)),
-          y: Math.min(bounds.y + bounds.height - height, Math.max(bounds.y, rect.y)),
-          width,
-          height
-        };
-      }
-    },
+    CoverCapture,
     cropCanvasToDataUrl(capture) { cropCalls.push({ ...capture.rect }); return cropResult; },
     async setSeriesCover(sid, dataUrl, options) {
       saveCalls.push([sid, dataUrl, options]);
@@ -118,12 +114,15 @@ function makeHarness() {
       return saveResult;
     },
     showToast(message) { toasts.push(message); },
+    captureUiActive: false,
     console
   };
   vm.createContext(context);
+  ['beginCaptureUi', 'endCaptureUi', 'trapCaptureUiFocus'].forEach((name) => vm.runInContext(extractFunction(name), context));
   vm.runInContext(extractFunction('startCoverAdjustment'), context);
+  const priorFocus = document.createElement('button');priorFocus.id = 'prior-focus';document.body.appendChild(priorFocus);priorFocus.focus();
   return {
-    context, document, toasts, cropCalls, saveCalls,
+    context, document, toasts, cropCalls, saveCalls, priorFocus,
     setSaveResult(value) { saveResult = value; },
     setCropResult(value) { cropResult = value; },
     overlay() { return document.querySelector('.cover-adjustment-overlay'); },
@@ -137,8 +136,8 @@ function makeHarness() {
       document.dispatch('keydown', event);
       return event;
     },
-    key(key) {
-      const event = { key, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } };
+    key(key, shiftKey) {
+      const event = { key, shiftKey: !!shiftKey, target: document.activeElement, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } };
       document.dispatch('keydown', event);
       return event;
     }
@@ -162,12 +161,55 @@ function assertInsideAndRatio(rect, bounds, message) {
   assert(Math.abs(rect.width / rect.height - 5 / 7) < 0.0001, message + ': remains 5:7');
 }
 
+function cornerPoint(rect, corner) {
+  return {
+    x: corner.includes('w') ? rect.x : rect.x + rect.width,
+    y: corner.includes('n') ? rect.y : rect.y + rect.height
+  };
+}
+
+function oppositeAnchor(rect, corner) {
+  return {
+    x: corner.includes('w') ? rect.x + rect.width : rect.x,
+    y: corner.includes('n') ? rect.y + rect.height : rect.y
+  };
+}
+
+function assertRetainsAnchor(rect, corner, anchor, message) {
+  const actual = oppositeAnchor(rect, corner);
+  assert(Math.abs(actual.x - anchor.x) < 0.001, message + ': opposite horizontal anchor stays fixed');
+  assert(Math.abs(actual.y - anchor.y) < 0.001, message + ': opposite vertical anchor stays fixed');
+}
+
+function resizeScenario(corner, dx, dy, message, expectAnchor) {
+  const scenarioHarness = makeHarness();
+  const capture = fixture();
+  const startRect = { ...capture.rect };
+  const moving = cornerPoint(startRect, corner);
+  const anchor = oppositeAnchor(startRect, corner);
+  scenarioHarness.context.startCoverAdjustment('series-resize', capture);
+  const handle = scenarioHarness.overlay().querySelector('.cover-adjustment-handle-' + corner);
+  scenarioHarness.pointer(handle, 'pointerdown', moving.x, moving.y);
+  scenarioHarness.pointer(scenarioHarness.overlay(), 'pointermove', moving.x + dx, moving.y + dy);
+  scenarioHarness.pointer(scenarioHarness.overlay(), 'pointerup', moving.x + dx, moving.y + dy);
+  assertInsideAndRatio(capture.rect, capture.visibleBounds, 'Important 4 ' + message + ' ' + corner);
+  if (expectAnchor) {
+    assert.notStrictEqual(capture.rect.width, startRect.width, 'Important 4 ' + message + ' changes size for ' + corner);
+    assertRetainsAnchor(capture.rect, corner, anchor, 'Important 4 ' + message + ' ' + corner);
+  } else {
+    assert(capture.rect.width > 0, 'Important 4 ' + message + ' keeps a positive size for ' + corner);
+  }
+  scenarioHarness.button('cover-adjustment-cancel').click();
+}
+
 async function main() {
   const harness = makeHarness();
   const capture = fixture();
   harness.context.startCoverAdjustment('series-1', capture);
   const overlay = harness.overlay();
   assert(overlay, 'adjustment must render an overlay');
+  assert.strictEqual(overlay['aria-modal'], 'true', 'Important 3: adjustment exposes modal semantics');
+  assert.strictEqual(harness.document.activeElement, harness.button('cover-adjustment-save'), 'Important 3: adjustment focuses its first action');
   assert.deepStrictEqual(capture.rect, { x: 70, y: 80, width: 200, height: 280 }, 'overlay starts at capture.rect');
   assert.strictEqual(overlay.querySelector('.cover-adjustment-tip').textContent, '拖动或拉角调整 · 固定 5:7', '5:7 guidance is visible');
   assert.strictEqual(overlay.querySelectorAll('.cover-adjustment-handle').length, 4, 'four corner handles are rendered');
@@ -176,6 +218,14 @@ async function main() {
   });
   assert.deepStrictEqual(overlay.types().sort(), ['pointercancel', 'pointerdown', 'pointermove', 'pointerup'].sort(), 'manipulation uses only Pointer Events');
   assert.strictEqual(overlay.count('mousedown') + overlay.count('mousemove') + overlay.count('touchstart'), 0, 'legacy manipulation listeners are absent');
+  assert.deepStrictEqual(harness.document.listenerOptions('wheel'), [{ capture: true, passive: false }], 'Important 3: wheel blocking is capture-phase and non-passive');
+  let tab = harness.key('Tab');
+  assert(tab.prevented && tab.stopped, 'Important 3: adjustment traps Tab');
+  assert.strictEqual(harness.document.activeElement, harness.button('cover-adjustment-restore'), 'Important 3: Tab moves within adjustment actions');
+  harness.key('Tab');harness.key('Tab');
+  assert.strictEqual(harness.document.activeElement, harness.button('cover-adjustment-save'), 'Important 3: Tab wraps within adjustment actions');
+  harness.key('Tab', true);
+  assert.strictEqual(harness.document.activeElement, harness.button('cover-adjustment-cancel'), 'Important 3: Shift+Tab wraps backward within adjustment actions');
 
   const rect = harness.rect();
   overlay.dispatch('pointerdown', { target: rect, currentTarget: overlay, pointerId: 1, clientX: 120, clientY: 140, preventDefault() {}, stopPropagation() {} });
@@ -199,7 +249,36 @@ async function main() {
   assert.strictEqual(harness.overlay(), null, 'cancel removes overlay');
   assert.strictEqual(harness.document.count('keydown'), 0, 'cancel releases keyboard listener');
   assert.strictEqual(harness.document.count('wheel'), 0, 'cancel restores reader scrolling');
+  assert.strictEqual(harness.document.activeElement, harness.priorFocus, 'Important 3: adjustment cleanup restores prior focus');
   assert.deepStrictEqual(harness.saveCalls, [], 'cancel saves nothing');
+
+  ['nw', 'ne', 'sw', 'se'].forEach((corner) => {
+    const horizontalDirection = corner.includes('w') ? -1 : 1;
+    const verticalDirection = corner.includes('n') ? -1 : 1;
+    resizeScenario(corner, horizontalDirection * 20, 0, 'horizontal-only resize', true);
+    resizeScenario(corner, 0, verticalDirection * 70, 'vertical-only resize', true);
+    resizeScenario(corner, horizontalDirection * 1000, verticalDirection * 1000, 'boundary resize', false);
+    resizeScenario(corner, horizontalDirection * -400, verticalDirection * -500, 'crossing-pointer resize', false);
+  });
+
+  const narrowHarness = makeHarness();
+  const narrowCapture = {
+    canvas: { width: 500, height: 700 },
+    canvasRect: { left: 0, top: 0, width: 100, height: 140 },
+    visibleBounds: { x: 0, y: 0, width: 100, height: 140 },
+    rect: { x: 20, y: 28, width: 60, height: 84 },
+    originalRect: { x: 20, y: 28, width: 60, height: 84 }
+  };
+  narrowHarness.context.startCoverAdjustment('series-narrow', narrowCapture);
+  assert.deepStrictEqual(narrowCapture.rect, { x: 20, y: 28, width: 60, height: 84 }, 'Important 4: starting adjustment preserves a valid 60×84 recommendation');
+  const narrowHandle = narrowHarness.overlay().querySelector('.cover-adjustment-handle-se');
+  narrowHarness.pointer(narrowHandle, 'pointerdown', 80, 112);
+  narrowHarness.pointer(narrowHarness.overlay(), 'pointermove', 95, 133);
+  narrowHarness.pointer(narrowHarness.overlay(), 'pointerup', 95, 133);
+  narrowHarness.button('cover-adjustment-restore').click();
+  assert.deepStrictEqual(narrowCapture.rect, { x: 20, y: 28, width: 60, height: 84 }, 'Important 4: restore returns exactly to the valid narrow recommendation');
+  assert.deepStrictEqual(narrowCapture.originalRect, narrowCapture.rect, 'Important 4: rect and originalRect stay consistent for a narrow recommendation');
+  narrowHarness.button('cover-adjustment-cancel').click();
 
   const escapeCapture = fixture();
   const readerKeys = [];
@@ -210,14 +289,18 @@ async function main() {
     assert(event.prevented && event.stopped, key + ' must be intercepted while adjusting');
   });
   assert.deepStrictEqual(readerKeys, [], 'reader shortcuts must not receive adjustment keys');
-  ['Tab', 'Enter', ' '].forEach((key) => harness.key(key));
-  assert.deepStrictEqual(readerKeys, ['Tab', 'Enter', ' '], 'non-reader keys remain available to adjustment buttons');
+  harness.key('Tab');
+  ['Enter', ' '].forEach((key) => {
+    const event = harness.key(key);
+    assert(!event.prevented && !event.stopped, key + ' remains available to activate adjustment buttons');
+  });
+  assert.deepStrictEqual(readerKeys, ['Enter', ' '], 'Tab stays trapped while Enter and Space remain available to adjustment buttons');
   const escape = harness.escape();
   assert(escape.prevented && escape.stopped, 'Escape must not reach reader shortcuts');
   assert.strictEqual(harness.overlay(), null, 'Escape cancels adjustment');
   harness.key('ArrowRight');
   harness.key('w');
-  assert.deepStrictEqual(readerKeys, ['Tab', 'Enter', ' ', 'ArrowRight', 'w'], 'reader shortcuts resume after cleanup');
+  assert.deepStrictEqual(readerKeys, ['Enter', ' ', 'ArrowRight', 'w'], 'reader shortcuts resume after cleanup');
 
   const retryCapture = fixture();
   harness.context.startCoverAdjustment('series-1', retryCapture);

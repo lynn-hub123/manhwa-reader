@@ -41,7 +41,7 @@ function makePixels(width, height, pixelAt) {
         data[index] = pixel[0];
         data[index + 1] = pixel[1];
         data[index + 2] = pixel[2];
-        data[index + 3] = 255;
+        data[index + 3] = pixel.length > 3 ? pixel[3] : 255;
       }
     }
     return { data };
@@ -52,6 +52,7 @@ function makeCanvas(rect, width, height, pixelAt) {
   return {
     width,
     height,
+    dataset: { captureRenderState: 'complete' },
     pixelAt,
     getBoundingClientRect() { return Object.assign({}, rect); },
     getContext() { return { getImageData: makePixels(width, height, pixelAt) }; },
@@ -112,7 +113,7 @@ const document = {
                 const sourceY = sourceTop + (row + .5) * sourceHeight / sampleHeight;
                 const pixel = sourceCanvas && sourceCanvas.pixelAt ? sourceCanvas.pixelAt(sourceX, sourceY) : [255, 255, 255];
                 const index = (row * sampleWidth + column) * 4;
-                data[index] = pixel[0]; data[index + 1] = pixel[1]; data[index + 2] = pixel[2]; data[index + 3] = 255;
+                data[index] = pixel[0]; data[index + 1] = pixel[1]; data[index + 2] = pixel[2]; data[index + 3] = pixel.length > 3 ? pixel[3] : 255;
               }
             }
             return { data };
@@ -128,11 +129,19 @@ const context = { CoverCapture, document, window: { innerWidth: 800, innerHeight
 vm.createContext(context);
 functionNames.forEach((name) => vm.runInContext(extractFunction(name), context));
 
+firstCanvas.dataset.captureRenderState = 'rendering';
+secondCanvas.dataset.captureRenderState = 'rendering';
+assert.strictEqual(context.getVisibleCaptureSource(), null, 'Important 1: a geometrically visible canvas is ineligible while PDF rendering is incomplete');
+assert.strictEqual(context.recommendVisibleCoverCrop(), null, 'Important 1: no recommendation is returned while every visible canvas is still rendering');
+secondCanvas.dataset.captureRenderState = 'complete';
+
 const visible = context.getVisibleCaptureSource();
 assert.strictEqual(visible.canvas, secondCanvas, 'the largest visible canvas must be selected');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(visible.visibleBounds)), { x: 300, y: 200, width: 400, height: 300 });
+firstCanvas.dataset.captureRenderState = 'complete';
 
 const candidate = { x: 0, y: 0, width: 500, height: 700 };
+const candidateBounds = { x: 0, y: 0, width: 500, height: 700 };
 const detailedCenterCanvas = makeCanvas(
   { left: 0, top: 0, right: 500, bottom: 700, width: 500, height: 700 },
   1000,
@@ -164,6 +173,29 @@ sourceReadCount = 0;
 const countedWhiteScore = context.scoreCaptureCandidate(countedWhiteCanvas, countedWhiteCanvas.getBoundingClientRect(), candidate);
 assert(sourceReadCount <= 1 && sampleReadCount <= 1, 'one blank candidate must make at most one getImageData call per source/output fixture');
 assert(countedDetailedScore > countedWhiteScore, 'a detailed non-white sampled candidate must outrank a blank white candidate');
+
+const blackCanvas = makeCanvas({ left: 0, top: 0, right: 500, bottom: 700, width: 500, height: 700 }, 1000, 1400, () => [0, 0, 0, 255]);
+const transparentCanvas = makeCanvas({ left: 0, top: 0, right: 500, bottom: 700, width: 500, height: 700 }, 1000, 1400, () => [0, 0, 0, 0]);
+const lineArtCanvas = makeCanvas(
+  { left: 0, top: 0, right: 500, bottom: 700, width: 500, height: 700 },
+  1000,
+  1400,
+  (x, y) => ((Math.floor(x / 32) + Math.floor(y / 32)) % 9 === 0 ? [24, 24, 24, 255] : [255, 255, 255, 255])
+);
+const blackScore = context.scoreCaptureCandidate(blackCanvas, blackCanvas.getBoundingClientRect(), candidate, candidateBounds);
+const transparentScore = context.scoreCaptureCandidate(transparentCanvas, transparentCanvas.getBoundingClientRect(), candidate, candidateBounds);
+const lineArtScore = context.scoreCaptureCandidate(lineArtCanvas, lineArtCanvas.getBoundingClientRect(), candidate, candidateBounds);
+assert(lineArtScore > blackScore, 'Important 5: a literal white-background line-art fixture outranks a pure-black crop');
+assert(lineArtScore > transparentScore, 'Important 5: alpha-composited transparent pixels cannot masquerade as black content');
+
+const repeatedContentCanvas = makeCanvas({ left: 0, top: 0, right: 500, bottom: 700, width: 500, height: 700 }, 1000, 1400, () => [150, 150, 150, 255]);
+const edgeCandidate = { x: 0, y: 0, width: 200, height: 280 };
+const centeredCandidate = { x: 150, y: 210, width: 200, height: 280 };
+assert(
+  context.scoreCaptureCandidate(repeatedContentCanvas, repeatedContentCanvas.getBoundingClientRect(), centeredCandidate, candidateBounds) >
+    context.scoreCaptureCandidate(repeatedContentCanvas, repeatedContentCanvas.getBoundingClientRect(), edgeCandidate, candidateBounds),
+  'Important 5: identical content centered in visibleBounds outranks content touching its edges'
+);
 
 const originalBuildCandidates = CoverCapture.buildCandidates;
 const originalChooseCandidate = CoverCapture.chooseCandidate;
@@ -221,7 +253,7 @@ const cropDataUrl = context.cropCanvasToDataUrl({
   canvasRect: cropSource.getBoundingClientRect(),
   rect: { x: 50, y: 30, width: 600, height: 300 }
 });
-assert.deepStrictEqual(drawCalls, [[cropSource, 0, 0, 1000, 500, 0, 0, 1000, 500]], 'viewport crop must map and clamp to source pixels');
+assert.deepStrictEqual(drawCalls, [[cropSource, 0, 0, 1000, 500, 0, 0, 355, 497]], 'Minor 1: crop samples the full source region into exact integer 5n×7n output dimensions from one shared scale');
 assert.strictEqual(cropDataUrl, 'data:image/jpeg;base64,output-0.92');
 
 console.log('cover-capture-recommendation: PASS');
