@@ -2,7 +2,7 @@
 
 > 验收环境：`http://localhost:8765/`  
 > 验收方式：每项实际操作后勾选；发现问题时记录复现步骤、浏览器和控制台错误。  
-> 当前基线：`feature/recommended-cover-capture` 分支，最新实现提交 `c7dc100`；最终合并仍待浏览器验收与 review。
+> 当前基线：功能工作树 `F:\manhwa-reader\.worktrees\recommended-cover-capture` 的 `feature/recommended-cover-capture` 分支，最终修复代码提交 `25a8b3f`；主检出仍为 `master@ba00baf`，最终合并仍待真实浏览器验收与 review。
 
 ## 0. 验收记录
 
@@ -14,7 +14,7 @@
 
 状态约定：`[x]` 通过，`[ ]` 未验证，`[!]` 有问题。
 
-## 自动验收结果（2026-08-22）
+## 自动验收结果（2026-08-23）
 
 - [x] `app.js`、`db.js`、`server.js` 语法检查通过。
 - [x] `/`、`index.html`、`app.js`、`db.js` 和本地字体资源均返回 HTTP 200。
@@ -23,6 +23,7 @@
 - [x] IndexedDB 的 `bookshelf`、`pdf-cache`、`settings`、`covers` 四个 store 仍存在。
 - [x] 静态事件绑定引用的 HTML 元素均存在；其余动态 ID（模态框字段和导入进度）由运行时创建，属于预期行为。
 - [x] `git diff --check` 通过，工作区无未提交业务代码改动。
+- [x] 推荐截图专项 Node 测试、render-state 测试、modal-cleanup 测试与 PowerShell UI contract 均通过。
 
 自动验收不能替代真实浏览器交互；文件选择器、PDF 实际渲染、视觉动画和刷新后的 IndexedDB 恢复仍需按下方清单手动确认。
 
@@ -131,13 +132,16 @@
 #### 自动化已建立
 
 - [x] 几何候选、边界夹取和裁切框始终保持 `5:7`，并且位于当前可见区域内。
-- [x] 推荐只从阅读器中与浏览器视口相交的 canvas 选择可见源，并选择可见面积最大的当前画面。
-- [x] 视口坐标会按 canvas 显示尺寸映射并夹取到源 PDF canvas 像素，再以源 canvas 分辨率裁切。
+- [x] 推荐只从阅读器中与浏览器视口相交、且 PDF render promise 已成功完成的 canvas 选择可见源；rendering/失败/取消/rerender 状态不可选，并从合格项中选择可见面积最大的当前画面。
+- [x] 视口坐标会按 canvas 显示尺寸映射并夹取到源 PDF canvas 像素，完整采样源裁切并输出由同一整数单位生成的 `5n×7n` 尺寸。
 - [x] 无可见 canvas、画面尚未加载或预览 data URL 不可用时，不打开预览并给出“当前画面还未加载完成”提示；评分/预览失败保留可用的居中 `5:7` fallback。
-- [x] 推荐预览展示 `5:7` 图片与“使用推荐 / 调整一下 / 取消”操作；直接接受、调整、取消、点遮罩、Escape 都会关闭并清理监听，且不会重复动作。
-- [x] 调整界面显示固定 `5:7` 提示、四个角柄和恢复推荐位置；拖动/缩放使用 Pointer Events，释放或取消会清理 pointer、键盘和滚轮监听。
-- [x] 调整期间阅读器方向键及 `W/A/S/D/F/B` 快捷键被拦截，Escape 取消；清理后阅读器快捷键恢复。
-- [x] 裁切失败或保存失败时调整界面保持打开并提示“封面保存失败，请重试”；重试成功后保存最终裁切框并清理界面。
+- [x] 推荐预览展示 `5:7` 图片与“使用推荐 / 调整一下 / 取消”操作；直接保存结果严格为 `true` 才关闭，false/rejection 留窗重试、每次点击只保存一次且无重复/default toast。
+- [x] 预览与调整均具备 modal 语义、首操作焦点、Tab/Shift+Tab 环绕与退出后焦点恢复；capture UI 活跃时 reader Arrow/WASD/F/B 入口不执行，清理后恢复，Enter/Space 仍可正常激活聚焦按钮。
+- [x] 调整界面显示固定 `5:7` 提示、四个完整位于裁切框内的 44×44 角柄和恢复推荐位置；四角的水平、垂直、边界及跨锚点 Pointer resize 均保持边界/比例，合法 `60×84` 推荐可原样恢复。
+- [x] 调整仍显式拦截方向键、`W/A/S/D/F/B` 与 Escape；wheel 使用 `{capture:true, passive:false}` 并以匹配选项清理，rect/hint/actions 具备显式有序 z-index。
+- [x] 透明像素按白底评分；字面纯黑、全透明、白底线稿夹具证明线稿胜出，相同内容的居中候选胜过贴边候选。
+- [x] 直接推荐与调整保存的裁切/存储失败都会保留对应 UI 并提示“封面保存失败，请重试”；重试成功后才清理。
+- [x] 从 `showModal('set-cover')` 开始截图会立即走幂等 modal cleanup；连续两轮不会残留或叠加 backdrop listener。
 
 #### 浏览器人工验收（普通页与长条页各执行一次）
 
