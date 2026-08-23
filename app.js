@@ -279,7 +279,10 @@ function startCoverAdjustment(sid,capture){
     active={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,rect:copyRect(capture.rect),mode,corner,target:e.currentTarget||e.target};
     if(active.target&&active.target.setPointerCapture)try{active.target.setPointerCapture(e.pointerId)}catch(ignore){}
   }
-  function onKeyDown(e){if(e.key==='Escape'){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();cleanup()}}
+  function onKeyDown(e){
+    if(e.key==='Escape'){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation();cleanup();return}
+    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||/^[adwsfb]$/i.test(e.key)){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation()}
+  }
   function onWheel(e){if(e.preventDefault)e.preventDefault();if(e.stopPropagation)e.stopPropagation()}
   function cleanup(){
     if(closed)return;closed=true;stopActive();

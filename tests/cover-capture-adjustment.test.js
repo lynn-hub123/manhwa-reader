@@ -24,19 +24,22 @@ function extractFunction(name) {
 
 function makeEvents(target) {
   const listeners = new Map();
-  target.addEventListener = function (type, listener) {
+  target.addEventListener = function (type, listener, options) {
     if (!listeners.has(type)) listeners.set(type, []);
-    listeners.get(type).push(listener);
+    listeners.get(type).push({ listener, capture: options === true || !!(options && options.capture) });
   };
   target.removeEventListener = function (type, listener) {
-    listeners.set(type, (listeners.get(type) || []).filter((item) => item !== listener));
+    listeners.set(type, (listeners.get(type) || []).filter((item) => item.listener !== listener));
   };
   target.dispatch = function (type, event) {
     const dispatched = event || {};
+    let stopped = false;
     if (!dispatched.currentTarget) dispatched.currentTarget = target;
-    (listeners.get(type) || []).slice().forEach((listener) => listener(dispatched));
+    const originalStop = dispatched.stopPropagation;
+    dispatched.stopPropagation = function () { stopped = true; dispatched.stopped = true; if (originalStop) originalStop.call(dispatched); };
+    (listeners.get(type) || []).slice().sort((a, b) => Number(b.capture) - Number(a.capture)).forEach((item) => { if (!stopped) item.listener(dispatched); });
   };
-  target.count = function (type) { return (listeners.get(type) || []).length; };
+  target.count = function (type, capture) { const items = listeners.get(type) || []; return capture === undefined ? items.length : items.filter((item) => item.capture === capture).length; };
   target.types = function () { return Array.from(listeners.keys()).filter((type) => target.count(type)); };
   return target;
 }
@@ -133,6 +136,11 @@ function makeHarness() {
       const event = { key: 'Escape', prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } };
       document.dispatch('keydown', event);
       return event;
+    },
+    key(key) {
+      const event = { key, prevented: false, stopped: false, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } };
+      document.dispatch('keydown', event);
+      return event;
     }
   };
 }
@@ -194,10 +202,22 @@ async function main() {
   assert.deepStrictEqual(harness.saveCalls, [], 'cancel saves nothing');
 
   const escapeCapture = fixture();
+  const readerKeys = [];
+  harness.document.addEventListener('keydown', (event) => readerKeys.push(event.key));
   harness.context.startCoverAdjustment('series-1', escapeCapture);
+  ['ArrowRight', 'w', 'A', 's', 'D', 'f', 'B'].forEach((key) => {
+    const event = harness.key(key);
+    assert(event.prevented && event.stopped, key + ' must be intercepted while adjusting');
+  });
+  assert.deepStrictEqual(readerKeys, [], 'reader shortcuts must not receive adjustment keys');
+  ['Tab', 'Enter', ' '].forEach((key) => harness.key(key));
+  assert.deepStrictEqual(readerKeys, ['Tab', 'Enter', ' '], 'non-reader keys remain available to adjustment buttons');
   const escape = harness.escape();
   assert(escape.prevented && escape.stopped, 'Escape must not reach reader shortcuts');
   assert.strictEqual(harness.overlay(), null, 'Escape cancels adjustment');
+  harness.key('ArrowRight');
+  harness.key('w');
+  assert.deepStrictEqual(readerKeys, ['Tab', 'Enter', ' ', 'ArrowRight', 'w'], 'reader shortcuts resume after cleanup');
 
   const retryCapture = fixture();
   harness.context.startCoverAdjustment('series-1', retryCapture);
@@ -221,7 +241,7 @@ async function main() {
   assert.deepStrictEqual(harness.cropCalls.slice(-1)[0], retryCapture.rect, 'save crops the final adjusted capture rect');
 
   harness.context.startCoverAdjustment('series-1', fixture());
-  assert.strictEqual(harness.document.count('keydown'), 1, 'reopening after exit has one keyboard listener');
+  assert.strictEqual(harness.document.count('keydown', true), 1, 'reopening after exit has one adjustment keyboard listener');
   assert.strictEqual(harness.document.querySelectorAll('.cover-adjustment-overlay').length, 1, 'reopening has one overlay/action set');
   harness.button('cover-adjustment-cancel').click();
   console.log('cover-capture-adjustment: PASS');
