@@ -154,7 +154,8 @@ function captureCurrentPageAsCover(){
 }
 function startCoverCapture(sid){
   try{
-    closeModal();
+    const modalOverlay=$('modal-overlay');
+    if(modalOverlay)modalOverlay.classList.remove('show');
     const ov=document.createElement('div');ov.className='capture-overlay';
     const rect=document.createElement('div');rect.className='capture-rect';ov.appendChild(rect);
     const tip=document.createElement('div');tip.className='capture-tip';tip.textContent='拖拽选择封面区域';
