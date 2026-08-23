@@ -178,11 +178,16 @@ function scoreCaptureCandidate(canvas,canvasRect,candidate){
     if(!Number.isFinite(scaleX)||!Number.isFinite(scaleY)||scaleX<=0||scaleY<=0)return-1000000;
     const sourceLeft=Math.max(0,Math.min(canvas.width,(candidate.x-canvasRect.left)*scaleX)),sourceTop=Math.max(0,Math.min(canvas.height,(candidate.y-canvasRect.top)*scaleY));
     const sourceRight=Math.max(sourceLeft,Math.min(canvas.width,(candidate.x+candidate.width-canvasRect.left)*scaleX)),sourceBottom=Math.max(sourceTop,Math.min(canvas.height,(candidate.y+candidate.height-canvasRect.top)*scaleY));
-    const sourceWidth=sourceRight-sourceLeft,sourceHeight=sourceBottom-sourceTop,sampleWidth=Math.max(1,Math.min(24,Math.round(sourceWidth))),sampleHeight=Math.max(1,Math.min(24,Math.round(sourceHeight))),context=canvas.getContext('2d');
+    const sourceWidth=sourceRight-sourceLeft,sourceHeight=sourceBottom-sourceTop;
+    if(!(sourceWidth>0)||!(sourceHeight>0))return-1000000;
+    const sampleWidth=Math.max(1,Math.min(24,Math.round(sourceWidth))),sampleHeight=Math.max(1,Math.min(24,Math.round(sourceHeight)));
+    const sampleCanvas=document.createElement('canvas');sampleCanvas.width=sampleWidth;sampleCanvas.height=sampleHeight;
+    const context=sampleCanvas.getContext('2d');context.drawImage(canvas,sourceLeft,sourceTop,sourceWidth,sourceHeight,0,0,sampleWidth,sampleHeight);
+    const pixels=context.getImageData(0,0,sampleWidth,sampleHeight).data;
     let luminanceSum=0,luminanceSquaredSum=0,nonWhite=0,white=0,black=0,edgeSum=0,edgeCount=0;
     const luminances=[];
     for(let y=0;y<sampleHeight;y+=1)for(let x=0;x<sampleWidth;x+=1){
-      const sampleX=Math.min(canvas.width-1,Math.floor(sourceLeft+(x+.5)*sourceWidth/sampleWidth)),sampleY=Math.min(canvas.height-1,Math.floor(sourceTop+(y+.5)*sourceHeight/sampleHeight)),pixel=context.getImageData(sampleX,sampleY,1,1).data;
+      const pixelIndex=(y*sampleWidth+x)*4,pixel=[pixels[pixelIndex],pixels[pixelIndex+1],pixels[pixelIndex+2]];
       const luminance=(pixel[0]*.2126+pixel[1]*.7152+pixel[2]*.0722)/255;
       luminances.push(luminance);luminanceSum+=luminance;luminanceSquaredSum+=luminance*luminance;
       if(luminance<.96)nonWhite+=1;if(luminance>.98)white+=1;if(luminance<.02)black+=1;
@@ -196,6 +201,30 @@ function scoreCaptureCandidate(canvas,canvasRect,candidate){
     const score=nonWhiteCoverage*4+variance*3+edgeChange*3-(whiteCoverage>.9?(whiteCoverage-.9)*12:0)-(blackCoverage>.9?(blackCoverage-.9)*8:0);
     return Number.isFinite(score)?score:-1000000;
   }catch(e){return-1000000}
+}
+function showCoverRecommendation(sid,capture){
+  const ov=$('modal-overlay'),mc=$('modal-content');
+  if(!ov||!mc||!capture||!capture.dataUrl)return;
+  if(mc._coverRecommendationCleanup)mc._coverRecommendationCleanup();
+  mc.innerHTML='<div class="cover-recommendation"><span class="cover-recommendation-label">系统推荐</span><img class="cover-recommendation-image" src="'+capture.dataUrl+'" alt="系统推荐封面预览"><div class="modal-actions cover-recommendation-actions"><button class="accent" id="cover-recommend-use">使用推荐</button><button id="cover-recommend-adjust">调整一下</button><button id="cover-recommend-cancel">取消</button></div></div>';
+  ov.classList.add('show');
+  const useBtn=Qs('#cover-recommend-use',mc),adjustBtn=Qs('#cover-recommend-adjust',mc),cancelBtn=Qs('#cover-recommend-cancel',mc);
+  let closed=false;
+  function close(){
+    if(closed)return;closed=true;
+    ov.classList.remove('show');
+    ov.removeEventListener('click',onOverlayClick);document.removeEventListener('keydown',onKeyDown,true);
+    if(useBtn)useBtn.onclick=null;if(adjustBtn)adjustBtn.onclick=null;if(cancelBtn)cancelBtn.onclick=null;
+    if(mc._coverRecommendationCleanup===close)mc._coverRecommendationCleanup=null;
+    mc.innerHTML='';
+  }
+  function onOverlayClick(e){if(e.target===ov)close()}
+  function onKeyDown(e){if(e.key==='Escape'){e.preventDefault();if(e.stopPropagation)e.stopPropagation();close()}}
+  if(useBtn)useBtn.onclick=function(){close();setSeriesCover(sid,capture.dataUrl)};
+  if(adjustBtn)adjustBtn.onclick=function(){close();startCoverAdjustment(sid,capture)};
+  if(cancelBtn)cancelBtn.onclick=close;
+  ov.addEventListener('click',onOverlayClick);document.addEventListener('keydown',onKeyDown,true);
+  mc._coverRecommendationCleanup=close;
 }
 function cropCanvasToDataUrl(capture){
   const canvas=capture&&capture.canvas,canvasRect=capture&&capture.canvasRect,rect=capture&&capture.rect;
@@ -233,14 +262,9 @@ function startCoverCapture(sid){
   try{
     const modalOverlay=$('modal-overlay');
     if(modalOverlay)modalOverlay.classList.remove('show');
-    const ov=document.createElement('div');ov.className='capture-overlay';
-    const rect=document.createElement('div');rect.className='capture-rect';ov.appendChild(rect);
-    const tip=document.createElement('div');tip.className='capture-tip';tip.textContent='拖拽选择封面区域';
-    document.body.appendChild(ov);document.body.appendChild(tip);
-    let sx=0,sy=0,drawing=false;
-    const onMove=(e)=>{if(!drawing)return;const x=e.clientX,y=e.clientY;const x0=Math.min(sx,x),y0=Math.min(sy,y),w=Math.abs(x-sx),h=Math.abs(y-sy);Object.assign(rect.style,{left:x0+'px',top:y0+'px',width:w+'px',height:h+'px'})};
-    const onUp=(e)=>{if(!drawing)return;drawing=false;const x=e.clientX,y=e.clientY;const x0=Math.min(sx,x),y0=Math.min(sy,y),w=Math.abs(x-sx),h=Math.abs(y-sy);document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);ov.remove();tip.remove();if(w<12||h<12){showToast('选择区域太小');return}const va=$('viewer-area');if(!va){showToast('阅读区不可用');return}const centerX=x0+w/2,centerY=y0+h/2;let best=null,bestArea=0;va.querySelectorAll('.page-wrapper canvas').forEach(cv=>{const r=cv.getBoundingClientRect();const ix=Math.max(r.left,x0),iy=Math.max(r.top,y0),ix2=Math.min(r.right,x0+w),iy2=Math.min(r.bottom,y0+h);const area=Math.max(0,ix2-ix)*Math.max(0,iy2-iy);if(area>bestArea){bestArea=area;best={cv,r,area}}});if(!best){showToast('未找到画面区域');return}const scaleX=best.cv.width/best.r.width,scaleY=best.cv.height/best.r.height;const cropX=Math.max(0,(x0-best.r.left)*scaleX),cropY=Math.max(0,(y0-best.r.top)*scaleY),cropW=Math.min(best.cv.width-cropX,w*scaleX),cropH=Math.min(best.cv.height-cropY,h*scaleY);if(cropW<6||cropH<6){showToast('选择区域太小');return}const out=document.createElement('canvas');out.width=Math.round(cropW);out.height=Math.round(cropH);out.getContext('2d').drawImage(best.cv,cropX,cropY,cropW,cropH,0,0,cropW,cropH);setSeriesCover(sid,out.toDataURL('image/jpeg',.92))};
-    ov.addEventListener('mousedown',function(e){drawing=true;sx=e.clientX;sy=e.clientY;Object.assign(rect.style,{display:'block',left:sx+'px',top:sy+'px',width:'0px',height:'0px'});document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);e.preventDefault()});
+    showToast('正在分析当前画面…');
+    const analyze=function(){let capture=null;try{capture=recommendVisibleCoverCrop()}catch(e){}if(!capture){showToast('当前画面还未加载完成');return}showCoverRecommendation(sid,capture)};
+    if(typeof requestAnimationFrame==='function')requestAnimationFrame(analyze);else setTimeout(analyze,0);
   }catch(e){console.warn('capture fail',e);showToast('截图失败')}
 }
 async function pickImageCover(sid){

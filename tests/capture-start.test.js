@@ -26,31 +26,23 @@ for (let i = source.indexOf('{', start); i < source.length; i++) {
 }
 assert.notStrictEqual(end, -1, 'startCoverCapture must be parseable');
 
-const appended = [];
 const toasts = [];
-const modalOverlay = {classList: {remove() {}}};
-
-function makeElement() {
-  return {
-    className: '',
-    style: {},
-    textContent: '',
-    appendChild() {},
-    addEventListener() {},
-    remove() {},
-  };
-}
+const classNames = new Set(['show']);
+const modalOverlay = {classList: {remove(name) { classNames.delete(name); }, contains(name) { return classNames.has(name); }}};
+const modalContent = {innerHTML: ''};
+const frames = [];
+const shown = [];
+const capture = {dataUrl: 'data:image/jpeg;base64,recommended'};
 
 const context = {
   document: {
-    createElement: makeElement,
-    body: {appendChild(element) { appended.push(element); }},
-    addEventListener() {},
-    removeEventListener() {},
+    getElementById(id) { return id === 'modal-overlay' ? modalOverlay : id === 'modal-content' ? modalContent : null; },
   },
-  $: (id) => id === 'modal-overlay' ? modalOverlay : null,
+  $: (id) => context.document.getElementById(id),
   showToast: (message) => toasts.push(message),
-  setSeriesCover() {},
+  recommendVisibleCoverCrop() { return capture; },
+  showCoverRecommendation(sid, result) { shown.push([sid, result]); },
+  requestAnimationFrame(callback) { frames.push(callback); },
   console,
 };
 
@@ -58,9 +50,10 @@ vm.createContext(context);
 vm.runInContext(source.slice(start, end), context);
 context.startCoverCapture('series-1');
 
-assert.deepStrictEqual(toasts, [], 'capture must not fail during startup');
-assert.strictEqual(appended.length, 2, 'capture overlay and tip must be appended');
-assert.strictEqual(appended[0].className, 'capture-overlay');
-assert.strictEqual(appended[1].className, 'capture-tip');
+assert(!modalOverlay.classList.contains('show'), 'capture must close the setup modal before analysis');
+assert.deepStrictEqual(toasts, ['正在分析当前画面…'], 'capture must immediately report analysis loading');
+assert.strictEqual(frames.length, 1, 'capture must defer analysis to one animation frame');
+frames.shift()();
+assert.deepStrictEqual(shown, [['series-1', capture]], 'capture must hand a recommendation to the preview');
 
 console.log('capture-start: PASS');

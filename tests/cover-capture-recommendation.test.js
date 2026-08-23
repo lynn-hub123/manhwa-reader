@@ -52,6 +52,7 @@ function makeCanvas(rect, width, height, pixelAt) {
   return {
     width,
     height,
+    pixelAt,
     getBoundingClientRect() { return Object.assign({}, rect); },
     getContext() { return { getImageData: makePixels(width, height, pixelAt) }; },
     toDataURL(type, quality) { return 'data:' + type + ';base64,source-' + quality; }
@@ -72,6 +73,8 @@ const secondCanvas = makeCanvas(
 );
 const viewerRect = { left: 100, top: 100, right: 700, bottom: 600, width: 600, height: 500 };
 const drawCalls = [];
+let sampleReadCount = 0;
+let pixelAccessDenied = false;
 const viewer = {
   getBoundingClientRect() { return Object.assign({}, viewerRect); },
   querySelectorAll(selector) {
@@ -87,11 +90,34 @@ const document = {
   },
   createElement(tag) {
     assert.strictEqual(tag, 'canvas');
+    let drawImageArgs = null;
     return {
       width: 0,
       height: 0,
       getContext() {
-        return { drawImage(...args) { drawCalls.push(args); } };
+        return {
+          drawImage(...args) { drawImageArgs = args; drawCalls.push(args); },
+          getImageData(x, y, sampleWidth, sampleHeight) {
+            if (pixelAccessDenied) throw new Error('pixel access denied');
+            sampleReadCount += 1;
+            const sourceCanvas = drawImageArgs && drawImageArgs[0];
+            const sourceLeft = drawImageArgs && drawImageArgs[1];
+            const sourceTop = drawImageArgs && drawImageArgs[2];
+            const sourceWidth = drawImageArgs && drawImageArgs[3];
+            const sourceHeight = drawImageArgs && drawImageArgs[4];
+            const data = new Uint8ClampedArray(sampleWidth * sampleHeight * 4);
+            for (let row = 0; row < sampleHeight; row += 1) {
+              for (let column = 0; column < sampleWidth; column += 1) {
+                const sourceX = sourceLeft + (column + .5) * sourceWidth / sampleWidth;
+                const sourceY = sourceTop + (row + .5) * sourceHeight / sampleHeight;
+                const pixel = sourceCanvas && sourceCanvas.pixelAt ? sourceCanvas.pixelAt(sourceX, sourceY) : [255, 255, 255];
+                const index = (row * sampleWidth + column) * 4;
+                data[index] = pixel[0]; data[index + 1] = pixel[1]; data[index + 2] = pixel[2]; data[index + 3] = 255;
+              }
+            }
+            return { data };
+          }
+        };
       },
       toDataURL(type, quality) { return returnNullPreview ? null : 'data:' + type + ';base64,output-' + quality; }
     };
@@ -114,10 +140,30 @@ const detailedCenterCanvas = makeCanvas(
   (x, y) => (x >= 400 && x < 600 && y >= 400 && y < 600 && (x + y) % 20 < 10 ? [35, 80, 150] : [255, 255, 255])
 );
 const whiteCanvas = makeCanvas({ left: 0, top: 0, right: 500, bottom: 700, width: 500, height: 700 }, 1000, 1000, () => [255, 255, 255]);
+let sourceReadCount = 0;
+const countedDetailedPixelAt = (x, y) => (x >= 400 && x < 600 && y >= 400 && y < 600 && (x + y) % 20 < 10 ? [35, 80, 150] : [255, 255, 255]);
+const countedDetailedCanvas = Object.assign({}, detailedCenterCanvas, {
+  pixelAt: countedDetailedPixelAt,
+  getContext() { return { getImageData(...args) { sourceReadCount += 1; return makePixels(1000, 1000, countedDetailedPixelAt)(...args); } }; }
+});
+const countedWhitePixelAt = () => [255, 255, 255];
+const countedWhiteCanvas = Object.assign({}, whiteCanvas, {
+  pixelAt: countedWhitePixelAt,
+  getContext() { return { getImageData(...args) { sourceReadCount += 1; return makePixels(1000, 1000, countedWhitePixelAt)(...args); } }; }
+});
 assert(
   context.scoreCaptureCandidate(detailedCenterCanvas, detailedCenterCanvas.getBoundingClientRect(), candidate) > context.scoreCaptureCandidate(whiteCanvas, whiteCanvas.getBoundingClientRect(), candidate),
   'a detailed non-white candidate must outrank a blank white candidate'
 );
+sampleReadCount = 0;
+sourceReadCount = 0;
+const countedDetailedScore = context.scoreCaptureCandidate(countedDetailedCanvas, countedDetailedCanvas.getBoundingClientRect(), candidate);
+assert(sourceReadCount <= 1 && sampleReadCount <= 1, 'one candidate must make at most one getImageData call per source/output fixture');
+sampleReadCount = 0;
+sourceReadCount = 0;
+const countedWhiteScore = context.scoreCaptureCandidate(countedWhiteCanvas, countedWhiteCanvas.getBoundingClientRect(), candidate);
+assert(sourceReadCount <= 1 && sampleReadCount <= 1, 'one blank candidate must make at most one getImageData call per source/output fixture');
+assert(countedDetailedScore > countedWhiteScore, 'a detailed non-white sampled candidate must outrank a blank white candidate');
 
 const originalBuildCandidates = CoverCapture.buildCandidates;
 const originalChooseCandidate = CoverCapture.chooseCandidate;
@@ -143,10 +189,9 @@ assert.match(recommendation.dataUrl, /^data:image\/jpeg;base64,/);
 assert(scoredCandidates.length > 0);
 scoredCandidates.forEach((rect) => assert(Math.abs(rect.width / rect.height - 5 / 7) < 1e-10, 'every candidate passed to the scorer must have a 5:7 ratio'));
 
-const originalGetContext = secondCanvas.getContext;
-secondCanvas.getContext = function () { return { getImageData() { throw new Error('pixel access denied'); } }; };
+pixelAccessDenied = true;
 const scoringFallback = context.recommendVisibleCoverCrop();
-secondCanvas.getContext = originalGetContext;
+pixelAccessDenied = false;
 assert.deepStrictEqual(
   JSON.parse(JSON.stringify(scoringFallback.rect)),
   JSON.parse(JSON.stringify(CoverCapture.fitRect(visible.visibleBounds, 5 / 7, 0))),
