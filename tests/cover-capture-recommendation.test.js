@@ -119,23 +119,39 @@ assert(
   'a detailed non-white candidate must outrank a blank white candidate'
 );
 
-const observedCandidates = [];
 const originalBuildCandidates = CoverCapture.buildCandidates;
+const originalChooseCandidate = CoverCapture.chooseCandidate;
+const scoredCandidates = [];
 CoverCapture.buildCandidates = function (bounds, ratio) {
-  const candidates = originalBuildCandidates(bounds, ratio);
-  candidates.forEach((rect) => observedCandidates.push(rect));
-  return candidates;
+  return originalBuildCandidates(bounds, ratio);
+};
+CoverCapture.chooseCandidate = function (candidates, scorer) {
+  return originalChooseCandidate(candidates, function (rect) {
+    scoredCandidates.push(rect);
+    return scorer(rect);
+  });
 };
 const recommendation = context.recommendVisibleCoverCrop();
 CoverCapture.buildCandidates = originalBuildCandidates;
+CoverCapture.chooseCandidate = originalChooseCandidate;
 assert.strictEqual(recommendation.canvas, secondCanvas);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(recommendation.canvasRect)), secondCanvas.getBoundingClientRect());
 assert(Math.abs(recommendation.rect.width / recommendation.rect.height - 5 / 7) < 1e-10, 'recommendation ratio must remain 5:7');
 assert.notStrictEqual(recommendation.rect, recommendation.originalRect, 'originalRect must be an independent copy');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(recommendation.rect)), JSON.parse(JSON.stringify(recommendation.originalRect)));
 assert.match(recommendation.dataUrl, /^data:image\/jpeg;base64,/);
-assert(observedCandidates.length > 0);
-observedCandidates.forEach((rect) => assert(Math.abs(rect.width / rect.height - 5 / 7) < 1e-10, 'all scored candidates must have a 5:7 ratio'));
+assert(scoredCandidates.length > 0);
+scoredCandidates.forEach((rect) => assert(Math.abs(rect.width / rect.height - 5 / 7) < 1e-10, 'every candidate passed to the scorer must have a 5:7 ratio'));
+
+const originalGetContext = secondCanvas.getContext;
+secondCanvas.getContext = function () { return { getImageData() { throw new Error('pixel access denied'); } }; };
+const scoringFallback = context.recommendVisibleCoverCrop();
+secondCanvas.getContext = originalGetContext;
+assert.deepStrictEqual(
+  JSON.parse(JSON.stringify(scoringFallback.rect)),
+  JSON.parse(JSON.stringify(CoverCapture.fitRect(visible.visibleBounds, 5 / 7, 0))),
+  'a pixel-access failure must retain a usable fitted fallback crop'
+);
 
 returnNullPreview = true;
 const previewFallback = context.recommendVisibleCoverCrop();
