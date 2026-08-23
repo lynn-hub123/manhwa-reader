@@ -152,6 +152,83 @@ function captureCurrentPageAsCover(){
     return out.toDataURL('image/jpeg',0.92);
   }catch(e){return null}
 }
+function getVisibleCaptureSource(){
+  const viewer=document.querySelector('#viewer-area');
+  if(!viewer)return null;
+  const viewerRect=viewer.getBoundingClientRect();
+  const viewport={left:0,top:0,right:window.innerWidth,bottom:window.innerHeight};
+  const limit={
+    left:Math.max(viewerRect.left,viewport.left),
+    top:Math.max(viewerRect.top,viewport.top),
+    right:Math.min(viewerRect.right,viewport.right),
+    bottom:Math.min(viewerRect.bottom,viewport.bottom)
+  };
+  let best=null;
+  viewer.querySelectorAll('.page-wrapper canvas').forEach(canvas=>{
+    const canvasRect=canvas.getBoundingClientRect();
+    const left=Math.max(canvasRect.left,limit.left),top=Math.max(canvasRect.top,limit.top),right=Math.min(canvasRect.right,limit.right),bottom=Math.min(canvasRect.bottom,limit.bottom);
+    const width=Math.max(0,right-left),height=Math.max(0,bottom-top),area=width*height;
+    if(area>0&&(!best||area>best.area))best={canvas,canvasRect,visibleBounds:{x:left,y:top,width,height},area};
+  });
+  return best?{canvas:best.canvas,canvasRect:best.canvasRect,visibleBounds:best.visibleBounds}:null;
+}
+function scoreCaptureCandidate(canvas,canvasRect,candidate){
+  try{
+    const scaleX=canvas.width/canvasRect.width,scaleY=canvas.height/canvasRect.height;
+    if(!Number.isFinite(scaleX)||!Number.isFinite(scaleY)||scaleX<=0||scaleY<=0)return-1000000;
+    const sourceLeft=Math.max(0,Math.min(canvas.width,(candidate.x-canvasRect.left)*scaleX)),sourceTop=Math.max(0,Math.min(canvas.height,(candidate.y-canvasRect.top)*scaleY));
+    const sourceRight=Math.max(sourceLeft,Math.min(canvas.width,(candidate.x+candidate.width-canvasRect.left)*scaleX)),sourceBottom=Math.max(sourceTop,Math.min(canvas.height,(candidate.y+candidate.height-canvasRect.top)*scaleY));
+    const sourceWidth=sourceRight-sourceLeft,sourceHeight=sourceBottom-sourceTop,sampleWidth=Math.max(1,Math.min(24,Math.round(sourceWidth))),sampleHeight=Math.max(1,Math.min(24,Math.round(sourceHeight))),context=canvas.getContext('2d');
+    let luminanceSum=0,luminanceSquaredSum=0,nonWhite=0,white=0,black=0,edgeSum=0,edgeCount=0;
+    const luminances=[];
+    for(let y=0;y<sampleHeight;y+=1)for(let x=0;x<sampleWidth;x+=1){
+      const sampleX=Math.min(canvas.width-1,Math.floor(sourceLeft+(x+.5)*sourceWidth/sampleWidth)),sampleY=Math.min(canvas.height-1,Math.floor(sourceTop+(y+.5)*sourceHeight/sampleHeight)),pixel=context.getImageData(sampleX,sampleY,1,1).data;
+      const luminance=(pixel[0]*.2126+pixel[1]*.7152+pixel[2]*.0722)/255;
+      luminances.push(luminance);luminanceSum+=luminance;luminanceSquaredSum+=luminance*luminance;
+      if(luminance<.96)nonWhite+=1;if(luminance>.98)white+=1;if(luminance<.02)black+=1;
+    }
+    for(let y=0;y<sampleHeight;y+=1)for(let x=0;x<sampleWidth;x+=1){
+      const index=y*sampleWidth+x;
+      if(x+1<sampleWidth){edgeSum+=Math.abs(luminances[index]-luminances[index+1]);edgeCount+=1}
+      if(y+1<sampleHeight){edgeSum+=Math.abs(luminances[index]-luminances[index+sampleWidth]);edgeCount+=1}
+    }
+    const count=luminances.length,mean=luminanceSum/count,variance=Math.max(0,luminanceSquaredSum/count-mean*mean),nonWhiteCoverage=nonWhite/count,whiteCoverage=white/count,blackCoverage=black/count,edgeChange=edgeCount?edgeSum/edgeCount:0;
+    const score=nonWhiteCoverage*4+variance*3+edgeChange*3-(whiteCoverage>.9?(whiteCoverage-.9)*12:0)-(blackCoverage>.9?(blackCoverage-.9)*8:0);
+    return Number.isFinite(score)?score:-1000000;
+  }catch(e){return-1000000}
+}
+function cropCanvasToDataUrl(capture){
+  const canvas=capture&&capture.canvas,canvasRect=capture&&capture.canvasRect,rect=capture&&capture.rect;
+  if(!canvas||!canvasRect||!rect||!canvasRect.width||!canvasRect.height)return null;
+  const scaleX=canvas.width/canvasRect.width,scaleY=canvas.height/canvasRect.height;
+  if(!Number.isFinite(scaleX)||!Number.isFinite(scaleY)||scaleX<=0||scaleY<=0)return null;
+  const left=Math.max(0,Math.min(canvas.width,(rect.x-canvasRect.left)*scaleX)),top=Math.max(0,Math.min(canvas.height,(rect.y-canvasRect.top)*scaleY));
+  const right=Math.max(left,Math.min(canvas.width,(rect.x+rect.width-canvasRect.left)*scaleX)),bottom=Math.max(top,Math.min(canvas.height,(rect.y+rect.height-canvasRect.top)*scaleY));
+  const width=right-left,height=bottom-top;
+  if(!(width>0)||!(height>0))return null;
+  const out=document.createElement('canvas');out.width=Math.max(1,Math.round(width));out.height=Math.max(1,Math.round(height));
+  out.getContext('2d').drawImage(canvas,left,top,width,height,0,0,out.width,out.height);
+  return out.toDataURL('image/jpeg',0.92);
+}
+function recommendVisibleCoverCrop(){
+  const source=getVisibleCaptureSource();
+  if(!source)return null;
+  const fallback=CoverCapture.fitRect(source.visibleBounds,5/7,0);
+  let rect=fallback;
+  try{
+    let scoringFailed=false;
+    const candidate=CoverCapture.chooseCandidate(CoverCapture.buildCandidates(source.visibleBounds,5/7),candidateRect=>{
+      const score=scoreCaptureCandidate(source.canvas,source.canvasRect,candidateRect);
+      if(score<=-1000000)scoringFailed=true;
+      return score;
+    });
+    if(candidate&&!scoringFailed)rect=candidate;
+  }catch(e){rect=fallback}
+  rect={x:rect.x,y:rect.y,width:rect.width,height:rect.height};
+  let dataUrl=null;
+  try{dataUrl=cropCanvasToDataUrl({canvas:source.canvas,canvasRect:source.canvasRect,rect});if(!dataUrl)throw new Error('capture preview unavailable')}catch(e){rect={x:fallback.x,y:fallback.y,width:fallback.width,height:fallback.height};try{dataUrl=cropCanvasToDataUrl({canvas:source.canvas,canvasRect:source.canvasRect,rect})}catch(ignore){}}
+  return {canvas:source.canvas,canvasRect:source.canvasRect,rect,originalRect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},dataUrl};
+}
 function startCoverCapture(sid){
   try{
     const modalOverlay=$('modal-overlay');
