@@ -1,40 +1,66 @@
-# 韩漫阅读器 · 当前进度与下一步（2026-08-09）
+# 韩漫阅读器 · 当前交接（2026-08-23）
 
-## 项目结构
-- 入口：F:\manhwa-reader\index.html
-- 文件：index.html、app.js、db.js、server.js、启动阅读器.bat
-- 本地运行：node server.js → http://localhost:8765
-- 已完成阶段：Phase 1 → 2J（持久化、跨浏览器导入、条漫、懒加载、快捷键、缓存、封面、搜索排序、日夜主题、交互书架等）
+## 项目启动与架构
 
-## 最新完成（本次对话）
+- 工作目录：`F:\manhwa-reader`；本任务分支：`feature/recommended-cover-capture`。
+- 本地启动：`node server.js`，访问 `http://localhost:8765`；`启动阅读器.bat` 为快捷启动入口。
+- `index.html`：页面骨架与全部 CSS；`app.js`：导入、书架、阅读器、PDF.js canvas 渲染及交互；`db.js`：IndexedDB 封装；`server.js`：Node.js 静态服务器；`fonts/`：本地字体。
+- 数据只保存在浏览器 IndexedDB（`bookshelf`、`pdf-cache`、`settings`、`covers`），不依赖后端数据库；PDF.js 3.11.174 仍按既有方式加载。
 
-### ✅ 书脊优先书架（Spine-First Bookshelf）
-1. **默认书脊展示**：每本书显示为窄书脊（40-64px），竖排标题用马善政书法字体展示在书脊上
-2. **hover 抽出封面**：鼠标悬停时书向前倾斜抽出（translateY + rotateX + translateZ），封面从书脊侧面旋转翻出（rotateY 动画）
-3. **书架层板**：`bs-rack::after` 伪元素模拟木质书架层板，书籍底部对齐
-4. **书脊颜色**：每本书根据书名哈希生成独特的 HSL 颜色，像真实书店彩色书脊
-5. **封面比例**：保持 0.68 宽高比，抽出封面宽度 = 书脊宽度 × 3.2
-6. **进度条**：阅读进度条显示在书脊底部
-7. **物理感动画**：抽出时书身倾斜 + 前移 + 封面旋转，非简单 scale 放大
-8. **无障碍**：`prefers-reduced-motion` 时动画降级
+## 基线恢复与已验证状态
 
-### ✅ 字体修复
-- `@font-face` 改为本地引用：`fonts/MaShanZheng-Regular.ttf`
-- Zhi Mang Xing 不可用时 fallback 到 Ma Shan Zheng（同一 ttf）
+- 已恢复并核对 Phase 2J 基线：持久化、文件/文件夹导入、章节解析、PDF 阅读、普通页/条漫模式、懒加载、进度、缓存、封面候选、搜索排序、日夜主题、书架和快捷键等既有函数保持在 `app.js`/`db.js`/`server.js`。
+- 本次功能只扩展“当前画面截图设封面”路径；既有上传封面、文字封面、候选页封面路径未改动其入口。
 
-### 代码改动摘要
-- **index.html**：书脊优先 CSS（`.rack-spine`、`.rack-spine-title`、`.rack-cover-pull`、`.bs-rack::after` 等），本地字体引用
-- **app.js**：
-  - 新增 `spineColor(name)` — 根据书名生成 HSL 书脊颜色
-  - `renderBookshelf()` — 生成书脊优先 HTML，传递 `--spine-bg` CSS 变量
-  - `applyRackSizing(n)` — 计算书脊宽度（40-64px）、封面宽度、间距
+## 当前画面推荐截图（混合推荐 + 可调整）
 
-## 待办
-- [ ] 在实际浏览器中测试书脊书架的视觉效果和交互动画
-- [ ] 确认封面更换/截图功能在新书架中正常工作
-- [ ] 如需更多中文字体，可下载 Zhi Mang Xing 等字体到 fonts/ 目录
+1. 阅读器点击“设封面 → 从当前阅读页面截图”后，先关闭入口弹窗并在下一帧显示“正在分析当前画面…”。
+2. 只在 `#viewer-area` 与浏览器视口相交的已渲染 PDF canvas 中选取可见面积最大的一个；不扫描整章、不请求外部服务、不做人脸/人物识别。
+3. 在可见区域内生成 `5:7` 候选框，以本地像素内容评分后推荐一个构图；评分或预览失败时退回居中的 `5:7` 框。预览与保存均按源 PDF canvas 分辨率做坐标映射和裁切。
+4. 预览提供“使用推荐 / 调整一下 / 取消”。“调整一下”显示固定 `5:7` 选框，可拖动、拖四角 handle、恢复推荐位置、保存为封面或取消；鼠标、触摸、笔均使用 Pointer Events。Escape 和阅读器快捷键在调整期间被正确拦截，关闭后监听清理。
+5. 裁切/保存失败时保留调整界面并提示“封面保存失败，请重试”，可重试；当前产品策略只给出一个推荐，不提供多推荐列表。
 
-## 验证方式
-- node --check app.js / db.js ✓
-- 打开 http://localhost:8765 人工测试书架交互
-- prefers-reduced-motion 时动画降级
+## 新增模块与测试职责
+
+- `cover-capture.js`：无 DOM 的几何工具（`fitRect`、`buildCandidates`、`chooseCandidate`、`clampRect`），负责 `5:7` 候选和边界约束。
+- `app.js`：可见 canvas 选择、内容评分、源坐标裁切、推荐预览、Pointer Events 调整、清理/错误重试及既有保存入口整合。
+- `tests/cover-capture-geometry.test.js`：比例、候选、边界和 tie 行为。
+- `tests/cover-capture-recommendation.test.js`：当前可见源、评分、fallback、源像素映射和推荐对象。
+- `tests/cover-capture-preview.test.js`：加载/无预览错误、预览三操作、遮罩/Escape、监听清理和重开不重复。
+- `tests/cover-capture-adjustment.test.js`：`5:7` 拖动/缩放、四角柄存在、Pointer Events、快捷键拦截、恢复/取消和保存重试。
+- `tests/capture-start.test.js`、`tests/capture-ui-contract.test.ps1`：入口调度和预览 CSS/布局契约。
+
+## 本任务自动化证据（2026-08-23）
+
+以下命令均在 feature worktree 执行并返回成功：
+
+```text
+node tests/cover-capture-adjustment.test.js       PASS
+node tests/cover-capture-preview.test.js          PASS
+node tests/cover-capture-recommendation.test.js   PASS
+node tests/cover-capture-geometry.test.js         PASS
+node tests/capture-start.test.js                  PASS
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/capture-ui-contract.test.ps1  PASS
+node --check app.js                             PASS
+node --check cover-capture.js                   PASS
+node --check db.js                              PASS
+node --check server.js                          PASS
+git diff --check                                PASS
+```
+
+## 功能提交
+
+- 功能：`c43fa80`、`87d0e02`、`41c3778`、`a540dd9`。
+- 回归/修复：`471d685`、`c91c4c2`、`c7dc100`（当前 HEAD，修复调整封面时快捷键拦截）。
+- 最终合并仍 pending，不能把浏览器视觉或触摸验收当作已完成。
+
+## 限制与未决项
+
+- 目前只提供一个推荐；没有人物/人脸识别，也没有外部服务或 AI 模型。
+- 实际渲染图像观感、触摸设备手感、日/夜视觉层叠和真实浏览器刷新后的持久化仍待人工验收。
+- 高瘦普通分页页面的页内阅读进度恢复仍未修复（条漫滚动百分比恢复与本功能无关）。
+- `CURRENT-PROGRESS.md` 是当前简要交接；`CURRENTPROGRESS.md` 是旧的 Phase 1→2J 完整参考，不能当作当前状态。
+
+## 下一步
+
+在 `feature/recommended-cover-capture` 分支按 `docs/ACCEPTANCE-CHECKLIST.md` 执行普通页与长条页的真实浏览器验收（含窄窗口、触摸、日/夜主题和刷新持久化），然后进行最终 review/integration。合并后再处理高瘦普通分页的页内阅读进度恢复。
