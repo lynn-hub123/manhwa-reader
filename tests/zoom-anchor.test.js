@@ -157,11 +157,37 @@ async function testNormalRestoreDisablesSmoothScroll() {
     console
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction('renderPagesForRestore'), context);
   vm.runInContext(extractFunction('withInstantScroll'), context);
   vm.runInContext(extractFunction('restoreNormalPageProgress'), context);
   await context.restoreNormalPageProgress({ page: 2, pageProgress: 0.5 }, 1);
   assert.deepStrictEqual(writes, [{ value: 900, behavior: 'auto' }], 'automatic anchor restoration must assign scrollTop without smooth animation');
   assert.strictEqual(viewer.style.scrollBehavior, 'smooth', 'normal viewer scrolling must retain its original behavior after restoration');
+}
+
+async function testRestoreRendersPagesInBatches() {
+  const started = [];
+  const pending = [];
+  const context = {
+    Promise,
+    renderPage(page) {
+      started.push(page);
+      return new Promise(resolve => pending.push({ page, resolve }));
+    },
+    restoreTokenIsCurrent: () => true,
+    console
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction('renderPagesForRestore'), context);
+  const restoring = context.renderPagesForRestore(5, 1);
+  await Promise.resolve();
+  assert.deepStrictEqual(started, [1, 2, 3], 'restoration should start at most three page renders in one batch');
+  assert.strictEqual(pending.length, 3, 'the next batch must wait for the first batch to finish');
+  pending.slice(0, 3).forEach(({ resolve }) => resolve());
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepStrictEqual(started, [1, 2, 3, 4, 5], 'restoration should start the next batch after the first batch settles');
+  pending.slice(3).forEach(({ resolve }) => resolve());
+  assert.strictEqual(await restoring, true, 'batched restoration should report success when all pages finish');
 }
 
 async function testLatestRerenderWins() {
@@ -212,4 +238,4 @@ assert.strictEqual(normal.captureReaderViewState(), null, 'zoom without an activ
 
 testCaptureUsesFreshAnchorPage();
 testAnchorIgnoresUnrenderedPages();
-testRerenderPreservesState().then(testLatestRerenderWins).then(testNormalRestoreDisablesSmoothScroll).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });
+testRerenderPreservesState().then(testLatestRerenderWins).then(testNormalRestoreDisablesSmoothScroll).then(testRestoreRendersPagesInBatches).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });

@@ -53,14 +53,18 @@
 3. 快速连续缩放使用恢复代次保护，旧的异步渲染不能覆盖最后一次缩放结果。
 4. 当前页判断和滚动保存会忽略尚未渲染的零高度页面，避免适应宽度后跳到错误的页边界。
 5. 程序化恢复阅读锚点时临时关闭平滑滚动，避免布局重排后先跳一次、再慢慢滑到目标位置；用户正常翻页的平滑滚动保持不变。
+6. 锚点之前的 PDF 页面按最多 3 页一批并行重绘，批次完成后才继续下一批并最终恢复位置，减少 100% 以上和适应宽度切换的等待。
 
 对应测试：`tests/zoom-anchor.test.js`。
 
-## 缩放定位反馈修复（2026-08-24）
+## 缩放定位与性能反馈修复（2026-08-24）
 
 - 根因：`#viewer-area` 的 `scroll-behavior: smooth` 作用于缩放后的 `scrollTop` 锚点恢复，导致用户看到中间位置和后续平滑校正两个阶段。
 - 修复：`app.js` 新增 `withInstantScroll`，只包裹普通分页 PDF 的自动 `scrollTop`/`scrollIntoView` 恢复，并在操作后还原原滚动设置。
 - 回归覆盖：`tests/zoom-anchor.test.js` 验证自动恢复使用 `auto` 且恢复后保留原设置；`tests/normal-pdf-progress-flow.test.js` 同步加载该辅助函数。
+- 后续卡顿根因：`restoreNormalPageProgress` 原先逐页等待完整 PDF 像素渲染，高缩放比例下每次布局重排都会暴露中间画面。
+- 修复：新增 `renderPagesForRestore`，按最多 3 页并行、批次间等待的方式准备锚点前页面，保留 token 取消保护与原有最终定位。
+- 新增回归：`tests/zoom-anchor.test.js` 验证批内并行、批间等待和全部完成后的成功结果。
 - 自动验收：12 个 `tests/*.test.js` 全部通过，`node --check app.js`、`node --check db.js`、`git diff --check` 通过，`http://localhost:8765/` 返回 200。
 
 ## 本任务自动化证据（2026-08-23）

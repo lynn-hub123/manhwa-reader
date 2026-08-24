@@ -82,6 +82,7 @@ function makeHarness() {
   vm.runInContext(extractFunction('saveProgress'), context);
   vm.runInContext(extractFunction('restoreTokenIsCurrent'), context);
   vm.runInContext(extractFunction('restoreWebtoonScroll'), context);
+  vm.runInContext(extractFunction('renderPagesForRestore'), context);
   vm.runInContext(extractFunction('withInstantScroll'), context);
   vm.runInContext(extractFunction('restoreNormalPageProgress'), context);
   return { context, viewer, wrappers, series };
