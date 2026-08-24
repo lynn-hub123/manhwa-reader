@@ -120,6 +120,50 @@ function testAnchorIgnoresUnrenderedPages() {
   assert.strictEqual(context.getNormalPageAtAnchor(), 2, 'zero-height unrendered pages must not steal the reading anchor');
 }
 
+async function testNormalRestoreDisablesSmoothScroll() {
+  const writes = [];
+  const viewer = {
+    style: { scrollBehavior: 'smooth' },
+    clientHeight: 600,
+    scrollHeight: 2200,
+    getBoundingClientRect: () => ({ top: 0, height: 600 })
+  };
+  Object.defineProperty(viewer, 'scrollTop', {
+    configurable: true,
+    get: () => 400,
+    set(value) { writes.push({ value, behavior: viewer.style.scrollBehavior }); }
+  });
+  const pageWrapper = { getBoundingClientRect: () => ({ top: -50, height: 800 }) };
+  const slider = { value: 0 };
+  const context = {
+    pdfDoc: { numPages: 3 },
+    isWebtoon: false,
+    renderPage: async () => {},
+    restoreTokenIsCurrent: () => true,
+    updatePageInfo() {},
+    setChapterStatus() {},
+    $: id => {
+      if (id === 'viewer-area') return viewer;
+      if (id === 'page-container') return { querySelector: () => pageWrapper };
+      if (id === 'page-slider') return slider;
+      return {};
+    },
+    window: {
+      ReadingProgress: {
+        normalizePageRatio: value => value,
+        scrollTopForPageRatio: () => 900
+      }
+    },
+    console
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction('withInstantScroll'), context);
+  vm.runInContext(extractFunction('restoreNormalPageProgress'), context);
+  await context.restoreNormalPageProgress({ page: 2, pageProgress: 0.5 }, 1);
+  assert.deepStrictEqual(writes, [{ value: 900, behavior: 'auto' }], 'automatic anchor restoration must assign scrollTop without smooth animation');
+  assert.strictEqual(viewer.style.scrollBehavior, 'smooth', 'normal viewer scrolling must retain its original behavior after restoration');
+}
+
 async function testLatestRerenderWins() {
   const resolvers = [];
   const context = {
@@ -168,4 +212,4 @@ assert.strictEqual(normal.captureReaderViewState(), null, 'zoom without an activ
 
 testCaptureUsesFreshAnchorPage();
 testAnchorIgnoresUnrenderedPages();
-testRerenderPreservesState().then(testLatestRerenderWins).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });
+testRerenderPreservesState().then(testLatestRerenderWins).then(testNormalRestoreDisablesSmoothScroll).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });

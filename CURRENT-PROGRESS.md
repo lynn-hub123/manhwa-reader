@@ -1,4 +1,4 @@
-# 韩漫阅读器 · 当前交接（2026-08-23）
+# 韩漫阅读器 · 当前交接（2026-08-24）
 
 ## 项目启动与架构
 
@@ -52,8 +52,16 @@
 2. 重渲染完成后恢复同一页面内的内容位置；条漫继续恢复整体滚动百分比。
 3. 快速连续缩放使用恢复代次保护，旧的异步渲染不能覆盖最后一次缩放结果。
 4. 当前页判断和滚动保存会忽略尚未渲染的零高度页面，避免适应宽度后跳到错误的页边界。
+5. 程序化恢复阅读锚点时临时关闭平滑滚动，避免布局重排后先跳一次、再慢慢滑到目标位置；用户正常翻页的平滑滚动保持不变。
 
 对应测试：`tests/zoom-anchor.test.js`。
+
+## 缩放定位反馈修复（2026-08-24）
+
+- 根因：`#viewer-area` 的 `scroll-behavior: smooth` 作用于缩放后的 `scrollTop` 锚点恢复，导致用户看到中间位置和后续平滑校正两个阶段。
+- 修复：`app.js` 新增 `withInstantScroll`，只包裹普通分页 PDF 的自动 `scrollTop`/`scrollIntoView` 恢复，并在操作后还原原滚动设置。
+- 回归覆盖：`tests/zoom-anchor.test.js` 验证自动恢复使用 `auto` 且恢复后保留原设置；`tests/normal-pdf-progress-flow.test.js` 同步加载该辅助函数。
+- 自动验收：12 个 `tests/*.test.js` 全部通过，`node --check app.js`、`node --check db.js`、`git diff --check` 通过，`http://localhost:8765/` 返回 200。
 
 ## 本任务自动化证据（2026-08-23）
 
