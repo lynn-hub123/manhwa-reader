@@ -12,6 +12,7 @@ let searchQuery='',sortMode='recent';
 let isWebtoon=!1,webtoonScrollPct=0;let rackPage=0;
 let captureUiActive=!1;
 let restoringProgress=!1,viewRestoreGeneration=0;
+let pendingZoomValue=null,zoomChangeRun=null;
 
 function $(id){return document.getElementById(id)}
 function Qs(sel,el){return el?el.querySelector(sel):document.querySelector(sel)}
@@ -543,7 +544,7 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions">'+actions+'</
   else if(type==='delete-confirm'){if(!confirmBtn)return;confirmBtn.onclick=function(){let dc=Qs('#modal-delete-cache',mc),shouldDelete=dc?dc.checked:!0;closeModal();let idx=bookshelf.findIndex(s=>s.seriesId===data.id);if(idx>=0){let s=bookshelf[idx];if(currentSeries===data.id)closeReader();bookshelf.splice(idx,1);renderBookshelf();delete covers[data.id];showToast('已删除「'+s.name+'」');// Background async cleanup
 (async()=>{if(shouldDelete){try{await db.deleteSeriesPDFs(data.id)}catch(e){}try{await db.deleteCover(data.id)}catch(e){}}try{await db.deleteSeries(data.id)}catch(e){}})()}}}
   else if(type==='cache-mgr'){setTimeout(()=>{mc.querySelectorAll('.cache-clear-btn').forEach(btn=>{btn.addEventListener('click',async function(){let sid=this.dataset.sid,s=findSeries(sid),name=s?s.name:sid;try{await db.deleteSeriesPDFs(sid);await db.deleteCover(sid);delete covers[sid];showToast('已清除「'+name+'」的缓存');renderBookshelf()}catch(e){showToast('清除失败')}let stats=await db.getCacheStats(),si=await db.getStorageEstimate();closeModal();showModal('cache-mgr',{stats,storageInfo:si})})})},100)}
-  else if(type==='settings'){const saveBtn=Qs('#modal-save-settings',mc);if(saveBtn)saveBtn.onclick=async function(){let z=$('setting-zoom').value,d=$('setting-direction').value,dp=$('setting-dual').value==='1',sb=$('setting-sidebar').value==='1',t=$('setting-theme').value,wa=$('setting-webtoon').value==='1',zoomChanged=settings.zoom!==z,viewState=zoomChanged?captureReaderViewState():null;Object.assign(settings,{zoom:z,direction:d,dualPage:dp,sidebarOpen:sb,theme:t,webtoonAuto:wa});fitWidth=z==='fit';if(!fitWidth)zoom=parseFloat(z);$('zoom-select').value=z;if(zoomChanged)reRenderAll(viewState);document.documentElement.setAttribute('data-theme',t);await db.saveSetting('zoom',z);await db.saveSetting('direction',d);await db.saveSetting('dualPage',dp);await db.saveSetting('sidebarOpen',sb);await db.saveSetting('theme',t);await db.saveSetting('webtoonAuto',wa);closeModal();showToast('设置已保存')};if(cancelBtn)cancelBtn.onclick=closeModal}
+  else if(type==='settings'){const saveBtn=Qs('#modal-save-settings',mc);if(saveBtn)saveBtn.onclick=async function(){let z=$('setting-zoom').value,d=$('setting-direction').value,dp=$('setting-dual').value==='1',sb=$('setting-sidebar').value==='1',t=$('setting-theme').value,wa=$('setting-webtoon').value==='1',zoomChanged=settings.zoom!==z;Object.assign(settings,{zoom:z,direction:d,dualPage:dp,sidebarOpen:sb,theme:t,webtoonAuto:wa});$('zoom-select').value=z;if(zoomChanged)requestZoomChange(z);document.documentElement.setAttribute('data-theme',t);await db.saveSetting('zoom',z);await db.saveSetting('direction',d);await db.saveSetting('dualPage',dp);await db.saveSetting('sidebarOpen',sb);await db.saveSetting('theme',t);await db.saveSetting('webtoonAuto',wa);closeModal();showToast('设置已保存')};if(cancelBtn)cancelBtn.onclick=closeModal}
 }
 
 async function pickFolder(){try{if(!window.showDirectoryPicker)return await pickFilesViaInput();let dh=await window.showDirectoryPicker(),fs=[];for await(let e of dh.values()){if(e.kind==='file')fs.push(await e.getFile())}let pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('文件夹中没有PDF文件');return null}return pdfs}catch(e){if(e.name!=='AbortError')showToast('操作取消');return null}}
@@ -735,8 +736,27 @@ async function renderPage(pn){
     throw e;
   }
 }
-function renderVisiblePages(){if(!pdfDoc)return;let cr=$('viewer-area').getBoundingClientRect(),ws=$('page-container').querySelectorAll('.page-wrapper'),tr=[];for(let w of ws){let r=w.getBoundingClientRect();if(r.bottom>=cr.top-400&&r.top<=cr.bottom+400){let p=parseInt(w.dataset.page);if(!renderedPages.has(p))tr.push(p)}}for(let i=0;i<tr.length;i+=3)tr.slice(i,i+3).forEach(p=>renderPage(p))}
-function reRenderAll(viewState){markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];renderedPages.clear();if(!viewState||!pdfDoc){renderVisiblePages();return}const viewToken=++viewRestoreGeneration,token={chapter:chapterLoadToken,view:viewToken};restoringProgress=!0;let pending;if(viewState.isWebtoon){renderVisiblePages();pending=restoreWebtoonScroll(viewState.scrollProgress,token)}else pending=restoreNormalPageProgress(viewState,token);Promise.resolve(pending).catch(e=>console.warn('restore zoom anchor failed',e)).finally(()=>{if(token.chapter!==chapterLoadToken||token.view!==viewRestoreGeneration)return;restoringProgress=!1;renderVisiblePages()})}
+function renderVisiblePages(){if(!pdfDoc)return Promise.resolve([]);let cr=$('viewer-area').getBoundingClientRect(),ws=$('page-container').querySelectorAll('.page-wrapper'),tr=[];for(let w of ws){let r=w.getBoundingClientRect();if(r.bottom>=cr.top-400&&r.top<=cr.bottom+400){let p=parseInt(w.dataset.page);if(!renderedPages.has(p))tr.push(p)}}let jobs=[];for(let i=0;i<tr.length;i+=3)tr.slice(i,i+3).forEach(p=>jobs.push(renderPage(p).catch(e=>{if(!e||e.name!=='RenderingCancelledException')console.warn('page render failed',e);return null})));return Promise.all(jobs)}
+function reRenderAll(viewState){markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];renderedPages.clear();if(!viewState||!pdfDoc)return renderVisiblePages();const viewToken=++viewRestoreGeneration,token={chapter:chapterLoadToken,view:viewToken};restoringProgress=!0;let pending;if(viewState.isWebtoon){renderVisiblePages();pending=restoreWebtoonScroll(viewState.scrollProgress,token)}else pending=restoreNormalPageProgress(viewState,token);return Promise.resolve(pending).catch(e=>console.warn('restore zoom anchor failed',e)).then(()=>{if(token.chapter!==chapterLoadToken||token.view!==viewRestoreGeneration)return;restoringProgress=!1;return renderVisiblePages()})}
+
+function requestZoomChange(value){
+  pendingZoomValue=value;
+  if(zoomChangeRun)return zoomChangeRun;
+  zoomChangeRun=(async function(){
+    while(pendingZoomValue!==null){
+      const next=pendingZoomValue;pendingZoomValue=null;
+      const viewState=captureReaderViewState();
+      fitWidth=next==='fit';
+      if(!fitWidth){const parsed=parseFloat(next);if(Number.isFinite(parsed))zoom=parsed}
+      settings.zoom=next;
+      const select=$('zoom-select');if(select)select.value=next;
+      try{await reRenderAll(viewState)}catch(e){console.warn('zoom rerender failed',e)}
+    }
+  })();
+  const finished=zoomChangeRun;
+  finished.then(()=>{if(zoomChangeRun!==finished)return;zoomChangeRun=null;if(pendingZoomValue!==null)requestZoomChange(pendingZoomValue)},e=>{if(zoomChangeRun===finished)zoomChangeRun=null;if(pendingZoomValue!==null)requestZoomChange(pendingZoomValue);console.warn('zoom request failed',e)});
+  return finished;
+}
 
 function goToPage(n,options){if(!pdfDoc||isWebtoon)return;options=options||{};n=Math.max(1,Math.min(pdfDoc.numPages,n));currentPage=n;$('page-slider').value=n;updatePageInfo();let w=$('page-container').querySelector('[data-page="'+n+'"]');if(w)w.scrollIntoView({behavior:options.behavior||'smooth',block:'start'});if(n===pdfDoc.numPages)setChapterStatus(currentChIdx,'read');if(!options.suppressSave)saveProgress(0)}
 function nextPage(){if(!pdfDoc)return;if(isWebtoon){scrollWebtoon(.5);return}if(currentPage<pdfDoc.numPages)goToPage(currentPage+1);else nextChapter()}
@@ -751,7 +771,7 @@ async function saveProgress(pageProgressOverride){if(currentChIdx<0||!currentSer
 // ===== Event Bindings =====
 $('viewer-area').addEventListener('scroll',()=>{if(scrollTimer)clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(!pdfDoc)return;if(!isWebtoon){let cr=$('viewer-area').getBoundingClientRect(),my=cr.top+cr.height*.3,ws=$('page-container').querySelectorAll('.page-wrapper'),bp=currentPage,bd=Infinity;for(let w of ws){let r=w.getBoundingClientRect();if(!(r.height>0))continue;let d=Math.abs(r.top-my);if(d<bd){bd=d;bp=parseInt(w.dataset.page)}}if(bp!==currentPage){currentPage=bp;$('page-slider').value=currentPage;updatePageInfo()}saveProgress()}else{updatePageInfo();saveProgress();if(getScrollProgress()>=99&&currentChIdx<chapters.length){chapters[currentChIdx].status='read'}}renderVisiblePages()},150)});
 $('page-slider').addEventListener('input',function(){goToPage(parseInt(this.value))});
-$('zoom-select').addEventListener('change',function(){let viewState=captureReaderViewState(),v=this.value;fitWidth=v==='fit';if(!fitWidth)zoom=parseFloat(v);reRenderAll(viewState);settings.zoom=v;db.saveSetting('zoom',v)});
+$('zoom-select').addEventListener('change',function(){let v=this.value;requestZoomChange(v);db.saveSetting('zoom',v)});
 $('btn-back').addEventListener('click',closeReader);
 $('btn-toggle-sidebar').addEventListener('click',function(){$('sidebar').classList.toggle('hidden')});
 $('btn-prev-pg').addEventListener('click',prevPage);$('btn-next-pg').addEventListener('click',nextPage);
@@ -781,7 +801,7 @@ document.addEventListener('mouseup',function(){if(!sidebarResizing)return;sideba
 function handleReaderKeyDown(e){if(captureUiActive)return;if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;switch(e.key){
   case'ArrowRight':case'd':e.preventDefault();nextPage();break;case'ArrowLeft':case'a':e.preventDefault();prevPage();break;
   case'ArrowDown':case's':e.preventDefault();nextChapter();break;case'ArrowUp':case'w':e.preventDefault();prevChapter();break;
-  case'f':e.preventDefault();let viewState=captureReaderViewState();$('zoom-select').value='fit';fitWidth=!0;reRenderAll(viewState);break;
+  case'f':e.preventDefault();$('zoom-select').value='fit';requestZoomChange('fit');db.saveSetting('zoom','fit');break;
   case'b':e.preventDefault();$('sidebar').classList.toggle('hidden');break;case'Escape':e.preventDefault();closeReader();break}}
 document.addEventListener('keydown',handleReaderKeyDown);
 

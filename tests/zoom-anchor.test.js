@@ -190,6 +190,74 @@ async function testRestoreRendersPagesInBatches() {
   assert.strictEqual(await restoring, true, 'batched restoration should report success when all pages finish');
 }
 
+async function testZoomRequestsAreCoalesced() {
+  const started = [];
+  const resolvers = [];
+  const select = { value: '' };
+  const context = {
+    pendingZoomValue: null,
+    zoomChangeRun: null,
+    fitWidth: false,
+    zoom: 1,
+    settings: { zoom: '1' },
+    captureReaderViewState: () => ({ isWebtoon: false, page: 2, pageProgress: 0.5 }),
+    $: id => id === 'zoom-select' ? select : {},
+    reRenderAll(state) {
+      started.push({ zoom: context.zoom, fitWidth: context.fitWidth, state });
+      return new Promise(resolve => resolvers.push(resolve));
+    },
+    console,
+    Promise
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction('requestZoomChange'), context);
+
+  const first = context.requestZoomChange('1.25');
+  await Promise.resolve();
+  assert.deepStrictEqual(started.map(item => [item.zoom, item.fitWidth]), [[1.25, false]], 'the first zoom target should start immediately');
+
+  const second = context.requestZoomChange('1.5');
+  const third = context.requestZoomChange('fit');
+  assert.strictEqual(started.length, 1, 'rapid zoom changes must not start overlapping rerenders');
+
+  resolvers[0](true);
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.strictEqual(started.length, 2, 'a queued zoom request should start after the active rerender settles');
+  assert.strictEqual(started[1].fitWidth, true, 'only the latest queued zoom target should be applied');
+  assert.strictEqual(started[1].state.page, 2, 'the queued target should preserve the captured reader state');
+
+  resolvers[1](true);
+  await Promise.all([first, second, third]);
+  assert.strictEqual(context.settings.zoom, 'fit');
+  assert.strictEqual(context.$('zoom-select').value, 'fit');
+}
+
+async function testVisibleRenderFailuresAreHandled() {
+  const wrappers = [
+    { dataset: { page: '1' }, getBoundingClientRect: () => ({ top: 0, bottom: 200 }) },
+    { dataset: { page: '2' }, getBoundingClientRect: () => ({ top: 200, bottom: 400 }) }
+  ];
+  const warnings = [];
+  const context = {
+    pdfDoc: {},
+    renderedPages: new Set(),
+    $: id => id === 'viewer-area'
+      ? { getBoundingClientRect: () => ({ top: 0, bottom: 300 }) }
+      : { querySelectorAll: () => wrappers },
+    renderPage(page) {
+      if (page === 1) return Promise.reject({ name: 'RenderingCancelledException' });
+      return Promise.reject(new Error('render failed'));
+    },
+    console: { warn: (...args) => warnings.push(args) },
+    Promise
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction('renderVisiblePages'), context);
+  await context.renderVisiblePages();
+  assert.deepStrictEqual(warnings.map(args => args[0]), ['page render failed'], 'background cancellation should be ignored while real render failures are reported');
+}
+
 async function testLatestRerenderWins() {
   const resolvers = [];
   const context = {
@@ -238,4 +306,4 @@ assert.strictEqual(normal.captureReaderViewState(), null, 'zoom without an activ
 
 testCaptureUsesFreshAnchorPage();
 testAnchorIgnoresUnrenderedPages();
-testRerenderPreservesState().then(testLatestRerenderWins).then(testNormalRestoreDisablesSmoothScroll).then(testRestoreRendersPagesInBatches).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });
+testRerenderPreservesState().then(testLatestRerenderWins).then(testNormalRestoreDisablesSmoothScroll).then(testRestoreRendersPagesInBatches).then(testZoomRequestsAreCoalesced).then(testVisibleRenderFailuresAreHandled).then(() => console.log('zoom-anchor: PASS')).catch((error) => { console.error(error); process.exitCode = 1; });
