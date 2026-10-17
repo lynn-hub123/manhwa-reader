@@ -1200,7 +1200,7 @@ function chromeShow(){chromeHidden=!1;document.body.classList.remove('reader-chr
 function chromeHide(){if(chromeHidden)return;chromeHidden=!0;document.body.classList.add('reader-chrome-hidden');updateImmersiveBtn()}
 function stopReaderChrome(){chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden');updateImmersiveBtn()}
 function updateImmersiveBtn(){const label=chromeHidden?'退出沉浸':'沉浸模式';const b=$('btn-immersive');if(b)b.textContent=label;const m=$('reader-more-immersive');if(m)m.textContent=label}
-(function(){const rd=$('reader');rd.addEventListener('pointerdown',function(e){if(e.target.closest('#topbar,#bottombar,#sidebar'))return;if(chromeHidden)chromeShow()});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&chromeHidden)chromeShow()})})();
+(function(){const rd=$('reader');rd.addEventListener('pointerdown',function(e){if(e.target.closest('#topbar,#bottombar,#sidebar'))return;if(chromeHidden)chromeShow()})})();
 async function saveProgress(pageProgressOverride){if(currentChIdx<0||!currentSeries||restoringProgress)return;let s=findSeries(currentSeries);if(s){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastReadAt=Date.now();s.lastPage=isWebtoon?getScrollProgress():currentPage;if(!isWebtoon){let ratio=pageProgressOverride===undefined?getNormalPageProgress():window.ReadingProgress.normalizePageRatio(pageProgressOverride);if(ratio!==null)s.lastPageProgress=ratio}saveSeriesBg(s)}}
 
 // ===== Event Bindings =====
@@ -1280,7 +1280,7 @@ function handleReaderKeyDown(e){if(captureUiActive)return;if(e.target.tagName===
   case'ArrowRight':case'd':e.preventDefault();nextPage();break;case'ArrowLeft':case'a':e.preventDefault();prevPage();break;
   case'ArrowDown':case's':e.preventDefault();nextChapter();break;case'ArrowUp':case'w':e.preventDefault();prevChapter();break;
   case'f':e.preventDefault();$('zoom-select').value='fit';requestZoomChange('fit');db.saveSetting('zoom','fit');break;
-  case'b':e.preventDefault();$('sidebar').classList.toggle('hidden');break;case'Escape':e.preventDefault();closeReader();break}}
+  case'b':e.preventDefault();$('sidebar').classList.toggle('hidden');break;case'Escape':e.preventDefault();if(chromeHidden){chromeShow()}else{closeReader()}break}}
 document.addEventListener('keydown',handleReaderKeyDown);
 
 function preventAndStop(e){e.preventDefault();e.stopPropagation()}
