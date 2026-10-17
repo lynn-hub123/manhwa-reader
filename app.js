@@ -32,8 +32,8 @@ async function initApp(){
   if(typeof indexedDB==='undefined'){$('bookshelf').style.display='none';$('browser-warning').classList.add('show');return}
   $('browser-warning').style.display='none';
   hasFolderPicker=typeof window.showDirectoryPicker==='function';
-  if(hasFolderPicker){try{$('bs-add-folder').style.display='';$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display=''}catch(e){}let h=$('drag-hint');if(h){h.className='';h.textContent='💡 也可以将 PDF 文件或文件夹拖入窗口'}}
-  else{try{$('bs-add-folder').style.display='none';$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display='none'}catch(e){}let h=$('drag-hint');if(h){h.className='prominent';h.textContent='💡 点击「添加漫画」或直接将 PDF 文件拖入此窗口'}}
+  if(hasFolderPicker){try{$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display=''}catch(e){}let h=$('drag-hint');if(h){h.className='';h.textContent='也可以将 PDF 文件或文件夹拖入窗口'}}
+  else{try{$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display='none'}catch(e){}let h=$('drag-hint');if(h){h.className='prominent';h.textContent='点击「添加漫画」或直接将 PDF 文件拖入此窗口'}}
   try{const s=await db.getSettings();if(Object.keys(s).length>0)Object.assign(settings,s)}catch(e){}
   if(!Array.isArray(settings.groups))settings.groups=[];
   settings.groups=settings.groups.filter(g=>g&&g.id&&String(g.name||'').trim()).map(g=>({id:String(g.id),name:String(g.name).trim(),createdAt:g.createdAt||new Date().toISOString()}));
@@ -170,12 +170,12 @@ function renderBookshelf(){
   clearRackOverlay();
   const startup=$('startup-note'),hint=$('drag-hint');
   const isFileMode=window.location.protocol==='file:';
-  if(startup)startup.style.display=(isFileMode||!bookshelf.length)?'':'none';
+  if(startup)startup.style.display=isFileMode?'':'none';
   if(hint)hint.style.display=bookshelf.length?'none':'';
   let sorted=bookshelf.filter(seriesInActiveGroup);
   if(sortMode==='name')sorted.sort((a,b)=>(a.name||'').localeCompare(b.name||'','zh'));
   else if(sortMode==='created')sorted.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  else sorted.sort((a,b)=>(b.lastChNum||0)-(a.lastChNum||0));
+  else sorted.sort((a,b)=>(isFinite(b.lastChNum)?b.lastChNum:0)-(isFinite(a.lastChNum)?a.lastChNum:0));
   if(searchQuery)sorted=sorted.filter(s=>s.name.toLowerCase().includes(searchQuery.toLowerCase()));
   if(libraryCount)libraryCount.textContent=sorted.length+' 部';
   if(libraryTitle)libraryTitle.textContent=getActiveGroupLabel();
@@ -192,7 +192,7 @@ function renderBookshelf(){
   }
   if(libraryHead)libraryHead.style.display='flex';
   if(continueEl){
-    const recent=sorted.find(s=>s.lastChNum!==null&&s.lastChNum!==undefined);
+    const recent=sorted.find(s=>s.lastChNum!==null&&s.lastChNum!==undefined&&isFinite(s.lastChNum));
     if(!recent){continueEl.hidden=!0;continueEl.innerHTML=''}
     else{
       const recentCount=recent.chapters.length;
@@ -226,12 +226,12 @@ function renderBookshelf(){
   pageBooks.forEach((s,i)=>{
     const chCount=s.chapters.length,readCnt=s.chapters.filter(c=>c.status==='read').length;
     let pct=0;
-    if(s.lastChNum&&chCount>0){let ci=s.chapters.findIndex(c=>c.chapterNum===s.lastChNum);pct=ci>=0?Math.round((ci+1)/chCount*100):0}
+    if(s.lastChNum&&isFinite(s.lastChNum)&&chCount>0){let ci=s.chapters.findIndex(c=>c.chapterNum===s.lastChNum);pct=ci>=0?Math.round((ci+1)/chCount*100):0}
     const coverHTML=covers[s.seriesId]?'<img class="shelf-cover-image" src="'+covers[s.seriesId]+'" alt="">':'<div class="cover-fallback">'+s.name.charAt(0)+'</div>';
     const sel=currentSeries===s.seriesId?' selected':'';
     const bg=spineColor(s.name||s.seriesId);
     const volume=String(rackPage*PAGE_SIZE+i+1).padStart(2,'0');
-    const chapterLabel=s.lastChNum?'第 '+s.lastChNum+' 话':'未开始';
+    const chapterLabel=s.lastChNum&&isFinite(s.lastChNum)?'第 '+s.lastChNum+' 话':'未开始';
     const status=currentSeries===s.seriesId?'<span class="shelf-status">在读</span>':'';
     html+='<article class="rack-book'+sel+'" data-id="'+s.seriesId+'" data-idx="'+i+'" tabindex="0" role="button" aria-label="打开 '+s.name+'" style="--spine-bg:'+bg+'"><div class="shelf-cover-wrap"><div class="shelf-cover-inner">'+coverHTML+'</div><span class="shelf-cover-frame" aria-hidden="true"></span><span class="shelf-cover-index">'+volume+'</span><span class="shelf-cover-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></span></div><div class="shelf-card-content"><strong class="shelf-title">'+s.name+'</strong><div class="shelf-meta"><span>'+chapterLabel+'</span>'+status+'</div><div class="shelf-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></div></div><div class="rack-book-shadow"></div><div class="rack-rigid-book"><div class="rack-pages"><span class="rack-face front"></span><span class="rack-face back"></span><span class="rack-face spine-side"></span><span class="rack-face fore"></span><span class="rack-face top"></span><span class="rack-face bottom"></span></div><div class="rack-cover-box back-cover"><span class="rack-cover-face front"></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-cover-box front-cover"><span class="rack-cover-face front">'+coverHTML+'<span class="rack-cover-frame"></span><span class="rack-cover-mark">VOL. '+volume+'</span></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-physics-spine"><span class="rack-spine-volume">'+volume+'</span><span class="rack-spine-band"></span><span class="rack-spine-title">'+s.name+'</span><span class="rack-spine-imprint">MANGA</span><div class="rack-progress"><div class="rack-progress-fill" style="width:'+pct+'%"></div></div></div></div><button class="rack-menu-btn" data-menu-sid="'+s.seriesId+'" title="菜单">⋯</button><button class="change-cover-btn" data-cover-sid="'+s.seriesId+'">换封面</button></article>'
   });
@@ -951,11 +951,12 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions'+(type==='cove
 
 async function pickFolder(){try{if(!window.showDirectoryPicker)return await pickFilesViaInput();let dh=await window.showDirectoryPicker(),fs=[];for await(let e of dh.values()){if(e.kind==='file')fs.push(await e.getFile())}let pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('文件夹中没有PDF文件');return null}return pdfs}catch(e){if(e.name!=='AbortError')showToast('操作取消');return null}}
 async function pickFilesViaInput(){return new Promise(resolve=>{let inp=$('hidden-file-input'),ni=inp.cloneNode(!0);inp.parentNode.replaceChild(ni,inp);ni.id='hidden-file-input';ni.accept='application/pdf,.pdf';ni.addEventListener('change',function(){let fs=Array.from(this.files),pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('未选中PDF文件');resolve(null);return}resolve(pdfs)});ni.addEventListener('cancel',()=>resolve(null));ni.click()})}
-function extractChapterNumber(f){let n=f.replace(/\.pdf$/i,'');for(let p of[/第\s*(\d+)\s*[话章节]/g,/[Cc]h(?:apter)?[.\s_-]*(\d+)/g,/^(\d+)[\s_.-]/g,/[[(（](\d+)[\])）]/g,/(\d+)$/g]){let m=[...n.matchAll(p)];if(m.length)return parseInt(m[m.length-1][1])}let m=n.match(/(\d+)/g);return m?parseInt(m[m.length-1]):Infinity}
+function extractChapterNumber(f){let n=f.replace(/\.pdf$/i,'');for(let p of[/第\s*(\d+)\s*[话章节]/g,/[Cc]h(?:apter)?[.\s_-]*(\d+)/g,/^(\d+)[\s_.-]/g,/[[(（](\d+)[\])）]/g,/(\d+)$/g]){let m=[...n.matchAll(p)];if(m.length)return parseInt(m[m.length-1][1])}let m=n.match(/(\d+)/g);return m?parseInt(m[m.length-1]):NaN}
+function assignFallbackChapterNums(list,existing){let mx=(existing||list).reduce((m,c)=>isFinite(c.chapterNum)&&c.chapterNum>m?c.chapterNum:m,0),seq=mx+1;list.forEach(c=>{if(!isFinite(c.chapterNum))c.chapterNum=seq++})}
 
-async function createSeries(name,files){if(!files||!files.length)return;let sid='s'+Date.now()+'_'+Math.random().toString(36).slice(2,6),chs=files.map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));chs.sort((a,b)=>a.chapterNum-b.chapterNum);let s={seriesId:sid,name,groupId:getImportGroupId(),chapters:chs,lastChNum:null,lastPage:null,createdAt:new Date().toISOString()};bookshelf.push(s);await db.saveSeries(s);await persistTextCover(sid,name,{refresh:false});renderBookshelf();showCoverSelectDuringImport(sid,files,chs.length?chs[0].chapterNum:null);await cachePDFs(sid,files,chs);s=findSeries(sid);if(s){s.chapters.forEach(c=>{c.cached=!0;c.loaded=!1});await db.saveSeries(s)}openSeries(sid)}
+async function createSeries(name,files){if(!files||!files.length)return;let sid='s'+Date.now()+'_'+Math.random().toString(36).slice(2,6),chs=files.map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));assignFallbackChapterNums(chs);chs.sort((a,b)=>a.chapterNum-b.chapterNum);let s={seriesId:sid,name,groupId:getImportGroupId(),chapters:chs,lastChNum:null,lastPage:null,createdAt:new Date().toISOString()};bookshelf.push(s);await db.saveSeries(s);await persistTextCover(sid,name,{refresh:false});renderBookshelf();showCoverSelectDuringImport(sid,files,chs.length?chs[0].chapterNum:null);await cachePDFs(sid,files,chs);s=findSeries(sid);if(s){s.chapters.forEach(c=>{c.cached=!0;c.loaded=!1});await db.saveSeries(s)}openSeries(sid)}
 
-async function importFilesToSeries(sid,files){let s=findSeries(sid);if(!s)return;let en=new Set(s.chapters.map(c=>c.name)),vf=files.filter(f=>f.name.toLowerCase().endsWith('.pdf')),nc=vf.filter(f=>!en.has(f.name.replace(/\.pdf$/i,''))).map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));if(!nc.length){showToast('没有新的PDF文件');return}s.chapters.push(...nc);s.chapters.sort((a,b)=>a.chapterNum-b.chapterNum);await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList();prefetchNextSafe(currentChIdx)}renderBookshelf();let fm=[];for(let f of vf){let fn=f.name.replace(/\.pdf$/i,''),ch=s.chapters.find(c=>c.name===fn);if(ch)fm.push({file:f,ch:ch})}await cachePDFs(sid,fm.map(x=>x.file),fm.map(x=>x.ch));s=findSeries(sid);if(s){fm.forEach(({ch})=>{let c=s.chapters.find(sc=>sc.chapterNum===ch.chapterNum&&sc.name===ch.name);if(c){c.cached=!0;c.loaded=!1}});await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList()}}showToast('已追加 '+nc.length+' 章')}
+async function importFilesToSeries(sid,files){let s=findSeries(sid);if(!s)return;let en=new Set(s.chapters.map(c=>c.name)),vf=files.filter(f=>f.name.toLowerCase().endsWith('.pdf')),nc=vf.filter(f=>!en.has(f.name.replace(/\.pdf$/i,''))).map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));if(!nc.length){showToast('没有新的PDF文件');return}assignFallbackChapterNums(nc,s.chapters);s.chapters.push(...nc);s.chapters.sort((a,b)=>a.chapterNum-b.chapterNum);await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList();prefetchNextSafe(currentChIdx)}renderBookshelf();let fm=[];for(let f of vf){let fn=f.name.replace(/\.pdf$/i,''),ch=s.chapters.find(c=>c.name===fn);if(ch)fm.push({file:f,ch:ch})}await cachePDFs(sid,fm.map(x=>x.file),fm.map(x=>x.ch));s=findSeries(sid);if(s){fm.forEach(({ch})=>{let c=s.chapters.find(sc=>sc.chapterNum===ch.chapterNum&&sc.name===ch.name);if(c){c.cached=!0;c.loaded=!1}});await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList()}}showToast('已追加 '+nc.length+' 章')}
 
 async function cachePDFs(sid,files,chs){if(!files.length)return;showProgress(0,files.length);for(let i=0;i<files.length;i++){try{let ab=await files[i].arrayBuffer(),cn=i<chs.length?chs[i].chapterNum:i+1;await db.savePDF(sid,cn,ab)}catch(e){console.warn('Cache fail:',files[i].name,e)}showProgress(i+1,files.length)}setTimeout(()=>hideProgress(),800)}
 function showProgress(done,total){let p=$('import-progress');if(!p){p=document.createElement('div');p.id='import-progress';p.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:12px 24px;border-radius:12px;z-index:1500;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,0.1)';p.innerHTML='<span id="import-progress-text" style="color:var(--text);font-size:13px"></span><div style="width:120px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="import-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .2s"></div></div>';document.body.appendChild(p)}Qs('#import-progress-text',p).textContent='正在导入 '+done+'/'+total;Qs('#import-progress-bar',p).style.width=(done/total*100)+'%'}
@@ -1255,16 +1256,7 @@ $('btn-settings').addEventListener('click',function(){showModal('settings')});co
 $('bs-search').addEventListener('input',function(){searchQuery=this.value;renderBookshelf()});
 $('bs-sort').addEventListener('change',function(){sortMode=this.value;renderBookshelf()});
 $('bs-dock-shelf').addEventListener('click',function(){const pane=$('bs-library-pane');if(pane)pane.scrollTo({top:0,behavior:'smooth'})});
-$('bs-add-folder').addEventListener('click',function(){_pendingFilesMode='folder';showAddModal()});
-$('bs-add-files').addEventListener('click',async function(){
-  _pendingFilesMode='input';
-  const files=await pickFilesViaInput();
-  if(files&&files.length){
-    _pendingFiles=files;
-    showAddModal();
-  }
-});
-$('bs-add-btn').addEventListener('click',function(){_pendingFilesMode='input';showAddModal()});
+$('bs-add-btn').addEventListener('click',function(){_pendingFilesMode=hasFolderPicker?'folder':'input';showAddModal()});
 $('btn-add-files-reader').addEventListener('click',async function(){if(!currentSeries)return;let files=await pickFilesViaInput();if(files&&files.length)await importFilesToSeries(currentSeries,files)});
 $('btn-add-folder-reader').addEventListener('click',async function(){if(!currentSeries)return;let files=await pickFolder();if(files&&files.length)await importFilesToSeries(currentSeries,files)});
 

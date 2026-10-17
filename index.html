@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#8B62D9">
+<meta name="theme-color" content="#171412">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,35 +29,37 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
 
-/* ===== 漫画软拟态 night（默认）===== */
+/* ===== 深夜书房 night（默认）===== */
 :root,[data-theme="night"]{
---bg:#181B22;--surface:#222732;--surface2:#29303C;--card:#252C37;
---accent:#8B62D9;--accent-hover:#A579F0;
---accent-soft:rgba(139,98,217,0.16);--accent-glow:rgba(139,98,217,0.22);
---text:#F3F4F7;--text2:#B6BBC7;--text3:#7E8492;
---border:#3A4352;--shadow:10px 10px 22px rgba(7,10,16,.42),-8px -8px 18px rgba(74,85,106,.12);
---shadow-soft:6px 6px 14px rgba(7,10,16,.28),-5px -5px 12px rgba(74,85,106,.1);
---shadow-inset:inset 4px 4px 9px rgba(7,10,16,.25),inset -4px -4px 9px rgba(74,85,106,.1);
---shadow-pressed:inset 3px 3px 7px rgba(7,10,16,.3),inset -3px -3px 7px rgba(74,85,106,.08);
---dot-unread:#596171;--dot-reading:#8B62D9;--dot-read:#57C3D1;
---shelf:#252C37;--shelf-edge:#3A4352;--shelf-shadow:rgba(7,10,16,.42);
---book-shadow:rgba(7,10,16,.32);--book-spine:rgba(255,255,255,.08);
+--bg:#171412;--surface:#201C17;--surface2:#292420;--card:#231F1A;
+--accent:#C9A45C;--accent-hover:#DDB973;
+--accent-soft:rgba(201,164,92,.15);--accent-glow:rgba(201,164,92,.2);
+--accent-ink:#241E12;
+--text:#EFE9DC;--text2:#B9B1A1;--text3:#867D6C;
+--border:#3B352B;--shadow:10px 10px 22px rgba(10,7,4,.42),-8px -8px 18px rgba(96,84,62,.12);
+--shadow-soft:6px 6px 14px rgba(10,7,4,.28),-5px -5px 12px rgba(96,84,62,.1);
+--shadow-inset:inset 4px 4px 9px rgba(10,7,4,.25),inset -4px -4px 9px rgba(96,84,62,.1);
+--shadow-pressed:inset 3px 3px 7px rgba(10,7,4,.3),inset -3px -3px 7px rgba(96,84,62,.08);
+--dot-unread:#6B6355;--dot-reading:#C9A45C;--dot-read:#7FA98C;
+--shelf:#292420;--shelf-edge:#3B352B;--shelf-shadow:rgba(10,7,4,.42);
+--book-shadow:rgba(10,7,4,.32);--book-spine:rgba(255,255,255,.08);
 --radius:12px;--radius-sm:8px;
 }
 
-/* ===== 漫画软拟态 day（亮色）===== */
+/* ===== 文具店 day（亮色）===== */
 [data-theme="day"]{
---bg:#E7E9EE;--surface:#F2F4F7;--surface2:#E1E4EA;--card:#F2F4F7;
---accent:#7654C7;--accent-hover:#8967D7;
---accent-soft:rgba(118,84,199,0.14);--accent-glow:rgba(118,84,199,0.18);
---text:#242936;--text2:#626A78;--text3:#8E96A5;
---border:#D0D5DE;--shadow:10px 10px 22px rgba(101,111,128,.2),-8px -8px 18px rgba(255,255,255,.9);
---shadow-soft:6px 6px 14px rgba(101,111,128,.14),-5px -5px 12px rgba(255,255,255,.86);
---shadow-inset:inset 4px 4px 9px rgba(101,111,128,.14),inset -4px -4px 9px rgba(255,255,255,.86);
---shadow-pressed:inset 3px 3px 7px rgba(101,111,128,.18),inset -3px -3px 7px rgba(255,255,255,.75);
---dot-unread:#B8BFCA;--dot-reading:#7654C7;--dot-read:#3496A5;
---shelf:#E1E4EA;--shelf-edge:#C5CBD5;--shelf-shadow:rgba(101,111,128,.18);
---book-shadow:rgba(101,111,128,.18);--book-spine:rgba(255,255,255,.35);
+--bg:#EFEAE0;--surface:#F8F4EB;--surface2:#E5DFD2;--card:#F8F4EB;
+--accent:#8A6A34;--accent-hover:#9C7B41;
+--accent-soft:rgba(138,106,52,.14);--accent-glow:rgba(138,106,52,.18);
+--accent-ink:#FFF8EC;
+--text:#2B251B;--text2:#6B6355;--text3:#968C79;
+--border:#D9D1C1;--shadow:10px 10px 22px rgba(120,106,82,.2),-8px -8px 18px rgba(255,252,244,.9);
+--shadow-soft:6px 6px 14px rgba(120,106,82,.14),-5px -5px 12px rgba(255,252,244,.86);
+--shadow-inset:inset 4px 4px 9px rgba(120,106,82,.14),inset -4px -4px 9px rgba(255,252,244,.86);
+--shadow-pressed:inset 3px 3px 7px rgba(120,106,82,.18),inset -3px -3px 7px rgba(255,252,244,.75);
+--dot-unread:#C2BAA9;--dot-reading:#8A6A34;--dot-read:#4F8A70;
+--shelf:#E5DFD2;--shelf-edge:#CFC6B3;--shelf-shadow:rgba(120,106,82,.18);
+--book-shadow:rgba(120,106,82,.18);--book-spine:rgba(255,255,255,.35);
 --radius:12px;--radius-sm:8px;
 }
 
@@ -89,7 +91,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft
 .bs-header input.bs-search::placeholder{color:var(--text3)}
 .bs-header select{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius);font-size:13px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px}
 .bs-header select:focus{border-color:var(--accent)}
-.bs-header button{background:var(--accent);border:none;color:#fff;padding:9px 20px;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:all .18s;box-shadow:0 2px 12px var(--accent-glow)}
+.bs-header button{background:var(--accent);border:none;color:var(--accent-ink);padding:9px 20px;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;transition:all .18s;box-shadow:0 2px 12px var(--accent-glow)}
 .bs-header button:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 20px var(--accent-glow)}
 .bs-header button.ghost{background:transparent;color:var(--text2);box-shadow:none;font-size:12px;font-weight:400;padding:7px 14px;border:1px solid var(--border)}
 .bs-header button.ghost:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
@@ -201,9 +203,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft
 #topbar .info{font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px}
 #topbar .spacer{flex:1}
 button{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:7px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px;white-space:nowrap;transition:all .18s;font-weight:500}
-button:hover{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 12px var(--accent-glow)}
+button:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 12px var(--accent-glow)}
 button:active{transform:scale(.97)}
-button.accent{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 button.accent:hover{background:var(--accent-hover)}
 button:disabled{opacity:.35;pointer-events:none}
 button,select,input{touch-action:manipulation}
@@ -246,7 +248,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 #loading .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading .load-text{font-size:13px;color:var(--text2)}
-#toast{position:fixed;bottom:64px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;padding:10px 24px;border-radius:24px;font-size:13px;z-index:1000;opacity:0;pointer-events:none;font-weight:500;box-shadow:0 4px 20px var(--accent-glow);transition:opacity .3s,transform .3s cubic-bezier(.34,1.56,.64,1)}
+#toast{position:fixed;bottom:64px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:var(--accent-ink);padding:10px 24px;border-radius:24px;font-size:13px;z-index:1000;opacity:0;pointer-events:none;font-weight:500;box-shadow:0 4px 20px var(--accent-glow);transition:opacity .3s,transform .3s cubic-bezier(.34,1.56,.64,1)}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .network-status{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;z-index:1800;max-width:calc(100vw - 28px);padding:8px 14px;border:1px solid var(--accent);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-soft);font-size:12px;line-height:1.3;text-align:center;transform:translateX(-50%)}
 .network-status[hidden]{display:none}
@@ -314,7 +316,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .bs-dock-footer>div{display:flex;min-width:0;flex-direction:column;gap:5px}
 .bs-dock-footer strong{font-size:16px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bs-dock-footer span{font-size:12px;color:var(--text3)}
-.bs-dock-footer button{flex:0 0 auto;background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;padding:10px 14px;border-radius:9px;box-shadow:var(--shadow-soft)}
+.bs-dock-footer button{flex:0 0 auto;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700;padding:10px 14px;border-radius:9px;box-shadow:var(--shadow-soft)}
 .bs-dock-footer button:hover{background:var(--accent-hover);box-shadow:var(--shadow)}
 .bs-header{display:flex;align-items:center;gap:24px;margin-bottom:28px;flex-wrap:wrap;padding:6px 0 20px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;box-shadow:none;position:relative;overflow:visible;flex-shrink:0}
 .bs-header::after{content:"";position:absolute;left:0;bottom:-1px;width:92px;height:2px;background:var(--accent);opacity:.85;transform:skewX(-34deg);transform-origin:left center}
@@ -331,8 +333,8 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .bs-header button:active{transform:translateY(1px);box-shadow:var(--shadow-pressed)}
 .bs-header button.ghost{background:transparent;color:var(--text2);font-size:13px;padding:9px 13px}
 .bs-header .btn-group{display:flex;gap:10px;margin-left:auto}
-.bs-header .btn-group button:last-child,.bs-header #bs-add-btn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;box-shadow:var(--shadow-soft),0 0 0 1px var(--accent-soft)}
-.bs-header .btn-group button:last-child:hover,.bs-header #bs-add-btn:hover{background:var(--accent-hover);color:#fff}
+.bs-header .btn-group button:last-child,.bs-header #bs-add-btn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700;box-shadow:var(--shadow-soft),0 0 0 1px var(--accent-soft)}
+.bs-header .btn-group button:last-child:hover,.bs-header #bs-add-btn:hover{background:var(--accent-hover);color:var(--accent-ink)}
 .bs-group-rail{position:relative;display:block;width:100%;max-width:100%;min-width:0;margin:0 0 30px;overflow:hidden;flex-shrink:0}
 .bs-group-rail[hidden]{display:none!important}
 .bs-group-scroll-btn{position:absolute;top:50%;z-index:4;display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--text2);font-size:20px;line-height:1;box-shadow:var(--shadow-soft);opacity:0;pointer-events:none;transform:translateY(-50%);transition:opacity .16s,background .16s,border-color .16s,color .16s,transform .16s}
@@ -370,7 +372,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .continue-copy h2{margin-top:12px;font-size:26px;line-height:1.2;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .continue-meta{margin-top:10px;color:var(--text2);font-size:15px}
 .continue-action{grid-column:2;grid-row:3;position:relative;z-index:1;min-width:0;justify-self:start}
-.continue-action button{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--shadow-soft);font-weight:700;padding:12px 18px;border-radius:9px;font-size:14px}
+.continue-action button{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-soft);font-weight:700;padding:12px 18px;border-radius:9px;font-size:14px}
 .continue-action button:hover{background:var(--accent-hover);box-shadow:var(--shadow)}
 .bs-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:0 0 26px;padding:0 3px 16px;border-bottom:1px solid var(--border);position:relative;flex-shrink:0}
 .bs-section-head::after{content:"";position:absolute;left:0;bottom:-1px;width:78px;height:2px;background:var(--accent);clip-path:polygon(0 0,100% 0,86% 100%,0 100%)}
@@ -423,7 +425,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .bs-empty .empty-icon::after{content:"+";position:absolute;inset:0;display:grid;place-items:center;color:var(--accent);font-size:22px;transform:rotate(-45deg)}
 .bs-empty h2{font-size:19px;color:var(--text)}
 .bs-empty p{font-size:13px;color:var(--text3);max-width:360px;text-align:center;line-height:1.7}
-.bs-empty .empty-action{position:relative;z-index:1;background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--shadow-soft);font-weight:700}
+.bs-empty .empty-action{position:relative;z-index:1;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-soft);font-weight:700}
 #startup-note{background:var(--surface);border-color:var(--border);box-shadow:var(--shadow-soft);border-radius:var(--radius-sm);color:var(--text3)}
 #drag-hint{color:var(--text3)}
 
@@ -461,8 +463,8 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 button{background:var(--surface2);border-color:var(--border);box-shadow:var(--shadow-soft)}
 button:hover{background:var(--surface);border-color:var(--accent);color:var(--text);box-shadow:var(--shadow)}
 button:active{box-shadow:var(--shadow-pressed)}
-button.accent{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--shadow-soft)}
-button.accent:hover{background:var(--accent-hover);color:#fff;box-shadow:var(--shadow)}
+button.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-soft)}
+button.accent:hover{background:var(--accent-hover);color:var(--accent-ink);box-shadow:var(--shadow)}
 select{box-shadow:var(--shadow-soft)}
 
 @media(min-width:900px){
@@ -476,13 +478,11 @@ select{box-shadow:var(--shadow-soft)}
 @media(min-width:1100px){
   .bs-rack{grid-template-columns:repeat(4,minmax(0,1fr));max-width:1080px;width:100%;align-self:flex-start}
   .bs-rack .rack-add{display:none}
-  .bs-header .btn-group>button#bs-add-folder,.bs-header .btn-group>button#bs-add-files{display:none!important}
 }
 
 @media(min-width:781px) and (max-width:1099px){
   .bs-rack{grid-template-columns:repeat(3,minmax(0,1fr));max-width:920px;width:100%;align-self:flex-start}
   .bs-rack .rack-add{display:none}
-  .bs-header .btn-group>button#bs-add-folder,.bs-header .btn-group>button#bs-add-files{display:none!important}
 }
 
 /* 桌面书架：在常见的 1080p 高度下缩放留白与卡片，保持参考布局的舒展感 */
@@ -507,7 +507,7 @@ select{box-shadow:var(--shadow-soft)}
   .bs-reading-dock{display:none!important}
   .bs-header{padding:12px;gap:9px}
   .bs-brand{min-width:0;flex:1}
-  .bs-brand h1{font-size:24px}
+  .bs-brand h1{font-size:20px;white-space:nowrap}
   .bs-subtitle{font-size:10px}
   .bs-header .bs-count{order:3;margin-left:41px;flex-basis:100%}
   .bs-header input.bs-search{order:4;flex:1;min-width:150px;width:auto}
@@ -614,10 +614,10 @@ select{box-shadow:var(--shadow-soft)}
 <div id="bs-library-pane">
 <div class="bs-header"><div class="bs-brand"><span class="bs-title-mark" aria-hidden="true">◈</span><div><h1>我的书架</h1><span class="bs-subtitle">漫画阅读器</span></div></div><span class="bs-count" id="bs-total">共 0 部</span>
 <input class="bs-search" id="bs-search" placeholder="搜索漫画"><span class="spacer"></span>
-<button class="ghost" id="bs-settings-btn">设置</button><button class="ghost" id="btn-cache-mgr">缓存</button><div class="btn-group"><button id="bs-add-folder" style="display:none">打开文件夹</button><button id="bs-add-files">选择文件</button><button id="bs-add-btn">+ 添加漫画</button></div></div>
+<button class="ghost" id="bs-settings-btn">设置</button><button class="ghost" id="btn-cache-mgr">缓存</button><div class="btn-group"><button id="bs-add-btn">＋ 添加漫画</button></div></div>
 <div id="bs-group-rail" class="bs-group-rail"><button class="bs-group-scroll-btn" id="bs-group-prev" type="button" aria-label="向左查看分组">‹</button><nav id="bs-groups" class="bs-groups" aria-label="漫画分组"></nav><button class="bs-group-scroll-btn" id="bs-group-next" type="button" aria-label="向右查看分组">›</button></div>
 <section id="bs-continue" class="bs-continue" hidden></section>
-<div id="bs-library-head" class="bs-section-head"><div><span class="bs-section-kicker">COLLECTION / 01</span><h2 id="bs-library-title">全部漫画</h2></div><div class="bs-section-tools"><span id="bs-library-count"></span><select id="bs-sort"><option value="recent">最近阅读</option><option value="name">名称排序</option><option value="created">添加时间</option></select></div></div>
+<div id="bs-library-head" class="bs-section-head"><div><span class="bs-section-kicker">书房藏书</span><h2 id="bs-library-title">全部漫画</h2></div><div class="bs-section-tools"><span id="bs-library-count"></span><select id="bs-sort"><option value="recent">最近阅读</option><option value="name">名称排序</option><option value="created">添加时间</option></select></div></div>
 <div id="startup-note">电脑本地使用：双击 <b>启动阅读器.bat</b>，打开 <b>http://localhost:8765</b>。手机安装请使用 HTTPS 测试入口。</div><p id="pwa-info" style="font-size:12px;line-height:1.7;color:var(--text3);margin-bottom:16px" role="status" hidden></p><div id="drag-hint">也可以将 PDF 文件或文件夹拖入窗口</div><div class="bs-rack" id="bs-grid"></div><div id="rack-pager" style="display:none"></div>
 </div>
 <aside id="bs-reading-dock" class="bs-reading-dock" hidden aria-label="正在阅读"><div class="bs-dock-shell"><div class="bs-dock-header"><button id="bs-dock-shelf" type="button">← 书架</button><strong>正在阅读</strong><span id="bs-dock-chapter">—</span></div><div id="bs-dock-stage" class="bs-dock-stage"></div><div class="bs-dock-footer"><div><strong id="bs-dock-title">—</strong><span id="bs-dock-meta">—</span></div><button id="bs-dock-open" type="button">继续阅读 <span aria-hidden="true">→</span></button></div></div></aside>

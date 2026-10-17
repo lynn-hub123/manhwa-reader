@@ -8,8 +8,8 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 
-assert.match(html, /--accent:#8B62D9/i,
-  'the comic palette should use a restrained violet accent');
+assert.match(html, /--accent:#C9A45C/i,
+  'the midnight-study palette should use a brass lamp accent');
 assert.match(html, /#bookshelf\{[^}]*background:var\(--bg\)/,
   'the bookshelf needs an explicit surface background');
 assert.match(html, /\.bs-rack\{[^}]*display:grid[^}]*grid-template-columns:repeat\(auto-fill,minmax\(/,

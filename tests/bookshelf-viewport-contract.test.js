@@ -24,7 +24,7 @@ assert.match(html, /\.bs-rack\{display:grid;grid-template-columns:repeat\(auto-f
   'normal desktop cards should use a readable minimum width');
 assert.match(html, /\.shelf-cover-wrap\{aspect-ratio:5\/5\.6\}/,
   'short desktop cards should fit two rows without forcing an inner scrollbar');
-assert.match(app, /const recent=sorted\.find\(s=>s\.lastChNum!==null&&s\.lastChNum!==undefined\);/,
+assert.match(app, /const recent=sorted\.find\(s=>s\.lastChNum!==null&&s\.lastChNum!==undefined&&isFinite\(s\.lastChNum\)\);/,
   'continue reading should only select a series with saved progress');
 assert.match(app, /if\(!recent\)\{continueEl\.hidden=!0;continueEl\.innerHTML=''\}/,
   'a fresh bookshelf should hide the empty continue-reading block');
@@ -34,8 +34,8 @@ assert.match(app, /const isFileMode=window\.location\.protocol==='file:';/,
   'direct file opens should keep the launcher hint visible');
 assert.match(app, /window\.location\.replace\('http:\/\/localhost:8765\/'\)/,
   'direct file opens should return to the running local server when available');
-assert.match(app, /if\(startup\)startup\.style\.display=\(isFileMode\|\|!bookshelf\.length\)\?'':'none';/,
-  'the launcher hint should stay hidden during normal populated localhost use');
+assert.match(app, /if\(startup\)startup\.style\.display=isFileMode\?'':'none';/,
+  'the launcher hint should only appear in file:// mode, never on localhost');
 assert.match(app, /pageBooks\.length<4\?' is-prominent':''/,
   'small libraries should promote the add card instead of leaving an empty shelf');
 assert.match(html, /\.bs-rack\[data-count="1"\][^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,
