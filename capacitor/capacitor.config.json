@@ -1,0 +1,9 @@
+{
+  "appId": "com.manhwa.reader",
+  "appName": "韩漫阅读器",
+  "webDir": "..",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

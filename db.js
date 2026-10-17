@@ -247,6 +247,8 @@ class ManhwaDB {
   // Fill missing new fields (status etc.) in existing series
   normalizeSeries(s) {
     if (!s.chapters || !Array.isArray(s.chapters)) s.chapters = [];
+    if (!Object.prototype.hasOwnProperty.call(s, 'groupId')) s.groupId = null;
+    if (s.groupId === '') s.groupId = null;
     s.chapters.forEach(c => {
       if (!c.status) c.status = 'unread';
       if (!c.cached) c.cached = false;
@@ -293,4 +295,3 @@ class ManhwaDB {
 }
 
 const db = new ManhwaDB();
-

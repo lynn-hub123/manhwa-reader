@@ -1,0 +1,105 @@
+{
+  "run_id": "mobile-mvp-20261011-01",
+  "asset_version": "mobile-v4-20261011-07",
+  "output": "F:\\sites\\manhwa-reader-private-test\\dist",
+  "count": 24,
+  "bytes": 7529808,
+  "files": [
+    {
+      "path": "app.js",
+      "sha256": "bd732e660362d70886fee9dac564c3a53cf72c43b1b23cf98d35cb0c200c6c4e"
+    },
+    {
+      "path": "cover-capture.js",
+      "sha256": "5f203e7dddc3602937baa2ace45f9f273965fdfd969b134060e0e85d490ac902"
+    },
+    {
+      "path": "db.js",
+      "sha256": "f1c503e38e6a6cda8a385fadd1a16592ac9e68a5bfb9104dcda85026e1914e82"
+    },
+    {
+      "path": "fonts/MaShanZheng-Regular.ttf",
+      "sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb"
+    },
+    {
+      "path": "fonts/OFL.txt",
+      "sha256": "d7bdb1cee215b689e23c2f95672a6084c790542170648267a55114103d756a08"
+    },
+    {
+      "path": "icons/apple-touch-icon.png",
+      "sha256": "d53416acd919c8486887b93e1f7b91e7d6f336c073f7131f259aa07dd73efa71"
+    },
+    {
+      "path": "icons/icon-192.png",
+      "sha256": "a0a9aaf282fc808ff6dc721e29402a53b0d511a3e02b7d3c7a48d5627780edd1"
+    },
+    {
+      "path": "icons/icon-512.png",
+      "sha256": "0b1eb9224ae55536079417da38bbf258cc08d56b746e2f8e4f2cfd81db7a0dd9"
+    },
+    {
+      "path": "icons/icon.svg",
+      "sha256": "554e4555e2381d343d3aa0d0936898b99cdf2dd1e0ada8b63012d29aacfbf533"
+    },
+    {
+      "path": "icons/maskable-512.png",
+      "sha256": "03ae190e26fba956677fc6f5ec491f839ef1070ae8b528b1256fb62f67690a46"
+    },
+    {
+      "path": "index.html",
+      "sha256": "5f7fde7073b87748ac29ca8bb691fc0b05292cf92a599c9fc7d2ab2133425971"
+    },
+    {
+      "path": "manifest.json",
+      "sha256": "ef7779a75715999b38b51a9d1449e2cbc02b43f7333f68c6b4cb9ce984061a37"
+    },
+    {
+      "path": "mobile-reader.js",
+      "sha256": "2ae4fa5ea821794bff806cf1b1c5f757c8480c197ec857a80d5b85ff084fca98"
+    },
+    {
+      "path": "pdf-engine.js",
+      "sha256": "17d7279260264e426e2424f724dce2fc40d0621bd7df7ef4719521a4e7461666"
+    },
+    {
+      "path": "pwa-assets.js",
+      "sha256": "4c54c6fdefdf75d2f58145dcf34342c86c034d4e06c43a5c3f63556dbd1eee81"
+    },
+    {
+      "path": "pwa.js",
+      "sha256": "1f21e0919adb331fb419a5ea342cd383a8169b5685d78537e842d618e42dbef6"
+    },
+    {
+      "path": "rack-interaction.js",
+      "sha256": "36b792daa9f3351f74ac1f1b7ff64e0346e137e2e1af0894499d48f9855ba6fe"
+    },
+    {
+      "path": "reader-mode.js",
+      "sha256": "d2de06d14c443cf968389eeb3b4053a5264a57888fa076ed2e052469e1d05db9"
+    },
+    {
+      "path": "reading-progress.js",
+      "sha256": "76c3e6b42ca14cc1c416a900afa3eab6d21954f137038efc06168d6b1ebb38e8"
+    },
+    {
+      "path": "service-worker.js",
+      "sha256": "c342091fd8a722a9a4a9aad7fdc377ddf5db6031753f06d4b5d6f13a2f5c35fb"
+    },
+    {
+      "path": "vendor/pdfjs/LICENSE",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    },
+    {
+      "path": "vendor/pdfjs/README.md",
+      "sha256": "182d0ac4cb378854007e8b8b5be1b7945904d6cfefe9d2313bbe043a13b6d9ea"
+    },
+    {
+      "path": "vendor/pdfjs/pdf.min.js",
+      "sha256": "5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946"
+    },
+    {
+      "path": "vendor/pdfjs/pdf.worker.min.js",
+      "sha256": "feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b"
+    }
+  ]
+}

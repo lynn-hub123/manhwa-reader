@@ -210,6 +210,7 @@ async function testZoomRequestsAreCoalesced() {
     Promise
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction('withInstantScroll'), context);
   vm.runInContext(extractFunction('requestZoomChange'), context);
 
   const first = context.requestZoomChange('1.25');

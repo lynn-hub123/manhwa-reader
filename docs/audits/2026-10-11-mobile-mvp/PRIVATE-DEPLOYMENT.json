@@ -1,0 +1,52 @@
+{
+  "run_id": "mobile-mvp-20261011-01",
+  "asset_version": "mobile-v4-20261011-07",
+  "audience": "owner-private",
+  "site": {
+    "project_id": "appgprj_6acb8d1caa48819191186b7f7e6697c8",
+    "current_user_role": "owner",
+    "access_mode": "custom",
+    "policy_revision": 1,
+    "external_visitor_count": 0,
+    "allowed_roles": [
+      "owner"
+    ],
+    "group_count": 0
+  },
+  "deployment": {
+    "id": "appgdep_6acb8dfd6518819191d84a90d58f16ac",
+    "project_id": "appgprj_6acb8d1caa48819191186b7f7e6697c8",
+    "title": "韩漫阅读器 · 私有移动端测试",
+    "version_id": "appgprj_6acb8d1caa48819191186b7f7e6697c8~appgver_d7b9a77700e881918ea8d1ba8fcc796d",
+    "type": "publish",
+    "status": "succeeded",
+    "url": "https://manhwa-reader-private-test-20261011.yuelin-x528.chatgpt.site",
+    "has_mcp": false,
+    "screenshot_asset_pointer": null,
+    "provider_deployment_id": "site---6acb8d1caa48819191186b7f7e6697c8",
+    "failure_message": null,
+    "env_set_revision": 0,
+    "updated_at": "2026-10-11T13:24:27.199646+00:00"
+  },
+  "version": {
+    "id": "appgprj_6acb8d1caa48819191186b7f7e6697c8~appgver_d7b9a77700e881918ea8d1ba8fcc796d",
+    "version_number": 1,
+    "source": {
+      "commit_sha": "df19f0e3ad937b15958e34ca415c9adca1ed30ad"
+    },
+    "archive_storage": {
+      "archive_format": "tar",
+      "sediment_file_id": "file_0000000038ac81f5b4a0ae1935501d49",
+      "content_hash": "sha256:92139cbfc5bf0d6756db4669147d673cfd0a2307b9826f98c9bc448c9a34857d",
+      "size_bytes": 7557120,
+      "file_count": 25
+    },
+    "deployment_id": "appgdep_6acb8dfd6518819191d84a90d58f16ac"
+  },
+  "source_checkout": "F:\\sites\\manhwa-reader-private-test",
+  "identity_manifest": "F:\\sites\\manhwa-reader-private-test\\.openai\\hosting.json",
+  "original_repository_head": "64abde9c8e088ebf4ede51551cbfa0b1db501721",
+  "live_browser_acceptance": "HOLD: browser automation runtime could not initialize after timeout; not a verified reader or device failure",
+  "physical_device_acceptance": "SKIPPED: no connected physical phone",
+  "publication_rollback": "Keep owner-private. Any rollback, disable, access change or deletion requires explicit user direction; no rollback has been performed."
+}

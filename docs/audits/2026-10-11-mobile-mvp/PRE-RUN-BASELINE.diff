@@ -1,0 +1,573 @@
+# mobile-mvp-20261011-01: exact pre-run dirty baseline versus current files
+# This is a reference diff, not a blind rollback command. Preserve later user edits.
+
+# app.js: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\app.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\app.js', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\app.js" "b/F:\\manhwa-reader\\app.js"
+index 6345544..ce6f420 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\app.js"
++++ "b/F:\\manhwa-reader\\app.js"
+@@ -961,7 +961,7 @@ async function cachePDFs(sid,files,chs){if(!files.length)return;showProgress(0,f
+ function showProgress(done,total){let p=$('import-progress');if(!p){p=document.createElement('div');p.id='import-progress';p.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:12px 24px;border-radius:12px;z-index:1500;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,0.1)';p.innerHTML='<span id="import-progress-text" style="color:var(--text);font-size:13px"></span><div style="width:120px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="import-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .2s"></div></div>';document.body.appendChild(p)}Qs('#import-progress-text',p).textContent='正在导入 '+done+'/'+total;Qs('#import-progress-bar',p).style.width=(done/total*100)+'%'}
+ function hideProgress(){let p=$('import-progress');if(p){Qs('#import-progress-text',p).textContent='导入完成 ✓';setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p)},1500)}}
+ 
+-async function generateCover(sid,file){try{let ab=await file.arrayBuffer(),doc=await pdfjsLib.getDocument({data:ab}).promise,page=await doc.getPage(1),vp=page.getViewport({scale:.4}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;let dataUrl=cv.toDataURL('image/jpeg',.7);await db.saveCover(sid,dataUrl);covers[sid]=dataUrl;doc.destroy();if(!currentSeries)renderBookshelf()}catch(e){console.warn('Cover fail:',e)}}
++async function generateCover(sid,file){try{let ab=await file.arrayBuffer(),doc=await ManhwaPdf.getDocument({data:ab}).promise,page=await doc.getPage(1),vp=page.getViewport({scale:.4}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;let dataUrl=cv.toDataURL('image/jpeg',.7);await db.saveCover(sid,dataUrl);covers[sid]=dataUrl;doc.destroy();if(!currentSeries)renderBookshelf()}catch(e){console.warn('Cover fail:',e)}}
+ 
+ 
+ async function autoPickCover(sid,files,chapterNum){
+@@ -972,7 +972,7 @@ async function autoPickCover(sid,files,chapterNum){
+     if(file){try{ab=await file.arrayBuffer()}catch(e){}}
+     if(!ab){try{ab=await db.loadPDF(sid,chapterNum||1)}catch(e){}}if(!ab&&!chapterNum){try{const s=findSeries(sid);const ch=[...(s&&s.chapters||[])].filter(c=>c.cached).sort((a,b)=>a.chapterNum-b.chapterNum)[0];if(ch)ab=await db.loadPDF(sid,ch.chapterNum)}catch(e){}}
+     if(!ab){console.warn('autoPickCover: no data for',sid);return}
+-    const doc=await pdfjsLib.getDocument({data:ab}).promise;
++    const doc=await ManhwaPdf.getDocument({data:ab}).promise;
+     const maxP=doc.numPages;
+     let best={score:-1,page:1,dataUrl:null};
+     for(let p=1;p<=maxP;p++){
+@@ -1045,7 +1045,7 @@ async function loadCoverCandidates(sid){
+   let ab;try{ab=await db.loadPDF(sid,ch.chapterNum)}catch(e){return[]}
+   if(!ab)return[];
+   try{
+-    const doc=await pdfjsLib.getDocument({data:ab}).promise;
++    const doc=await ManhwaPdf.getDocument({data:ab}).promise;
+     const maxP=doc.numPages,cands=[];
+     for(let p=1;p<=maxP;p++){
+       try{
+@@ -1062,7 +1062,7 @@ async function loadCoverCandidates(sid){
+ }
+ async function renderCoverCandidate(sid,chapterNum,pageNum){
+   const ab=await db.loadPDF(sid,chapterNum);
+-  const doc=await pdfjsLib.getDocument({data:ab}).promise;
++  const doc=await ManhwaPdf.getDocument({data:ab}).promise;
+   try{
+     const page=await doc.getPage(pageNum);
+     let scale=2;
+@@ -1109,7 +1109,7 @@ async function loadChapter(i,restoreState){
+   $('chapter-list').style.pointerEvents='none';$('page-slider').disabled=!0;
+   try{let ab;if(c.cached){ab=await db.loadPDF(currentSeries,c.chapterNum)}else{let exists=!1;try{exists=await db.pdfExists(currentSeries,c.chapterNum)}catch(e){}if(exists){try{ab=await db.loadPDF(currentSeries,c.chapterNum);c.cached=!0}catch(e){}}if(!ab){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('该章节未缓存，请重新导入');return}}
+   if(myToken!==chapterLoadToken){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
+-  pdfDoc=await pdfjsLib.getDocument({data:ab}).promise;if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
++  pdfDoc=await ManhwaPdf.getDocument({data:ab}).promise;if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
+   c.pages=pdfDoc.numPages;
+   // Detect webtoon
+   isWebtoon=await detectWebtoon();c.isWebtoon=isWebtoon;
+@@ -1133,8 +1133,17 @@ async function loadChapter(i,restoreState){
+ }
+ 
+ function prefetchNextSafe(idx){let n1=idx+1,n2=idx+2;if(n1<chapters.length&&chapters[n1].cached&&!chapters[n1].loaded&&!prefetchQueue.includes(n1))prefetchQueue.push(n1);if(n2<chapters.length&&chapters[n2].cached&&!chapters[n2].loaded&&!prefetchQueue.includes(n2))prefetchQueue.push(n2);if(!prefetching)drainPrefetchSafe()}
+-async function drainPrefetchSafe(){prefetching=!0;while(prefetchQueue.length>0){let i=prefetchQueue.shift();if(i>=chapters.length)continue;let c=chapters[i];if(c.loaded||!c.cached)continue;if(Math.abs(i-currentChIdx)>5)continue;try{let ab=await db.loadPDF(currentSeries,c.chapterNum),doc=await pdfjsLib.getDocument({data:ab}).promise;c.pages=doc.numPages;doc.destroy()}catch(e){console.warn('Prefetch fail:',c.name)}}prefetching=!1}
++async function drainPrefetchSafe(){prefetching=!0;while(prefetchQueue.length>0){let i=prefetchQueue.shift();if(i>=chapters.length)continue;let c=chapters[i];if(c.loaded||!c.cached)continue;if(Math.abs(i-currentChIdx)>5)continue;try{let ab=await db.loadPDF(currentSeries,c.chapterNum),doc=await ManhwaPdf.getDocument({data:ab}).promise;c.pages=doc.numPages;doc.destroy()}catch(e){console.warn('Prefetch fail:',c.name)}}prefetching=!1}
+ 
++function waitForReaderViewport(canvas,version){
++  return new Promise((resolve,reject)=>{
++    let done=false,frame=0;
++    const finish=(width,error)=>{if(done)return;done=true;clearTimeout(deadline);if(frame)cancelAnimationFrame(frame);error?reject(error):resolve(width)};
++    const deadline=setTimeout(()=>finish(null,new Error('Reader viewport did not become measurable (TIMEOUT)')),1500);
++    const measure=()=>{frame=0;if(done)return;if(canvas._captureRenderVersion!==version){finish(null);return}const width=$('viewer-area').clientWidth;if(width>40)finish(width);else frame=requestAnimationFrame(measure)};
++    measure();
++  });
++}
+ async function renderPage(pn){
+   if(!pdfDoc||renderedPages.has(pn))return;
+   const w=$('page-container').querySelector('[data-page="'+pn+'"]');if(!w)return;
+@@ -1143,8 +1152,8 @@ async function renderPage(pn){
+   try{
+     const pg=await pdfDoc.getPage(pn);if(cv._captureRenderVersion!==renderVersion)return;
+     const vp=pg.getViewport({scale:zoom});let task;
+-    if(fitWidth){let cw=$('viewer-area').clientWidth-40,sc=cw/vp.width,fvp=pg.getViewport({scale:sc});cv.width=fvp.width;cv.height=fvp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:fvp})}
+-    else{cv.width=vp.width;cv.height=vp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:vp})}
++    if(fitWidth){let width=$('viewer-area').clientWidth;if(width<=40){width=await waitForReaderViewport(cv,renderVersion);if(width===null||cv._captureRenderVersion!==renderVersion)return}let cw=width-40,base=pg.getViewport({scale:1}),sc=cw/base.width,fvp=pg.getViewport({scale:sc});cv.dataset.pdfScale=String(sc);cv.width=fvp.width;cv.height=fvp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:fvp})}
++    else{cv.dataset.pdfScale=String(zoom);cv.width=vp.width;cv.height=vp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:vp})}
+     renderTasks.push(task);await task.promise;
+     if(setCaptureRenderState(cv,'complete',renderVersion)!==null)w.style.width=cv.style.width||cv.width+'px';
+   }catch(e){
+@@ -1166,7 +1175,7 @@ function requestZoomChange(value){
+       if(!fitWidth){const parsed=parseFloat(next);if(Number.isFinite(parsed))zoom=parsed}
+       settings.zoom=next;
+       const select=$('zoom-select');if(select)select.value=next;
+-      try{await reRenderAll(viewState)}catch(e){console.warn('zoom rerender failed',e)}
++      try{await reRenderAll(viewState);if(fitWidth){const viewer=$('viewer-area');withInstantScroll(viewer,()=>{if(viewer)viewer.scrollLeft=0})}}catch(e){console.warn('zoom rerender failed',e)}
+     }
+   })();
+   const finished=zoomChangeRun;
+@@ -1191,34 +1200,47 @@ function bindMobileReaderGestures(){
+   if(!viewer||viewer._mobileGestureBound||!window.MobileReader)return;
+   viewer._mobileGestureBound=!0;
+   const pointers=new Map();
+-  let swipeStart=null,pinchStartDistance=0,pinchStartZoom=1,pinchFrame=0,pinchTarget=null;
++  let swipeStart=null,swipePanning=false,panStartLeft=0,touchPinching=false;
++  let pinchStartDistance=0,pinchStartZoom=1,pinchStartValue=1,pinchLastZoom=1,pinchFrame=0,pinchTarget=null;
+   const point=e=>({x:e.clientX,y:e.clientY});
++  const blocked=()=>captureUiActive||!pdfDoc||$('reader').classList.contains('hidden')||$('modal-overlay').classList.contains('show');
+   const distance=()=>{const values=[...pointers.values()];if(values.length<2)return 0;return Math.hypot(values[0].x-values[1].x,values[0].y-values[1].y)};
+-  const schedulePinchZoom=value=>{pinchTarget=value;if(pinchFrame)return;pinchFrame=requestAnimationFrame(()=>{pinchFrame=0;if(pinchTarget!==null){requestZoomChange(String(pinchTarget));pinchTarget=null}})};
++  const schedulePinchZoom=value=>{if(value===pinchLastZoom)return;pinchLastZoom=value;pinchTarget=value;if(pinchFrame)return;pinchFrame=requestAnimationFrame(()=>{pinchFrame=0;if(pinchTarget!==null&&!blocked())requestZoomChange(String(pinchTarget));pinchTarget=null})};
++  const beginPinch=initialDistance=>{pinchStartDistance=initialDistance;pinchStartValue=fitWidth?'fit':zoom;const canvas=fitWidth&&viewer.querySelector('.page-wrapper[data-page="'+currentPage+'"] canvas');pinchStartZoom=canvas?Number(canvas.dataset.pdfScale)||zoom:zoom;pinchLastZoom=pinchStartValue;swipeStart=null;swipePanning=false};
++  const pinchValue=nextDistance=>{const ratio=nextDistance/pinchStartDistance;return Math.abs(ratio-1)<0.03?pinchStartValue:window.MobileReader.clampPinchZoom(pinchStartZoom*ratio)};
++  const reset=cancelled=>{if(pinchFrame)cancelAnimationFrame(pinchFrame);pinchFrame=0;if(!cancelled&&pinchTarget!==null&&!blocked())requestZoomChange(String(pinchTarget));pinchTarget=null;pointers.clear();swipeStart=null;swipePanning=false;pinchStartDistance=0};
+   viewer.addEventListener('pointerdown',function(e){
+-    if(e.pointerType!=='touch')return;
++    if(e.pointerType!=='touch'||touchPinching||blocked()||e.target.closest('button,input,select,a'))return;
+     pointers.set(e.pointerId,point(e));
+-    if(pointers.size===1)swipeStart=point(e);
+-    if(pointers.size===2){pinchStartDistance=distance();pinchStartZoom=window.MobileReader.clampPinchZoom(fitWidth?1:zoom);swipeStart=null;viewer.style.touchAction='none';}
++    if(pointers.size===1){swipeStart=point(e);swipePanning=!fitWidth&&viewer.scrollWidth>viewer.clientWidth+1;panStartLeft=viewer.scrollLeft}
++    if(pointers.size===2)beginPinch(distance());
+   },{passive:true});
+   viewer.addEventListener('pointermove',function(e){
+-    if(e.pointerType!=='touch'||!pointers.has(e.pointerId))return;
++    if(e.pointerType!=='touch'||touchPinching||!pointers.has(e.pointerId))return;
++    if(blocked()){reset(true);return}
+     pointers.set(e.pointerId,point(e));
++    if(pointers.size===1&&swipeStart&&swipePanning){const dx=e.clientX-swipeStart.x,dy=e.clientY-swipeStart.y;if(Math.abs(dx)>Math.abs(dy)){if(e.cancelable)e.preventDefault();viewer.scrollLeft=panStartLeft-dx}return}
+     if(pointers.size<2||!pinchStartDistance)return;
+-    e.preventDefault();
+-    const next=window.MobileReader.clampPinchZoom(pinchStartZoom*distance()/pinchStartDistance);
+-    if(next!==pinchStartZoom)schedulePinchZoom(next);
++    if(e.cancelable)e.preventDefault();
++    const next=pinchValue(distance());
++    schedulePinchZoom(next);
+   },{passive:false});
+   const finish=e=>{
+-    if(e.pointerType!=='touch')return;
++    if(e.pointerType!=='touch'||touchPinching||!pointers.has(e.pointerId))return;
+     pointers.delete(e.pointerId);
+-    if(pointers.size<2){pinchStartDistance=0;viewer.style.touchAction='pan-y'}
++    if(pointers.size<2)pinchStartDistance=0;
+     if(pointers.size!==0)return;
+-    if(swipeStart&&!isWebtoon&&!captureUiActive){const direction=window.MobileReader.swipeDirection(swipeStart,point(e));if(direction==='next')nextPage();if(direction==='previous')prevPage()}
+-    swipeStart=null;
++    if(swipeStart&&!swipePanning&&!isWebtoon&&!blocked()){const direction=window.MobileReader.swipeDirection(swipeStart,point(e));if(direction==='next')nextPage();if(direction==='previous')prevPage()}
++    reset(false);
+   };
+   viewer.addEventListener('pointerup',finish,{passive:true});
+-  viewer.addEventListener('pointercancel',finish,{passive:true});
++  viewer.addEventListener('pointercancel',e=>{if(e.pointerType==='touch'&&!touchPinching)reset(true)},{passive:true});
++  // Touch events cancel browser pinch before it takes over; one-finger vertical scrolling remains native.
++  const touchDistance=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
++  viewer.addEventListener('touchstart',e=>{if(e.touches.length<2||blocked())return;reset(true);touchPinching=true;beginPinch(touchDistance(e));if(e.cancelable)e.preventDefault()},{passive:false});
++  viewer.addEventListener('touchmove',e=>{if(!touchPinching)return;if(blocked()){reset(true);touchPinching=false;return}if(e.cancelable)e.preventDefault();if(e.touches.length<2||!pinchStartDistance)return;schedulePinchZoom(pinchValue(touchDistance(e)))},{passive:false});
++  viewer.addEventListener('touchend',e=>{if(touchPinching&&e.touches.length===0){reset(false);touchPinching=false}},{passive:true});
++  viewer.addEventListener('touchcancel',()=>{reset(true);touchPinching=false},{passive:true});
+ }
+ bindMobileReaderGestures();
+ $('page-slider').addEventListener('input',function(){goToPage(parseInt(this.value))});
+
+# index.html: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\index.html', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\index.html" "b/F:\\manhwa-reader\\index.html"
+index b4ad50c..5e32abf 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\index.html"
++++ "b/F:\\manhwa-reader\\index.html"
+@@ -6,11 +6,13 @@
+ <title>韩漫阅读器 - Manhwa Reader</title>
+ <link rel="manifest" href="manifest.json">
+ <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
++<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+ <meta name="theme-color" content="#8B62D9">
+ <meta name="mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
++<script src="vendor/pdfjs/pdf.min.js"></script>
++<script src="pdf-engine.js"></script>
+ <style>
+ @font-face {
+   font-family: 'Ma Shan Zheng';
+@@ -510,8 +512,9 @@ select{box-shadow:var(--shadow-soft)}
+   .bs-header .bs-count{order:3;margin-left:41px;flex-basis:100%}
+   .bs-header input.bs-search{order:4;flex:1;min-width:150px;width:auto}
+   .bs-header .spacer{display:none}
+-  .bs-header .btn-group{order:6;margin-left:0;flex-basis:100%}
+-  .bs-header .btn-group button{flex:1}
++  .bs-header .btn-group{order:6;margin-left:0;flex-basis:100%;min-width:0;flex-wrap:wrap}
++  .bs-header .btn-group button{flex:1 1 104px;min-width:0;min-height:44px}
++  .bs-header #bs-settings-btn,.bs-header #btn-cache-mgr{min-height:44px}
+   .bs-group-rail.has-overflow .bs-groups{padding-inline:31px}
+   .bs-group-scroll-btn{width:27px;height:27px;font-size:18px}
+   .bs-continue{grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:12px;row-gap:6px;padding:16px;min-height:0}
+@@ -535,9 +538,10 @@ select{box-shadow:var(--shadow-soft)}
+   #sidebar:not(.hidden){transform:translateX(0)}
+   #sidebar-resizer{display:none}
+   #chapter-list .chapter-item{min-height:48px;padding:12px 10px}
+-  #viewer-area{min-width:0;padding:16px 10px;touch-action:pan-y;overscroll-behavior:contain}
+-  #page-container{width:100%}
+-  .page-wrapper{max-width:100%}
++  #viewer-area{min-width:0;padding:16px 10px;touch-action:pan-y;overscroll-behavior:contain;overflow-x:auto;align-items:flex-start}
++  #page-container{width:100%;max-width:none;align-items:flex-start}
++  .page-wrapper{max-width:none;flex-shrink:0;box-sizing:content-box;margin-inline:auto}
++  .page-wrapper canvas{max-width:none}
+   #bottombar{margin:0 10px max(10px,env(safe-area-inset-bottom));padding:8px 6px;gap:6px;display:grid;grid-template-columns:auto 32px minmax(0,1fr) 32px auto;grid-template-rows:auto auto;align-items:center}
+   #bottombar button{min-height:44px;padding:7px 8px;font-size:11px}
+   #bottombar .page-info{min-width:0;font-size:11px}
+@@ -604,8 +608,8 @@ select{box-shadow:var(--shadow-soft)}
+ </style>
+ </head>
+ <body>
+-<div id="network-status" role="status" aria-live="polite" hidden></div>
+-<div id="browser-warning"><div class="bw-icon">⚠️</div><h2>浏览器不兼容</h2><p>本应用需要 <b>Chrome</b> 或 <b>Edge</b> 浏览器。</p></div>
++<div id="network-status" class="network-status" role="status" aria-live="polite" hidden></div>
++<div id="browser-warning"><div class="bw-icon">⚠️</div><h2>浏览器不兼容</h2><p>请使用支持 IndexedDB 的现代浏览器，并允许保存网站数据。</p></div>
+ <div id="bookshelf">
+ <div id="bs-library-pane">
+ <div class="bs-header"><div class="bs-brand"><span class="bs-title-mark" aria-hidden="true">◈</span><div><h1>我的书架</h1><span class="bs-subtitle">漫画阅读器</span></div></div><span class="bs-count" id="bs-total">共 0 部</span>
+@@ -614,7 +618,7 @@ select{box-shadow:var(--shadow-soft)}
+ <div id="bs-group-rail" class="bs-group-rail"><button class="bs-group-scroll-btn" id="bs-group-prev" type="button" aria-label="向左查看分组">‹</button><nav id="bs-groups" class="bs-groups" aria-label="漫画分组"></nav><button class="bs-group-scroll-btn" id="bs-group-next" type="button" aria-label="向右查看分组">›</button></div>
+ <section id="bs-continue" class="bs-continue" hidden></section>
+ <div id="bs-library-head" class="bs-section-head"><div><span class="bs-section-kicker">COLLECTION / 01</span><h2 id="bs-library-title">全部漫画</h2></div><div class="bs-section-tools"><span id="bs-library-count"></span><select id="bs-sort"><option value="recent">最近阅读</option><option value="name">名称排序</option><option value="created">添加时间</option></select></div></div>
+-<div id="startup-note">提示：请双击 <b>启动阅读器.bat</b>，再用 <b>http://localhost:8765</b> 打开，可保证缓存和文件夹导入正常</div><div id="drag-hint">也可以将 PDF 文件或文件夹拖入窗口</div><div class="bs-rack" id="bs-grid"></div><div id="rack-pager" style="display:none"></div>
++<div id="startup-note">电脑本地使用：双击 <b>启动阅读器.bat</b>，打开 <b>http://localhost:8765</b>。手机安装请使用 HTTPS 测试入口。</div><p id="pwa-info" style="font-size:12px;line-height:1.7;color:var(--text3);margin-bottom:16px" role="status" hidden></p><div id="drag-hint">也可以将 PDF 文件或文件夹拖入窗口</div><div class="bs-rack" id="bs-grid"></div><div id="rack-pager" style="display:none"></div>
+ </div>
+ <aside id="bs-reading-dock" class="bs-reading-dock" hidden aria-label="正在阅读"><div class="bs-dock-shell"><div class="bs-dock-header"><button id="bs-dock-shelf" type="button">← 书架</button><strong>正在阅读</strong><span id="bs-dock-chapter">—</span></div><div id="bs-dock-stage" class="bs-dock-stage"></div><div class="bs-dock-footer"><div><strong id="bs-dock-title">—</strong><span id="bs-dock-meta">—</span></div><button id="bs-dock-open" type="button">继续阅读 <span aria-hidden="true">→</span></button></div></div></aside>
+ </div>
+@@ -625,6 +629,7 @@ select{box-shadow:var(--shadow-soft)}
+ <input type="file" id="hidden-file-input" accept="application/pdf,.pdf" multiple style="display:none"><input type="file" id="hidden-cover-input" accept="image/*" style="display:none">
+ <script>(function(){if(typeof indexedDB==='undefined'){document.getElementById('browser-warning').classList.add('show');document.getElementById('bookshelf').style.display='none';}})();</script>
+ <script src="db.js"></script>
++<script src="pwa-assets.js"></script>
+ <script src="pwa.js"></script>
+ <script src="mobile-reader.js"></script>
+ <script src="reader-mode.js"></script>
+
+# pwa.js: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\pwa.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\pwa.js', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\pwa.js" "b/F:\\manhwa-reader\\pwa.js"
+index 223ebfa..0d98399 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\pwa.js"
++++ "b/F:\\manhwa-reader\\pwa.js"
+@@ -1,51 +1,83 @@
+ 'use strict';
+-
+ (function initPwa(root) {
+-  function statusElement() {
+-    return root.document && root.document.getElementById('network-status');
+-  }
++  const state = { offline: 'CHECKING', storage: 'UNKNOWN', version: null, missing: [] };
++  let initialized;
++  const element = id => root.document && root.document.getElementById(id);
++  const getState = () => ({ ...state, missing: [...state.missing] });
++  const timeout = (promise, milliseconds) => new Promise((resolve, reject) => {
++    const timer = root.setTimeout(() => reject(new Error('TIMEOUT')), milliseconds);
++    Promise.resolve(promise).then(value => { root.clearTimeout(timer); resolve(value); }, error => { root.clearTimeout(timer); reject(error); });
++  });
+ 
+   function updateNetworkStatus() {
+-    const status = statusElement();
+-    if (!status) return;
+-    if (root.navigator.onLine) {
+-      status.hidden = true;
+-      status.classList.remove('is-offline');
+-      status.textContent = '';
+-    } else {
+-      status.hidden = false;
+-      status.classList.add('is-offline');
+-      status.textContent = '离线模式 · 已保存的章节仍可阅读';
++    const status = element('network-status');
++    const ready = state.offline === 'READY';
++    if (status) {
++      status.hidden = root.navigator.onLine;
++      status.classList.toggle('is-offline', !root.navigator.onLine);
++      status.textContent = root.navigator.onLine ? '' : ready
++        ? '离线模式 · 本设备已保存的章节仍可阅读'
++        : '离线资源未就绪 · 请联网完成准备后再测试';
++    }
++    const info = element('pwa-info');
++    if (info) {
++      info.hidden = false;
++      const preparation = ready ? '离线资源已就绪。' : state.offline === 'CHECKING'
++        ? '正在准备离线资源，请保持联网。' : state.offline === 'TIMEOUT'
++          ? '离线检查超时，请联网重新打开。' : '离线资源未就绪，请使用 HTTPS 并联网重新打开。';
++      const storage = state.storage === 'PERSISTENT' ? '浏览器已授予持久存储，但清除网站数据仍会删除书架。'
++        : '浏览器可能清理本地存储，请保留原始 PDF。';
++      info.textContent = preparation + ' 手机浏览器菜单中选择“安装应用”或“添加到主屏幕”。PDF、封面和进度仅保存在当前设备与当前网址，不会上传或跨设备同步。' + storage;
+     }
+   }
+ 
+   async function requestPersistentStorage() {
+     try {
+-      if (root.navigator.storage && root.navigator.storage.persist) {
+-        await root.navigator.storage.persist();
+-      }
+-    } catch (error) {
+-      // Storage persistence is an enhancement; IndexedDB remains the source of truth.
+-    }
++      state.storage = root.navigator.storage && root.navigator.storage.persist
++        ? (await timeout(root.navigator.storage.persist(), 4000) ? 'PERSISTENT' : 'BEST_EFFORT') : 'BEST_EFFORT';
++    } catch (error) { state.storage = 'UNKNOWN'; }
++    updateNetworkStatus();
+   }
+ 
+-  async function registerServiceWorker() {
+-    if (!root.navigator.serviceWorker || root.location.protocol === 'file:') return null;
++  async function checkOfflineResources(registration) {
++    let channel;
+     try {
+-      return await root.navigator.serviceWorker.register('./service-worker.js', { scope: './' });
+-    } catch (error) {
+-      console.warn('Service worker registration failed:', error);
+-      return null;
++      const registered = registration || await timeout(root.navigator.serviceWorker.ready, 8000);
++      const worker = root.navigator.serviceWorker.controller || registered.active;
++      if (!worker || !root.MessageChannel) throw new Error('No active worker');
++      channel = new root.MessageChannel();
++      const response = await timeout(new Promise(resolve => {
++        channel.port1.onmessage = event => resolve(event.data);
++        worker.postMessage({ type: 'MANHWA_OFFLINE_STATUS_REQUEST' }, [channel.port2]);
++      }), 4000);
++      const expectedVersion = root.ManhwaAssets && root.ManhwaAssets.version;
++      if (!response || response.type !== 'MANHWA_OFFLINE_STATUS' || !Array.isArray(response.missing)) throw new Error('Invalid worker receipt');
++      state.version = response.version;
++      state.missing = response.missing;
++      state.offline = response.ready === true && response.missing.length === 0 && (!expectedVersion || response.version === expectedVersion) ? 'READY' : 'INCOMPLETE';
++    } catch (error) { state.offline = error.message === 'TIMEOUT' ? 'TIMEOUT' : 'UNAVAILABLE'; }
++    finally { if (channel) { channel.port1.close(); channel.port2.close(); } updateNetworkStatus(); }
++    return getState();
++  }
++
++  async function registerServiceWorker() {
++    if (!root.navigator.serviceWorker || root.location.protocol === 'file:' || root.isSecureContext === false) {
++      state.offline = 'UNAVAILABLE'; updateNetworkStatus(); return;
+     }
++    try {
++      await timeout(root.navigator.serviceWorker.register('./service-worker.js', { scope: './', updateViaCache: 'none' }), 8000);
++      await checkOfflineResources();
++    } catch (error) { state.offline = error.message === 'TIMEOUT' ? 'TIMEOUT' : 'UNAVAILABLE'; updateNetworkStatus(); }
+   }
+ 
+   function init() {
++    if (initialized) return initialized;
+     updateNetworkStatus();
+-    root.addEventListener('online', updateNetworkStatus);
+-    root.addEventListener('offline', updateNetworkStatus);
+-    requestPersistentStorage();
+-    return registerServiceWorker();
++    root.addEventListener('online', () => { updateNetworkStatus(); if (root.navigator.serviceWorker) checkOfflineResources(); });
++    root.addEventListener('offline', () => { updateNetworkStatus(); if (root.navigator.serviceWorker) checkOfflineResources(); });
++    if (root.navigator.serviceWorker) root.navigator.serviceWorker.addEventListener('controllerchange', () => checkOfflineResources());
++    initialized = Promise.all([requestPersistentStorage(), registerServiceWorker()]).then(getState);
++    return initialized;
+   }
+-
+-  root.ManhwaPWA = { init, updateNetworkStatus };
++  root.ManhwaPWA = { init, updateNetworkStatus, checkOfflineResources, getState };
+ })(typeof window !== 'undefined' ? window : globalThis);
+
+# service-worker.js: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\service-worker.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\service-worker.js', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\service-worker.js" "b/F:\\manhwa-reader\\service-worker.js"
+index 2f5298a..cbb8998 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\service-worker.js"
++++ "b/F:\\manhwa-reader\\service-worker.js"
+@@ -1,91 +1,45 @@
+ 'use strict';
++importScripts('./pwa-assets.js');
++const SHELL_CACHE = 'manhwa-reader-shell-' + self.ManhwaAssets.version;
++const APP_SHELL = self.ManhwaAssets.assets;
++const scope = self.registration.scope;
++const absolute = path => new URL(path, scope).href;
+ 
+-const SHELL_CACHE = 'manhwa-reader-shell-v3';
+-const RUNTIME_CACHE = 'manhwa-reader-runtime-v3';
+-const PDF_JS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+-const APP_SHELL = [
+-  './',
+-  './index.html',
+-  './manifest.json',
+-  './pwa.js',
+-  './mobile-reader.js',
+-  './reader-mode.js',
+-  './db.js',
+-  './reading-progress.js',
+-  './cover-capture.js',
+-  './rack-interaction.js',
+-  './app.js',
+-  './fonts/MaShanZheng-Regular.ttf',
+-  './icons/icon.svg'
+-];
++self.addEventListener('install', event => {
++  // addAll is atomic: an unavailable required resource rejects installation.
++  // Updates wait for old windows to close; no forced takeover of an old renderer.
++  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(APP_SHELL)));
++});
+ 
+-self.addEventListener('install', (event) => {
+-  event.waitUntil(
+-    caches.open(SHELL_CACHE)
+-      .then(async (cache) => {
+-        await cache.addAll(APP_SHELL);
+-        try {
+-          const response = await fetch(PDF_JS_URL, { mode: 'no-cors' });
+-          if (response) await cache.put(PDF_JS_URL, response);
+-        } catch (error) {
+-          // The runtime fetch path retries this resource when connectivity returns.
+-        }
+-      })
+-      .then(() => self.skipWaiting())
+-  );
++self.addEventListener('activate', event => {
++  event.waitUntil(caches.keys().then(keys => Promise.all(keys
++    .filter(key => /^(manhwa-reader-shell-|manhwa-reader-runtime-)/.test(key) && key !== SHELL_CACHE)
++    .map(key => caches.delete(key)))).then(() => self.clients.claim()));
+ });
+ 
+-self.addEventListener('activate', (event) => {
+-  event.waitUntil(
+-    caches.keys()
+-      .then((keys) => Promise.all(keys
+-        .filter((key) => key !== SHELL_CACHE && key !== RUNTIME_CACHE)
+-        .map((key) => caches.delete(key))))
+-      .then(() => self.clients.claim())
+-  );
++self.addEventListener('message', event => {
++  if (!event.data || event.data.type !== 'MANHWA_OFFLINE_STATUS_REQUEST' || !event.ports[0]) return;
++  event.waitUntil(caches.open(SHELL_CACHE).then(async cache => {
++    const missing = [];
++    for (const asset of APP_SHELL) if (!(await cache.match(absolute(asset)))) missing.push(asset);
++    event.ports[0].postMessage({ type: 'MANHWA_OFFLINE_STATUS', version: self.ManhwaAssets.version, ready: missing.length === 0, missing });
++  }));
+ });
+ 
+-self.addEventListener('fetch', (event) => {
++self.addEventListener('fetch', event => {
+   const request = event.request;
+-  if (request.method !== 'GET') return;
+   const url = new URL(request.url);
+-
+-  if (url.origin !== self.location.origin) {
+-    if (url.hostname === 'cdnjs.cloudflare.com') {
+-      event.respondWith(
+-        caches.open(RUNTIME_CACHE).then(async (cache) => {
+-          const cached = await caches.match(request);
+-          if (cached) return cached;
+-          const response = await fetch(request);
+-          if (response && (response.ok || response.type === 'opaque')) {
+-            await cache.put(request, response.clone());
+-          }
+-          return response;
+-        }).catch(() => caches.match(request))
+-      );
+-    }
+-    return;
+-  }
+-
+-  if (request.mode === 'navigate') {
+-    event.respondWith(
+-      fetch(request).then((response) => {
+-        event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.put('./index.html', response.clone())));
+-        return response;
+-      }).catch(() => caches.match('./index.html'))
+-    );
+-    return;
+-  }
+-
+-  event.respondWith(
+-    caches.match(request).then((cached) => {
++  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
++  // Sites owns authentication; never substitute cached HTML for its routes.
++  if (/^\/(signin-with-chatgpt|signout-with-chatgpt|callback)(\/|$)/.test(url.pathname)) return;
++  event.respondWith((async () => {
++    try {
++      const cache = await caches.open(SHELL_CACHE);
++      // HTML and dependencies belong to the same immutable installed shell version.
++      const cached = await cache.match(request.mode === 'navigate' ? absolute('./index.html') : request);
+       if (cached) return cached;
+-      return fetch(request).then((response) => {
+-        if (response && response.ok) {
+-          event.waitUntil(caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, response.clone())));
+-        }
+-        return response;
+-      }).catch(() => cached);
+-    })
+-  );
++    } catch (error) { /* Storage failure must not prevent ordinary online use. */ }
++    try { return await fetch(request); }
++    catch (error) { return new Response('Required resource is unavailable offline.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
++  })());
+ });
+
+# manifest.json: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\manifest.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\manifest.json', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\manifest.json" "b/F:\\manhwa-reader\\manifest.json"
+index 40a71c3..6abdc44 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\manifest.json"
++++ "b/F:\\manhwa-reader\\manifest.json"
+@@ -14,7 +14,16 @@
+       "src": "icons/icon.svg",
+       "sizes": "any",
+       "type": "image/svg+xml",
+-      "purpose": "any maskable"
++      "purpose": "any"
++    },
++    {
++      "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"
++    },
++    {
++      "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"
++    },
++    {
++      "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"
+     }
+   ]
+ }
+
+# CURRENT-PROGRESS.md: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\CURRENT-PROGRESS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\CURRENT-PROGRESS.md', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\CURRENT-PROGRESS.md" "b/F:\\manhwa-reader\\CURRENT-PROGRESS.md"
+index 1862812..1868698 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\CURRENT-PROGRESS.md"
++++ "b/F:\\manhwa-reader\\CURRENT-PROGRESS.md"
+@@ -132,3 +132,22 @@ git diff --check                                PASS
+ ## 下一步
+ 
+ 启动 `node server.js` 后，用一个有较高页面的普通分页 PDF：先连续快速切换 `100% → 125% → 150% → 适应宽度`，确认浏览器不再整页白屏；再在每次等待稳定后重复切换，记录仍存在的闪烁/加载感，作为下一轮过渡优化输入。最后在第 2 页中段滚动、返回书架或刷新，确认回到同一段内容；并确认条漫百分比恢复没有变化。
++
++## 移动端前两步修复（2026-10-11，私有测试阶段）
++
++- run_id：`mobile-mvp-20261011-01`。用户批准先完成移动交互、PWA 离线两步；本轮仅私有 HTTPS 测试，公开发布与原生打包不在授权范围内。
++- 已修改：适应宽度不再受前一次倍率影响；触摸取消不翻页；放大页横向拖动用于平移；双指缩放可回到起始倍率；320px 导入按钮换行且高度至少 44px。
++- 已实现：本地 PDF 主库和 worker、完整原子预缓存、独立离线就绪回执、仅清理本阅读器旧缓存、缓存缺失明确失败、PNG 安装图标；PDF 读取统一强制 `isEvalSupported:false`。
++- 当前结论 `CONDITIONAL`：两步本地实现及私有部署已有证据；托管页面的实际交互与手机真机验收仍未完成。资源版本 `mobile-v4-20261011-07`。
++- 最近完整自动回归：`node --test`，68 项通过、0 失败、0 跳过（最终 exit 0，chunk a80b55）；8 个 JS 文件语法及 diff 检查通过（908079）。行为测试与源契约测试并存，不等于手机真机通过。
++- 桌面 IAB 手机视口实际验证：合成 PDF 导入→命名→阅读；200% 横向平移可到右边界；恢复适应宽度后清零横向偏移；页码与更多/目录控件可用；关闭 8768 测试服务和页面后冷打开，真正的第2页画面恢复，3 个画布均为 323×452。320px 导入按钮均在视口内且高 >=44px。
++- 曾出现“页码2/3但前两画布1×1”的假象；视觉复核未放行，修复了隐藏阅读器的可测量宽度等待。保留修复前截图，当前通过截图为 `reader-390-offline-resume.png`。
++- 只读复核已恢复；fit pinch、缓存故障降级、等待后取消竞态均经过 RED→GREEN。最后定向 fit/capture 10/10 通过，本次限定范围无剩余 Important；不代表独立设备验收。
++- 私有链接： https://manhwa-reader-private-test-20261011.yuelin-x528.chatgpt.site 。Sites 版本1，deployment `succeeded`；访问策略回读仅 owner、0 外部访客、0 群组，未公开。
++- 部署身份只保存在 `F:\sites\manhwa-reader-private-test\.openai\hosting.json`：`appgprj_6acb8d1caa48819191186b7f7e6697c8`。只对该隔离目录 commit/push，部署 source SHA `df19f0e3ad937b15958e34ca415c9adca1ed30ad`。原仓库 HEAD 未变。
++- 实际上传为24项白名单静态资产+托管配置（25文件），不含 PDF、书架、封面、测试、日志或凭据。云端 source SHA 回读一致；云端存档摘要与本地 tar 摘要不同且没有云端存档字节可比，不能声称存档逐字节一致或托管页面已验收。
++- 托管浏览器验收 `HOLD`：浏览器工具打开线上链接超时，恢复初始化失败；一次原生 reset 后仍失败，已停止重试。未诊断为站点故障，未绕过登录或改为公开。手机安装、双指手感、飞行模式复开 `SKIPPED`（无已连接真机）。下一步请按 `PHONE-TEST.md` 人工验收，再决定后续修复；公开前还须升级受支持的已修补 PDF 渲染库并回归。
++- 保留原启动方式，未修改 `server.js`。未提交或推送原仓库，未公开发布。用于 QA 的 `http://localhost:8767` 与原书架 8765 隔离。
++- 原文件备份：`C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a`。恢复只能逐文件比较该备份，不能用 Git reset 覆盖此前未提交改动。
++- 详情与后续结果见 `docs/audits/2026-10-11-mobile-mvp/REPORT.md`。继续时先检查真实页面和部署身份；不要重复创建 Sites。
++- 本轮自建 8767/8768 测试服务均已停止；8765/PID7768 保留。没有执行额度重置。
+
+# tests/mobile-app-contract.test.js: git diff --no-index exit=1
+warning: in the working copy of 'C:\Users\夏\AppData\Local\Temp\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\tests\mobile-app-contract.test.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'F:\manhwa-reader\tests\mobile-app-contract.test.js', LF will be replaced by CRLF the next time Git touches it
+diff --git "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\tests\\mobile-app-contract.test.js" "b/F:\\manhwa-reader\\tests\\mobile-app-contract.test.js"
+index 1b46d77..9826caa 100644
+--- "a/C:\\Users\\\345\244\217\\AppData\\Local\\Temp\\manhwa-mobile-20261011-44f49056564e4624a148bd4e1790276a\\tests\\mobile-app-contract.test.js"
++++ "b/F:\\manhwa-reader\\tests\\mobile-app-contract.test.js"
+@@ -24,9 +24,11 @@ test('mobile shell exposes installable PWA metadata and offline entry points', (
+   assert.ok(manifest.icons.some((icon) => icon.purpose.includes('maskable')));
+   assert.match(worker, /cache\.addAll/);
+   assert.match(worker, /index\.html/);
+-  assert.match(worker, /cdnjs\.cloudflare\.com/);
+-  assert.match(worker, /mode:\s*'no-cors'/);
+-  assert.match(worker, /caches\.match\(request\)/);
++  const assets = require('../pwa-assets.js');
++  assert.ok(assets.assets.includes('./vendor/pdfjs/pdf.min.js'));
++  assert.ok(assets.assets.includes('./vendor/pdfjs/pdf.worker.min.js'));
++  assert.doesNotMatch(html, /cdnjs\.cloudflare\.com/);
++  assert.match(worker, /cache\.match/);
+ });
+ 
+ test('mobile reader keeps controls reachable and wires touch interactions', () => {
+
+

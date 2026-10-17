@@ -7,9 +7,13 @@ let prefetchQueue=[],prefetching=!1;
 let chapterLoadToken=0,hasFolderPicker=!1;
 let _pendingFiles=null,_pendingFilesMode='drop';
 let covers={};
-let settings={zoom:'1.5',direction:'scroll',dualPage:!1,sidebarOpen:!0,theme:'night',webtoonAuto:!0};
+let settings={zoom:'1.5',direction:'scroll',dualPage:!1,sidebarOpen:!0,theme:'night',webtoonAuto:!0,groups:[]};
 let searchQuery='',sortMode='recent';
+const UNGROUPED_GROUP_ID='__ungrouped__';
+let activeGroupId=null;
 let isWebtoon=!1,webtoonScrollPct=0;let rackPage=0;
+let rackHoverIndex=-1,rackHoverPending=null,rackHoverTimer=null,rackHoverToken=0,rackHoverBound=!1,rackOverlay=null;
+let rackMotionFrame=0,rackMotionLast=0,rackMotionSpeed=1;
 let captureUiActive=!1;
 let restoringProgress=!1,viewRestoreGeneration=0;
 let pendingZoomValue=null,zoomChangeRun=null;
@@ -18,24 +22,134 @@ function $(id){return document.getElementById(id)}
 function Qs(sel,el){return el?el.querySelector(sel):document.querySelector(sel)}
 
 async function initApp(){
+  if(window.location.protocol==='file:'){
+    try{
+      const localServer=await fetch('http://localhost:8765/',{cache:'no-store'});
+      if(localServer.ok){window.location.replace('http://localhost:8765/');return}
+    }catch(e){}
+  }
+  if(window.ManhwaPWA)ManhwaPWA.init();
   if(typeof indexedDB==='undefined'){$('bookshelf').style.display='none';$('browser-warning').classList.add('show');return}
   $('browser-warning').style.display='none';
   hasFolderPicker=typeof window.showDirectoryPicker==='function';
-  if(hasFolderPicker){try{$('bs-add-folder').style.display='';$('bs-add-btn').style.display='none';$('btn-add-folder-reader').style.display=''}catch(e){}let h=$('drag-hint');if(h){h.className='';h.textContent='💡 也可以将 PDF 文件或文件夹拖入窗口'}}
-  else{try{$('bs-add-folder').style.display='none';$('bs-add-btn').style.display='none';$('btn-add-folder-reader').style.display='none'}catch(e){}let h=$('drag-hint');if(h){h.className='prominent';h.textContent='💡 点击「选择文件」或直接将 PDF / 文件夹拖入此窗口'}}
+  if(hasFolderPicker){try{$('bs-add-folder').style.display='';$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display=''}catch(e){}let h=$('drag-hint');if(h){h.className='';h.textContent='💡 也可以将 PDF 文件或文件夹拖入窗口'}}
+  else{try{$('bs-add-folder').style.display='none';$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display='none'}catch(e){}let h=$('drag-hint');if(h){h.className='prominent';h.textContent='💡 点击「添加漫画」或直接将 PDF 文件拖入此窗口'}}
   try{const s=await db.getSettings();if(Object.keys(s).length>0)Object.assign(settings,s)}catch(e){}
+  if(!Array.isArray(settings.groups))settings.groups=[];
+  settings.groups=settings.groups.filter(g=>g&&g.id&&String(g.name||'').trim()).map(g=>({id:String(g.id),name:String(g.name).trim(),createdAt:g.createdAt||new Date().toISOString()}));
   fitWidth=settings.zoom==='fit';if(!fitWidth)zoom=parseFloat(settings.zoom)||1;
   $('zoom-select').value=settings.zoom;
-  if(settings.sidebarOpen===!1)$('sidebar').classList.add('hidden');
+  if(settings.sidebarOpen===!1||window.matchMedia&&window.matchMedia('(max-width:780px)').matches)$('sidebar').classList.add('hidden');
   // Apply theme
   try{document.documentElement.setAttribute('data-theme',settings.theme||'night')}catch(e){}
   // Migrate
   const raw=localStorage.getItem('manhwa-bookshelf');if(raw){try{await db.migrateFromLocalStorage();showToast('已迁移旧数据')}catch(e){}}
   const oldP=localStorage.getItem('manhwa-reader-progress');if(oldP)localStorage.removeItem('manhwa-reader-progress');
   bookshelf=(await db.loadBookshelf()).map(s=>db.normalizeSeries(s));
+  const staleGroupSeries=bookshelf.filter(s=>s.groupId&&!getGroupById(s.groupId));
+  if(staleGroupSeries.length){staleGroupSeries.forEach(s=>{s.groupId=null});await Promise.all(staleGroupSeries.map(s=>db.saveSeries(s).catch(()=>{})))}
   try{const ac=await db.loadAllCovers();covers={};ac.forEach(c=>{covers[c.seriesId]=c.dataUrl})}catch(e){}
+  await Promise.all(bookshelf.filter(s=>!covers[s.seriesId]).map(s=>persistTextCover(s.seriesId,s.name,{refresh:false})));
   console.log('Loaded '+bookshelf.length+' series, theme='+settings.theme+', webtoonAuto='+settings.webtoonAuto);
   renderBookshelf();
+}
+
+function getGroupById(id){return settings.groups.find(g=>g.id===id)||null}
+function getActiveGroupLabel(){
+  if(activeGroupId===UNGROUPED_GROUP_ID)return '未分组';
+  const group=getGroupById(activeGroupId);
+  return group?group.name:'全部漫画';
+}
+function seriesInActiveGroup(series){
+  if(activeGroupId===UNGROUPED_GROUP_ID)return !series.groupId;
+  if(activeGroupId)return series.groupId===activeGroupId;
+  return true;
+}
+function escapeHTML(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+let groupRailBound=false;
+let groupRailObserver=null;
+let groupRailMutationObserver=null;
+let groupRailMeasureFrame=0;
+function measureGroupRailContentWidth(bar){
+  if(!bar||!bar.children.length)return 0;
+  const styles=getComputedStyle(bar);
+  const horizontalPadding=(parseFloat(styles.paddingLeft)||0)+(parseFloat(styles.paddingRight)||0);
+  const compactPadding=Math.min(4,horizontalPadding);
+  const childRects=[...bar.children].map(child=>child.getBoundingClientRect()).filter(rect=>rect.width>0);
+  const childSpan=childRects.length?Math.max(...childRects.map(rect=>rect.right))-Math.min(...childRects.map(rect=>rect.left)):0;
+  const scrollContent=Math.max(0,bar.scrollWidth-horizontalPadding+compactPadding);
+  return Math.max(Math.ceil(childSpan+compactPadding),Math.ceil(scrollContent));
+}
+function scheduleGroupRailMeasurement(){
+  if(groupRailMeasureFrame)return;
+  const frame=callback=>typeof window!=='undefined'&&typeof window.requestAnimationFrame==='function'?window.requestAnimationFrame(callback):setTimeout(callback,0);
+  groupRailMeasureFrame=frame(()=>{
+    groupRailMeasureFrame=frame(()=>{
+      groupRailMeasureFrame=0;
+      updateGroupRail();
+    });
+  });
+}
+function updateGroupRail(){
+  const rail=$('bs-group-rail'),bar=$('bs-groups'),prev=$('bs-group-prev'),next=$('bs-group-next');
+  if(!rail||!bar||!prev||!next)return;
+  const contentWidth=measureGroupRailContentWidth(bar);
+  const overflow=contentWidth>bar.clientWidth+1;
+  rail.classList.toggle('has-overflow',overflow);
+  const maxScroll=Math.max(0,bar.scrollWidth-bar.clientWidth);
+  prev.disabled=!overflow||bar.scrollLeft<=1;
+  next.disabled=!overflow||bar.scrollLeft>=maxScroll-1;
+}
+function bindGroupRail(){
+  if(groupRailBound)return;
+  const rail=$('bs-group-rail'),bar=$('bs-groups'),prev=$('bs-group-prev'),next=$('bs-group-next');
+  if(!rail||!bar||!prev||!next)return;
+  groupRailBound=true;
+  const scrollByViewport=direction=>bar.scrollBy({left:direction*Math.max(140,Math.round(bar.clientWidth*.72)),behavior:'smooth'});
+  prev.addEventListener('click',()=>scrollByViewport(-1));
+  next.addEventListener('click',()=>scrollByViewport(1));
+  bar.addEventListener('scroll',updateGroupRail,{passive:true});
+  bar.addEventListener('wheel',function(e){
+    if(bar.scrollWidth<=bar.clientWidth+1||Math.abs(e.deltaY)<=Math.abs(e.deltaX))return;
+    e.preventDefault();bar.scrollLeft+=e.deltaY;
+  },{passive:false});
+  const reschedule=()=>scheduleGroupRailMeasurement();
+  window.addEventListener('resize',reschedule,{passive:true});
+  if(typeof ResizeObserver==='function'){
+    groupRailObserver=new ResizeObserver(reschedule);
+    groupRailObserver.observe(rail);
+    groupRailObserver.observe(bar);
+  }
+  if(typeof MutationObserver==='function'){
+    groupRailMutationObserver=new MutationObserver(reschedule);
+    groupRailMutationObserver.observe(bar,{childList:!0,subtree:!0,characterData:!0,attributes:!0,attributeFilter:['class','style']});
+  }
+  if(document.fonts){
+    if(document.fonts.ready&&typeof document.fonts.ready.then==='function')document.fonts.ready.then(reschedule).catch(()=>{});
+    if(typeof document.fonts.addEventListener==='function')document.fonts.addEventListener('loadingdone',reschedule);
+  }
+}
+function renderGroupBar(){
+  const bar=$('bs-groups'),rail=$('bs-group-rail');
+  if(!bar)return;
+  if(rail)rail.hidden=settings.groups.length===0&&activeGroupId===null;
+  bindGroupRail();
+  const counts={};
+  bookshelf.forEach(s=>{const key=s.groupId||UNGROUPED_GROUP_ID;counts[key]=(counts[key]||0)+1});
+  const isActive=id=>activeGroupId===id;
+  let html='<button class="bs-group-tab'+(isActive(null)?' active':'')+'" data-group-id="">全部 <span class="bs-group-count">'+bookshelf.length+'</span></button>';
+  html+='<button class="bs-group-tab'+(isActive(UNGROUPED_GROUP_ID)?' active':'')+'" data-group-id="'+UNGROUPED_GROUP_ID+'">未分组 <span class="bs-group-count">'+(counts[UNGROUPED_GROUP_ID]||0)+'</span></button>';
+  settings.groups.forEach(g=>{
+    html+='<button class="bs-group-tab'+(isActive(g.id)?' active':'')+'" data-group-id="'+escapeHTML(g.id)+'" data-group-context="'+escapeHTML(g.id)+'" title="右键管理此分组">'+escapeHTML(g.name)+' <span class="bs-group-count">'+(counts[g.id]||0)+'</span></button>';
+  });
+  html+='<button class="bs-group-add" id="bs-group-add">＋ 新建分组</button>';
+  bar.innerHTML=html;
+  bar.querySelectorAll('.bs-group-tab').forEach(btn=>btn.addEventListener('click',function(){activeGroupId=this.dataset.groupId||null;rackPage=0;renderBookshelf()}));
+  bar.querySelectorAll('[data-group-context]').forEach(btn=>btn.addEventListener('contextmenu',function(e){e.preventDefault();e.stopPropagation();showModal('group-menu',{id:this.dataset.groupContext})}));
+  const add=bar.querySelector('#bs-group-add');
+  if(add)add.addEventListener('click',()=>showModal('group-create'));
+  updateGroupRail();
+  scheduleGroupRailMeasurement();
 }
 
 
@@ -47,13 +161,61 @@ function spineColor(name){
 }
 
 function renderBookshelf(){
-  const grid=$('bs-grid'),total=$('bs-total');total.textContent=bookshelf.length+' 部';
-  if(!bookshelf.length){grid.innerHTML='<div class="bs-empty"><div class="empty-icon"></div><h2>书架空空</h2><p>选择 PDF 文件或文件夹开始导入</p></div>';$('rack-pager').style.display='none';return}
-  let sorted=[...bookshelf];
+  const grid=$('bs-grid'),total=$('bs-total'),continueEl=$('bs-continue'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf'),dock=$('bs-reading-dock');
+  if(shelf)shelf.classList.remove('has-reading-dock');
+  if(dock)dock.hidden=!0;
+  if(activeGroupId&&activeGroupId!==UNGROUPED_GROUP_ID&&!getGroupById(activeGroupId))activeGroupId=null;
+  renderGroupBar();
+  total.textContent=bookshelf.length+' 部';
+  clearRackOverlay();
+  const startup=$('startup-note'),hint=$('drag-hint');
+  const isFileMode=window.location.protocol==='file:';
+  if(startup)startup.style.display=(isFileMode||!bookshelf.length)?'':'none';
+  if(hint)hint.style.display=bookshelf.length?'none':'';
+  let sorted=bookshelf.filter(seriesInActiveGroup);
   if(sortMode==='name')sorted.sort((a,b)=>(a.name||'').localeCompare(b.name||'','zh'));
   else if(sortMode==='created')sorted.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   else sorted.sort((a,b)=>(b.lastChNum||0)-(a.lastChNum||0));
   if(searchQuery)sorted=sorted.filter(s=>s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  if(libraryCount)libraryCount.textContent=sorted.length+' 部';
+  if(libraryTitle)libraryTitle.textContent=getActiveGroupLabel();
+  if(!sorted.length){
+    if(continueEl){continueEl.hidden=!0;continueEl.innerHTML=''}
+    if(libraryHead)libraryHead.style.display='none';
+    grid.dataset.count='0';
+    const title=bookshelf.length?(searchQuery?'没有匹配漫画':'这个分组暂无漫画'):'书架空空';
+    const desc=bookshelf.length?(searchQuery?'换个关键词试试':'可以把漫画移入这个分组'):'选择 PDF 文件或文件夹开始导入';
+    grid.innerHTML='<div class="bs-empty"><div class="empty-icon"></div><h2>'+title+'</h2><p>'+desc+'</p><button class="empty-action" id="bs-empty-add">+ 添加漫画</button></div>';
+    const emptyAdd=Qs('#bs-empty-add',grid);if(emptyAdd)emptyAdd.onclick=()=>showAddModal();
+    $('rack-pager').style.display='none';
+    return;
+  }
+  if(libraryHead)libraryHead.style.display='flex';
+  if(continueEl){
+    const recent=sorted.find(s=>s.lastChNum!==null&&s.lastChNum!==undefined);
+    if(!recent){continueEl.hidden=!0;continueEl.innerHTML=''}
+    else{
+      const recentCount=recent.chapters.length;
+      let recentPct=0;
+      if(recent.lastChNum&&recentCount>0){const rci=recent.chapters.findIndex(c=>c.chapterNum===recent.lastChNum);recentPct=rci>=0?Math.round((rci+1)/recentCount*100):0}
+      const recentCover=covers[recent.seriesId]?'<img class="shelf-cover-image" src="'+covers[recent.seriesId]+'" alt="">':'<div class="cover-fallback">'+recent.name.charAt(0)+'</div>';
+      const recentLabel=recent.lastChNum?'第 '+recent.lastChNum+' 话 · 已读 '+recentPct+'%':'尚未开始阅读';
+      const openRecent=()=>openSeries(recent.seriesId);
+      continueEl.hidden=!1;
+      continueEl.innerHTML='<div class="continue-cover">'+recentCover+'</div><div class="continue-copy"><span class="continue-kicker">继续阅读</span><h2>'+recent.name+'</h2><p class="continue-meta">'+recentLabel+'</p></div><div class="continue-action"><button id="bs-continue-open">继续阅读 <span aria-hidden="true">→</span></button></div>';
+      const continueButton=Qs('#bs-continue-open',continueEl);if(continueButton)continueButton.onclick=openRecent;
+      if(dock){
+        const dockStage=$('bs-dock-stage'),dockTitle=$('bs-dock-title'),dockMeta=$('bs-dock-meta'),dockChapter=$('bs-dock-chapter'),dockOpen=$('bs-dock-open');
+        if(shelf)shelf.classList.add('has-reading-dock');
+        dock.hidden=!1;
+        if(dockStage)dockStage.innerHTML='<div class="bs-dock-cover">'+recentCover+'</div><div class="bs-dock-stage-copy"><span>最近阅读</span><strong>'+recent.name+'</strong><p>'+recentLabel+'</p></div>';
+        if(dockTitle)dockTitle.textContent=recent.name;
+        if(dockMeta)dockMeta.textContent=recentLabel;
+        if(dockChapter)dockChapter.textContent=recent.lastChNum?'第 '+recent.lastChNum+' 话':'未开始';
+        if(dockOpen)dockOpen.onclick=openRecent;
+      }
+    }
+  }
   const PAGE_SIZE=12;
   const pageCount=Math.max(1,Math.ceil(sorted.length/PAGE_SIZE));
   if(rackPage>=pageCount)rackPage=pageCount-1;
@@ -65,14 +227,18 @@ function renderBookshelf(){
     const chCount=s.chapters.length,readCnt=s.chapters.filter(c=>c.status==='read').length;
     let pct=0;
     if(s.lastChNum&&chCount>0){let ci=s.chapters.findIndex(c=>c.chapterNum===s.lastChNum);pct=ci>=0?Math.round((ci+1)/chCount*100):0}
-    const coverHTML=covers[s.seriesId]?'<img src="'+covers[s.seriesId]+'" alt="">':'<div class="cover-fallback">'+s.name.charAt(0)+'</div>';
+    const coverHTML=covers[s.seriesId]?'<img class="shelf-cover-image" src="'+covers[s.seriesId]+'" alt="">':'<div class="cover-fallback">'+s.name.charAt(0)+'</div>';
     const sel=currentSeries===s.seriesId?' selected':'';
     const bg=spineColor(s.name||s.seriesId);
-    html+='<div class="rack-book'+sel+'" data-id="'+s.seriesId+'" data-idx="'+i+'" style="--spine-bg:'+bg+'"><div class="rack-spine"><span class="rack-spine-title">'+s.name+'</span><div class="rack-progress"><div class="rack-progress-fill" style="width:'+pct+'%"></div></div></div><div class="rack-cover-pull">'+coverHTML+'</div><button class="rack-menu-btn" data-menu-sid="'+s.seriesId+'" title="菜单">⋯</button><button class="change-cover-btn" data-cover-sid="'+s.seriesId+'">换封面</button></div>'
+    const volume=String(rackPage*PAGE_SIZE+i+1).padStart(2,'0');
+    const chapterLabel=s.lastChNum?'第 '+s.lastChNum+' 话':'未开始';
+    const status=currentSeries===s.seriesId?'<span class="shelf-status">在读</span>':'';
+    html+='<article class="rack-book'+sel+'" data-id="'+s.seriesId+'" data-idx="'+i+'" tabindex="0" role="button" aria-label="打开 '+s.name+'" style="--spine-bg:'+bg+'"><div class="shelf-cover-wrap"><div class="shelf-cover-inner">'+coverHTML+'</div><span class="shelf-cover-frame" aria-hidden="true"></span><span class="shelf-cover-index">'+volume+'</span><span class="shelf-cover-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></span></div><div class="shelf-card-content"><strong class="shelf-title">'+s.name+'</strong><div class="shelf-meta"><span>'+chapterLabel+'</span>'+status+'</div><div class="shelf-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></div></div><div class="rack-book-shadow"></div><div class="rack-rigid-book"><div class="rack-pages"><span class="rack-face front"></span><span class="rack-face back"></span><span class="rack-face spine-side"></span><span class="rack-face fore"></span><span class="rack-face top"></span><span class="rack-face bottom"></span></div><div class="rack-cover-box back-cover"><span class="rack-cover-face front"></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-cover-box front-cover"><span class="rack-cover-face front">'+coverHTML+'<span class="rack-cover-frame"></span><span class="rack-cover-mark">VOL. '+volume+'</span></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-physics-spine"><span class="rack-spine-volume">'+volume+'</span><span class="rack-spine-band"></span><span class="rack-spine-title">'+s.name+'</span><span class="rack-spine-imprint">MANGA</span><div class="rack-progress"><div class="rack-progress-fill" style="width:'+pct+'%"></div></div></div></div><button class="rack-menu-btn" data-menu-sid="'+s.seriesId+'" title="菜单">⋯</button><button class="change-cover-btn" data-cover-sid="'+s.seriesId+'">换封面</button></article>'
   });
-  html+='<div class="rack-add" id="bs-add-card"><div class="add-icon">＋</div><div class="add-label">添加</div></div>';
+  const addCardClass=pageBooks.length<4?' is-prominent':'';
+  html+='<div class="rack-add'+addCardClass+'" id="bs-add-card"><div class="add-icon">＋</div><div class="add-label">添加</div></div>';
   grid.innerHTML=html;
-  grid.querySelectorAll('.rack-book[data-id]').forEach(card=>{card.addEventListener('click',function(e){if(e.target.closest('.change-cover-btn')||e.target.closest('.rack-menu-btn'))return;openSeries(this.dataset.id)})});
+  grid.querySelectorAll('.rack-book[data-id]').forEach(card=>{card.addEventListener('click',function(e){if(e.target.closest('.change-cover-btn')||e.target.closest('.rack-menu-btn'))return;openSeries(this.dataset.id)});card.addEventListener('keydown',function(e){if(e.target.closest('.change-cover-btn')||e.target.closest('.rack-menu-btn'))return;if(e.key==='Enter'||e.key===' '){e.preventDefault();openSeries(this.dataset.id)}})});
   grid.querySelectorAll('.change-cover-btn').forEach(btn=>{btn.addEventListener('click',function(e){e.stopPropagation();showModal('cover-pick',{sid:this.dataset.coverSid})})});
   grid.querySelectorAll('.rack-menu-btn').forEach(btn=>{btn.addEventListener('click',function(e){e.stopPropagation();showModal('rack-menu',{sid:this.dataset.menuSid})})});
   let addCard=grid.querySelector('#bs-add-card');if(addCard)addCard.addEventListener('click',()=>showAddModal());
@@ -81,19 +247,223 @@ function renderBookshelf(){
 }
 function findSeries(id){return bookshelf.find(s=>s.seriesId===id)}
 async function saveSeriesBg(s){try{await db.saveSeries(s)}catch(e){console.error('saveSeries failed',e)}}
+async function persistGroups(){await db.saveSetting('groups',settings.groups)}
+function normalizedGroupName(name){return String(name||'').trim().replace(/\s+/g,' ')}
+function hasGroupName(name,exceptId){const needle=normalizedGroupName(name).toLocaleLowerCase();return settings.groups.some(g=>g.id!==exceptId&&g.name.toLocaleLowerCase()===needle)}
+async function createGroup(name){
+  const clean=normalizedGroupName(name);
+  if(!clean){showToast('请输入分组名称');return false}
+  if(hasGroupName(clean)){showToast('分组名称已存在');return false}
+  const group={id:'g'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:clean,createdAt:new Date().toISOString()};
+  settings.groups.push(group);
+  try{await persistGroups()}catch(e){settings.groups=settings.groups.filter(g=>g.id!==group.id);showToast('分组保存失败');return false}
+  renderBookshelf();
+  showToast('已创建分组「'+clean+'」');
+  return true;
+}
+async function renameGroup(id,name){
+  const group=getGroupById(id),clean=normalizedGroupName(name);
+  if(!group){showToast('分组不存在');return false}
+  if(!clean){showToast('请输入分组名称');return false}
+  if(hasGroupName(clean,id)){showToast('分组名称已存在');return false}
+  const previous=group.name;
+  group.name=clean;
+  try{await persistGroups()}catch(e){group.name=previous;showToast('分组保存失败');return false}
+  renderBookshelf();
+  showToast('分组已重命名');
+  return true;
+}
+async function deleteGroup(id){
+  const group=getGroupById(id);
+  if(!group)return false;
+  const previousGroups=settings.groups.slice(),affected=bookshelf.filter(s=>s.groupId===id),previousAssignments=affected.map(s=>s.groupId);
+  settings.groups=settings.groups.filter(g=>g.id!==id);
+  affected.forEach(s=>{s.groupId=null});
+  if(activeGroupId===id)activeGroupId=null;
+  try{await persistGroups();await Promise.all(affected.map(s=>db.saveSeries(s)))}catch(e){settings.groups=previousGroups;affected.forEach((s,i)=>{s.groupId=previousAssignments[i]});showToast('分组删除保存失败');return false}
+  renderBookshelf();
+  showToast('已删除分组，漫画已移到未分组');
+  return true;
+}
+async function moveSeriesToGroup(seriesId,groupId){
+  const series=findSeries(seriesId);
+  if(!series)return false;
+  if(groupId&&groupId!==UNGROUPED_GROUP_ID&&!getGroupById(groupId))return false;
+  const previous=series.groupId||null;
+  series.groupId=groupId===UNGROUPED_GROUP_ID||!groupId?null:groupId;
+  try{await db.saveSeries(series)}catch(e){series.groupId=previous;showToast('移动保存失败');return false}
+  renderBookshelf();
+  showToast('已移动「'+series.name+'」');
+  return true;
+}
+function getImportGroupId(){return activeGroupId&&activeGroupId!==UNGROUPED_GROUP_ID&&getGroupById(activeGroupId)?activeGroupId:null}
 
 
 function applyRackSizing(n){
   const grid=$('bs-grid');if(!grid||!n)return;
   const availW=Math.max(320,grid.clientWidth-80);
   const addW=Math.max(90,Math.min(130,Math.round(availW*0.09)));
-  const gap=n>=8?3:n>=5?4:6;
-  const spineW=Math.max(40,Math.min(64,Math.round((availW-addW-gap*(n))/n)));
-  const coverW=Math.round(spineW*3.2);
+  const gap=n>=8?2:n>=5?3:4;
+  const spineW=Math.max(34,Math.min(54,Math.round((availW-addW-gap*(n))/n)));
+  const mobile=window.matchMedia&&window.matchMedia('(max-width:620px)').matches;
+  const bookW=mobile?136:168;
+  const bookH=mobile?236:286;
+  const coverT=mobile?6:7;
   grid.style.setProperty('--rack-spine-w',spineW+'px');
-  grid.style.setProperty('--rack-cover-w',coverW+'px');
+  grid.style.setProperty('--rack-book-w',bookW+'px');
+  grid.style.setProperty('--rack-book-h',bookH+'px');
+  grid.style.setProperty('--rack-book-d',spineW+'px');
+  grid.style.setProperty('--rack-cover-t',coverT+'px');
+  grid.style.setProperty('--rack-page-w',(bookW-12)+'px');
+  grid.style.setProperty('--rack-page-h',(bookH-16)+'px');
+  grid.style.setProperty('--rack-page-d',Math.max(18,spineW-coverT*2)+'px');
   grid.style.setProperty('--rack-spine-gap',gap+'px');
   grid.style.setProperty('--rack-add-w',addW+'px');
+}
+function rackCards(){
+  const grid=$('bs-grid');
+  return grid?[...grid.querySelectorAll('.rack-book[data-id]')]:[];
+}
+function ensureRackOverlay(){
+  if(rackOverlay&&rackOverlay.isConnected)return rackOverlay;
+  rackOverlay=document.getElementById('rack-overlay');
+  if(!rackOverlay){rackOverlay=document.createElement('div');rackOverlay.id='rack-overlay';document.body.appendChild(rackOverlay)}
+  return rackOverlay;
+}
+function rackRigidFor(card){
+  if(card._rackRigid)return card._rackRigid;
+  const rigid=card.querySelector('.rack-rigid-book');
+  if(rigid)card._rackRigid=rigid;
+  return rigid;
+}
+function clearRackOverlay(){
+  if(!rackOverlay)return;
+  while(rackOverlay.firstChild)rackOverlay.removeChild(rackOverlay.firstChild);
+}
+function moveRackRigid(card,rigid,moving){
+  const overlay=ensureRackOverlay();
+  const props=['--spine-bg','--rack-book-w','--rack-book-h','--rack-book-d','--rack-cover-t','--rack-page-w','--rack-page-h','--rack-page-d'];
+  if(moving){
+    if(rigid.parentElement!==overlay){
+      rigid._rackOriginalParent=card;
+      rigid._rackOriginalNext=rigid.nextSibling;
+      const computed=getComputedStyle(card);
+      props.forEach(name=>rigid.style.setProperty(name,computed.getPropertyValue(name)));
+      overlay.appendChild(rigid);
+    }
+  }else if(rigid.parentElement===overlay){
+    const parent=rigid._rackOriginalParent;
+    const next=rigid._rackOriginalNext;
+    if(parent&&parent.isConnected)parent.insertBefore(rigid,next&&next.parentNode===parent?next:null);
+    props.forEach(name=>rigid.style.removeProperty(name));
+    rigid._rackOriginalParent=null;
+    rigid._rackOriginalNext=null;
+  }
+}
+function syncRackFixedBodies(){
+  rackCards().forEach(card=>{
+    const p=Number(card.dataset.rackProgress||0);
+    if(p>.001)renderRackCard(card,p);
+  });
+}
+function rackClamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function rackEase(v){return v*v*(3-2*v)}
+function rackDisplayPhase(p){return rackEase(rackClamp((p-.68)/.32,0,1))}
+function rackPose(p){
+  const out=rackEase(rackClamp(p/.24,0,1));
+  const tilt=rackEase(rackClamp((p-.24)/.22,0,1));
+  const lift=rackEase(rackClamp((p-.46)/.22,0,1));
+  const display=rackDisplayPhase(p);
+  return {z:64*out+84*lift,y:-58*lift+26*display,pitch:-4*display,roll:-27*tilt+25*display,yaw:90-72*display};
+}
+function renderRackCard(card,p){
+  const rigid=rackRigidFor(card),shadow=card.querySelector('.rack-book-shadow');
+  const grid=$('bs-grid');if(!rigid||!grid)return;
+  const scale=Number(card.dataset.rackScale||1);
+  const bookW=parseFloat(getComputedStyle(rigid).getPropertyValue('--rack-book-w'))||168;
+  const visualW=bookW+22;
+  const pivotX=card.offsetLeft;
+  const minPivot=12,maxPivot=Math.max(minPivot,grid.clientWidth-visualW-12);
+  const q=rackPose(p),edgeShift=(rackClamp(pivotX,minPivot,maxPivot)-pivotX)*rackDisplayPhase(p);
+  const moving=p>.001;
+  moveRackRigid(card,rigid,moving);
+  if(moving){
+    const cardRect=card.getBoundingClientRect();
+    rigid.style.position='absolute';
+    rigid.style.left=cardRect.left+'px';
+    rigid.style.top=cardRect.top+'px';
+    rigid.style.bottom='auto';
+  }else{
+    rigid.style.position='absolute';
+    rigid.style.left='0';
+    rigid.style.top='auto';
+    rigid.style.bottom='0';
+  }
+  rigid.style.transform='translate3d('+edgeShift+'px,'+q.y+'px,'+q.z+'px) rotateY('+q.yaw+'deg) rotateZ('+q.roll+'deg) rotateX('+q.pitch+'deg) scale('+scale+')';
+  if(shadow){shadow.style.opacity=String(.68-.5*rackEase(rackClamp((p-.46)/.22,0,1)));shadow.style.transform='translateX('+(12+q.y*.25+edgeShift*.25)+'px) scale('+scale+') scaleX('+(1+.45*rackEase(rackClamp((p-.46)/.22,0,1)))+')'}
+  const index=Number(card.dataset.idx);
+  card.style.zIndex=p>.001?(index===rackHoverIndex?1000:900):(card.classList.contains('selected')?16:1);
+  if(moving)rigid.style.zIndex=String(index===rackHoverIndex?1000:900);
+  else rigid.style.removeProperty('z-index');
+  card.dataset.rackProgress=p.toFixed(3);
+}
+function renderRackMotion(now){
+  const dt=rackMotionLast?Math.min(40,now-rackMotionLast):0;rackMotionLast=now;
+  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let active=false;
+  rackCards().forEach(card=>{
+    let p=Number(card.dataset.rackProgress||0),target=card.classList.contains('is-hovered')?1:0;
+    if(reduced)p=target;
+    else if(Math.abs(target-p)>1e-3){p+=Math.sign(target-p)*dt*rackMotionSpeed/(target?850:500);p=rackClamp(p,0,1);active=true}
+    renderRackCard(card,p);
+  });
+  if(active)rackMotionFrame=requestAnimationFrame(renderRackMotion);else{rackMotionFrame=0;rackMotionLast=0}
+}
+function startRackMotion(){if(!rackMotionFrame)rackMotionFrame=requestAnimationFrame(renderRackMotion)}
+function setRackHover(index){
+  rackCards().forEach((card,i)=>card.classList.toggle('is-hovered',i===index));
+  rackHoverIndex=index;
+  startRackMotion();
+}
+function queueRackHover(index){
+  if(index===rackHoverPending||(rackHoverPending===null&&index===rackHoverIndex))return;
+  if(rackHoverTimer){clearTimeout(rackHoverTimer);rackHoverTimer=null}
+  rackHoverPending=index;
+  const token=++rackHoverToken;
+  rackHoverTimer=setTimeout(()=>{
+    rackHoverTimer=null;
+    if(token!==rackHoverToken)return;
+    rackHoverPending=null;
+    if(index!==rackHoverIndex)setRackHover(index);
+  },40);
+}
+function clearRackHover(){
+  rackHoverToken++;
+  rackHoverPending=null;
+  if(rackHoverTimer){clearTimeout(rackHoverTimer);rackHoverTimer=null}
+  if(rackHoverIndex!==-1)setRackHover(-1);
+}
+function updateRackHover(e){
+  if(e.pointerType==='touch')return;
+  const cards=rackCards();
+  const slots=cards.map((card,index)=>{
+    const rect=card.getBoundingClientRect();
+    return {index,left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom};
+  });
+  const helper=window.RackInteraction&&window.RackInteraction.findRackBookAtPoint;
+  const index=typeof helper==='function'?helper(slots,e.clientX,e.clientY,{verticalPadding:12}):-1;
+  queueRackHover(index);
+}
+function bindRackHover(){
+  const grid=$('bs-grid');
+  if(!grid||rackHoverBound)return;
+  rackHoverBound=!0;
+  grid.addEventListener('pointermove',function(e){updateRackHover(e)},true);
+  grid.addEventListener('pointerleave',clearRackHover);
+  grid.addEventListener('scroll',syncRackFixedBodies,{passive:true});
+  const shelf=$('bookshelf');
+  if(shelf)shelf.addEventListener('scroll',syncRackFixedBodies,{passive:true});
+  window.addEventListener('resize',syncRackFixedBodies);
 }
 function showCoverSelectDuringImport(sid,files,chapterNum){
   // Default text cover already applied in createSeries. Show lightweight choice: upload or finish.
@@ -122,7 +492,7 @@ function makeTextCover(name){
     ctx.beginPath();ctx.arc(W*.5,H*.3,86,0,Math.PI*2);ctx.stroke();
     ctx.globalAlpha=1;
     // title
-    const chars=String(name||'未命名').replace(/\s+/g,'').slice(0,8);
+    const chars=String(name||'未命名').trim().replace(/\s+/g,'').slice(0,8)||'未命名';
     const twoCols=chars.length>4;
     const colLen=twoCols?Math.ceil(chars.length/2):chars.length;
     const colH=H*.5;
@@ -131,20 +501,32 @@ function makeTextCover(name){
     const colGap=Math.max(120,Math.round(fontSize*.85));
     const leftX=W/2-(twoCols?colGap/2:0);
     const rightX=W/2+(twoCols?colGap/2:0);
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=18;ctx.shadowOffsetY=6;
-    ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=5;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.miterLimit=2;
+    ctx.shadowColor='rgba(24,27,34,.38)';ctx.shadowBlur=0;ctx.shadowOffsetX=8;ctx.shadowOffsetY=10;
+    ctx.strokeStyle='rgba(24,27,34,.72)';ctx.lineWidth=Math.max(8,Math.round(fontSize*.06));
     ctx.fillStyle='#fff';
-    ctx.font='bold '+fontSize+'px "Ma Shan Zheng","Zhi Mang Xing","STXingkai","KaiTi","STKaiti","Microsoft YaHei",serif';
-    function drawCol(colChars,x,off){const sy=H*.34-(colChars.length-1)*spacing/2+off;colChars.forEach((ch,i)=>{const y=sy+i*spacing;const rot=(Math.random()*0.05-0.025)+((i%2===0)?-0.02:0.02);ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeText(ch,0,0);ctx.fillText(ch,0,0);ctx.restore()})}
+    ctx.font='900 '+fontSize+'px "Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Arial Black",sans-serif';
+    function drawCol(colChars,x,off){const sy=H*.34-(colChars.length-1)*spacing/2+off;colChars.forEach((ch,i)=>{const y=sy+i*spacing;const rot=((i%3)-1)*0.012;ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeText(ch,0,0);ctx.fillText(ch,0,0);ctx.restore()})}
     drawCol(chars.slice(0,colLen),leftX,0);
     if(twoCols)drawCol(chars.slice(colLen),rightX,spacing*0.06);
-    ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
     // small subtitle
     ctx.font='26px "Microsoft YaHei",sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';
     ctx.fillText('· MANHWA ·',W/2,H*.82);
     return cv.toDataURL('image/jpeg',0.92);
   }catch(e){console.warn('text cover fail',e);return null}
+}
+async function persistTextCover(sid,name,options){
+  const opts=options||{};
+  if(!opts.force&&covers[sid])return covers[sid];
+  const dataUrl=makeTextCover(String(name||'未命名'));
+  if(!dataUrl)return null;
+  try{
+    await db.saveCover(sid,dataUrl);covers[sid]=dataUrl;
+    if(opts.refresh!==false&&!currentSeries)renderBookshelf();
+    if(opts.successMessage)showToast(opts.successMessage);
+    return dataUrl;
+  }catch(e){console.warn('text cover save fail',e);return null}
 }
 function captureCurrentPageAsCover(){
   try{
@@ -517,30 +899,50 @@ function showModal(type,data){
     actions='<button id="modal-cancel">取消</button><button class="accent" id="modal-confirm">确定</button>';
     setTimeout(()=>{const radios=mc.querySelectorAll('input[name="addType"]');const wrap=Qs('#existing-select-wrap',mc);if(wrap)radios.forEach(r=>r.addEventListener('change',()=>{wrap.style.display=(r.checked&&r.value==='existing')?'block':'none'}))},80)
   }else if(type==='add-name'){title='新系列名称';body='<p>给这部漫画起个名字吧：</p><input type="text" id="modal-name" placeholder="例如：剑尊归来" autofocus>';actions='<button id="modal-cancel">取消</button><button class="accent" id="modal-confirm">确认创建</button>'}
+  else if(type==='group-create'){title='新建分组';body='<p>用一个短名称整理你的漫画：</p><input type="text" id="modal-group-name" placeholder="例如：正在追" autofocus>';actions='<button id="modal-cancel">取消</button><button class="accent" id="modal-confirm">创建分组</button>'}
+  else if(type==='group-rename'){const group=getGroupById(data.id);title='重命名分组';body='<p>修改分组名称：</p><input type="text" id="modal-group-name" value="'+escapeHTML(group?group.name:'')+'" autofocus>';actions='<button id="modal-cancel">取消</button><button class="accent" id="modal-confirm">保存名称</button>'}
+  else if(type==='group-delete-confirm'){const group=getGroupById(data.id);title='删除分组';body='<p>确定删除「<b>'+escapeHTML(group?group.name:'')+'</b>」吗？</p><p style="color:var(--text3)">分组中的漫画会保留，并移到未分组。</p>';actions='<button id="modal-cancel">取消</button><button class="danger" id="modal-confirm">确认删除</button>'}
+  else if(type==='move-group'){const series=findSeries(data.sid);let options='<label><input type="radio" name="moveGroup" value="" '+(!series||!series.groupId?'checked':'')+'> 未分组</label>';settings.groups.forEach(g=>{options+='<label><input type="radio" name="moveGroup" value="'+escapeHTML(g.id)+'" '+(series&&series.groupId===g.id?'checked':'')+'> '+escapeHTML(g.name)+'</label>'});title='移动到分组';body='<p>为「<b>'+escapeHTML(series?series.name:'')+'</b>」选择目标分组：</p><div class="radio-row">'+options+'</div>';actions='<button id="modal-cancel">取消</button><button class="accent" id="modal-confirm">移动</button>'}
   else if(type==='delete-confirm'){title='删除系列';body='<p>确定要删除「<b>'+data.name+'</b>」吗？<br><span style="color:var(--text3)">可选择是否同时清除缓存文件。</span></p><div class="radio-row"><label><input type="checkbox" id="modal-delete-cache" checked> 同时清除缓存的 PDF 文件</label></div>';actions='<button id="modal-cancel">取消</button><button class="danger" id="modal-confirm">确认删除</button>'}
   else if(type==='cache-mgr'){title='💾 缓存管理';let listHTML='<p style="font-size:12px;color:var(--text3)">各系列已缓存的 PDF 占用空间：</p><div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px">';if(Object.keys(data.stats).length===0)listHTML+='<p style="color:var(--text3);text-align:center">暂无缓存</p>';else{for(const[sid,st]of Object.entries(data.stats)){let s=findSeries(sid),name=s?s.name:sid,sz=st.size>1048576?(st.size/1048576).toFixed(1)+' MB':(st.size/1024).toFixed(0)+' KB';listHTML+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:6px"><span>'+name+' <span style="color:var(--text3);font-size:11px">'+st.count+'章</span></span><span style="display:flex;align-items:center;gap:10px"><span style="color:var(--text2);font-size:12px">'+sz+'</span><button class="cache-clear-btn" data-sid="'+sid+'" style="font-size:11px;padding:4px 10px">清除</button></span></div>'}}if(data.storageInfo){let si=data.storageInfo,u=si.usage>1048576?(si.usage/1048576).toFixed(1)+' MB':(si.usage/1024).toFixed(0)+' KB',q=si.quota>1073741824?(si.quota/1073741824).toFixed(1)+' GB':(si.quota/1048576).toFixed(0)+' MB';listHTML+='<p style="font-size:11px;color:var(--text3);margin-top:8px">总计已用 '+u+' / 可用 '+q+'（'+si.pct+'%）</p>'}listHTML+='</div>';body=listHTML;actions='<button id="modal-cancel">关闭</button>'}
   else if(type==='settings'){
     let untHtml=settings.webtoonAuto?' selected':'',umHtml=settings.webtoonAuto?'':' selected';
     title='⚙️ 阅读设置';
-    body='<div class="settings-form"><label>默认缩放<select id="setting-zoom"><option value="fit" '+(settings.zoom==='fit'?'selected':'')+'>适应宽度</option><option value="0.75" '+(settings.zoom==='0.75'?'selected':'')+'>75%</option><option value="1" '+(settings.zoom==='1'?'selected':'')+'>100%</option><option value="1.25" '+(settings.zoom==='1.25'?'selected':'')+'>125%</option><option value="1.5" '+(settings.zoom==='1.5'?'selected':'')+'>150%</option></select></label><label>翻页方向<select id="setting-direction"><option value="scroll" '+(settings.direction==='scroll'?'selected':'')+'>上下滚动</option><option value="flip" '+(settings.direction==='flip'?'selected':'')+'>左右翻页</option></select></label><label>双页模式<select id="setting-dual"><option value="0" '+(!settings.dualPage?'selected':'')+'>单页</option><option value="1" '+(settings.dualPage?'selected':'')+'>双页（暂未实现）</option></select></label><label>侧边栏默认展开<select id="setting-sidebar"><option value="1" '+((settings.sidebarOpen!==!1)?'selected':'')+'>展开</option><option value="0" '+((settings.sidebarOpen===!1)?'selected':'')+'>收起</option></select></label><label>主题<select id="setting-theme"><option value="night" '+(settings.theme==='night'?'selected':'')+'>🌙 夜书店</option><option value="day" '+(settings.theme==='day'?'selected':'')+'>☀️ 日书店</option></select></label><label>条漫自动识别<select id="setting-webtoon"><option value="1"'+untHtml+'>开启</option><option value="0"'+umHtml+'>关闭（普通分页）</option></select></label></div>';
-    actions='<button id="modal-cancel">关闭</button><button class="accent" id="modal-save-settings">保存</button>'
+    body='<div class="settings-form"><label>默认缩放<select id="setting-zoom"><option value="fit" '+(settings.zoom==='fit'?'selected':'')+'>适应宽度</option><option value="0.75" '+(settings.zoom==='0.75'?'selected':'')+'>75%</option><option value="1" '+(settings.zoom==='1'?'selected':'')+'>100%</option><option value="1.25" '+(settings.zoom==='1.25'?'selected':'')+'>125%</option><option value="1.5" '+(settings.zoom==='1.5'?'selected':'')+'>150%</option></select></label><label>翻页方向<select id="setting-direction"><option value="scroll" '+(settings.direction==='scroll'?'selected':'')+'>上下滚动</option><option value="flip" '+(settings.direction==='flip'?'selected':'')+'>左右翻页</option></select></label><label>双页模式<select id="setting-dual"><option value="0" '+(!settings.dualPage?'selected':'')+'>单页</option><option value="1" '+(settings.dualPage?'selected':'')+'>双页（暂未实现）</option></select></label><label>侧边栏默认展开<select id="setting-sidebar"><option value="1" '+((settings.sidebarOpen!==!1)?'selected':'')+'>展开</option><option value="0" '+((settings.sidebarOpen===!1)?'selected':'')+'>收起</option></select></label><label>主题<select id="setting-theme"><option value="night" '+(settings.theme==='night'?'selected':'')+'>夜间 · 墨稿</option><option value="day" '+(settings.theme==='day'?'selected':'')+'>日间 · 纸稿</option></select></label><label>条漫自动识别<select id="setting-webtoon"><option value="1"'+untHtml+'>开启</option><option value="0"'+umHtml+'>关闭（普通分页）</option></select></label></div>';
+     actions='<button id="modal-cancel">关闭</button><button class="accent" id="modal-save-settings">保存</button>'
+   }
+  else if(type==='reader-more'){
+    title='阅读操作';
+    body='<div class="reader-action-list"><button id="reader-more-directory" type="button">目录</button><button id="reader-more-settings" type="button">阅读设置</button><button id="reader-more-cover" type="button">设封面</button><button id="reader-more-files" type="button">追加 PDF 文件</button></div>';
+    actions='<button id="modal-cancel">关闭</button>';
   }
-    else if(type==='cover-pick'){title='🖼 更换封面';body='<p>选择一张作为封面：</p><div class="cover-pick-grid" id="cover-pick-grid"><p style="color:var(--text3);font-size:12px">正在加载缩略图…</p></div>';actions='<button id="cover-make-text">文字封面</button><button id="cover-upload">上传</button><button id="modal-reset-cover">恢复默认</button><button id="modal-cancel">取消</button>';
-    setTimeout(async function(){const grid=Qs('#cover-pick-grid',mc);if(!grid)return;try{const cands=await loadCoverCandidates(data.sid);if(!cands.length){grid.innerHTML='<p style="color:var(--text3);font-size:12px">无法加载缩略图</p>';return}grid.innerHTML=cands.map(c=>'<div class="cover-opt" data-url="'+c.dataUrl+'"><img src="'+c.dataUrl+'"><span>第'+c.page+'页</span></div>').join('');grid.querySelectorAll('.cover-opt').forEach(el=>el.addEventListener('click',async function(){const url=this.dataset.url;try{await db.saveCover(data.sid,url);covers[data.sid]=url;showToast('封面已更新');renderBookshelf()}catch(e){showToast('设置失败')}}))}catch(e){grid.innerHTML='<p style="color:var(--text3);font-size:12px">加载失败</p>'}},120)}
+  else if(type==='cover-pick'){title='🖼 更换封面';body='<p>选择一张预览图，确认后会重新生成清晰封面：</p><div class="cover-pick-grid" id="cover-pick-grid"><p style="color:var(--text3);font-size:12px">正在加载缩略图…</p></div>';actions='<button id="cover-open-reader">进入阅读器手动选图</button><button id="cover-make-text">文字封面</button><button id="cover-upload">上传</button><button id="modal-reset-cover">恢复默认</button><button id="modal-cancel">取消</button>';
+    setTimeout(async function(){const grid=Qs('#cover-pick-grid',mc);if(!grid)return;try{const cands=await loadCoverCandidates(data.sid);if(!cands.length){grid.innerHTML='<p style="color:var(--text3);font-size:12px">无法加载缩略图</p>';return}grid.innerHTML=cands.map(c=>'<div class="cover-opt" data-page="'+c.page+'" data-chapter="'+c.chapterNum+'"><img src="'+c.dataUrl+'"><span>第'+c.page+'页</span></div>').join('');grid.querySelectorAll('.cover-opt').forEach(el=>el.addEventListener('click',async function(){const page=parseInt(this.dataset.page,10),chapterNum=Number(this.dataset.chapter);grid.querySelectorAll('.cover-opt').forEach(opt=>{opt.style.pointerEvents='none';opt.classList.add('is-loading')});showToast('正在生成清晰封面…');try{const url=await renderCoverCandidate(data.sid,chapterNum,page);if(url&&await setSeriesCover(data.sid,url,{successMessage:'清晰封面已设置',errorMessage:'清晰封面保存失败，请重试'}))closeModal();else grid.querySelectorAll('.cover-opt').forEach(opt=>{opt.style.pointerEvents='';opt.classList.remove('is-loading')})}catch(e){showToast('清晰封面生成失败，请重试');grid.querySelectorAll('.cover-opt').forEach(opt=>{opt.style.pointerEvents='';opt.classList.remove('is-loading')})}}))}catch(e){grid.innerHTML='<p style="color:var(--text3);font-size:12px">加载失败</p>'}},120)}
   else if(type==='cover-select'){title='封面';const s=findSeries(data&&data.sid);const preview=covers[data&&data.sid]||(s?makeTextCover(s.name):null);body='<p>默认已生成文字封面，也可上传图片。</p><div style="text-align:center;margin:10px 0">'+(preview?'<img src="'+preview+'" style="width:150px;height:210px;object-fit:cover;border-radius:8px;box-shadow:var(--shadow)">':'<span style="color:var(--text3)">无预览</span>')+'</div>';actions='<button id="cover-sel-upload">上传图片</button><button id="modal-skip-cover">完成</button>';
     setTimeout(()=>{const uBtn=Qs('#cover-sel-upload',mc);if(uBtn)uBtn.onclick=async function(){const d=await pickImageCover(data.sid);if(d){setSeriesCover(data.sid,d);closeModal();}}},80)}
-else if(type==='rack-menu'){title='操作';body='<div style="display:flex;flex-direction:column;gap:8px;margin:8px 0"><button id="rack-menu-cover" style="text-align:left">换封面</button><button id="rack-menu-delete" class="danger" style="text-align:left">删除</button></div>';actions='<button id="modal-cancel">取消</button>';
-    setTimeout(()=>{const coverBtn=Qs('#rack-menu-cover',mc),delBtn=Qs('#rack-menu-delete',mc);if(coverBtn)coverBtn.onclick=function(){closeModal();showModal('cover-pick',{sid:data.sid})};if(delBtn)delBtn.onclick=function(){let s=findSeries(data.sid);closeModal();if(s)showModal('delete-confirm',{id:data.sid,name:s.name})}},80)}
+else if(type==='group-menu'){const group=getGroupById(data.id);title='分组操作';body='<div style="display:flex;flex-direction:column;gap:8px;margin:8px 0"><button id="group-menu-rename" style="text-align:left">重命名「'+escapeHTML(group?group.name:'')+'」</button><button id="group-menu-delete" class="danger" style="text-align:left">删除分组</button></div>';actions='<button id="modal-cancel">取消</button>';
+    setTimeout(()=>{const renameBtn=Qs('#group-menu-rename',mc),deleteBtn=Qs('#group-menu-delete',mc);if(renameBtn)renameBtn.onclick=function(){closeModal();showModal('group-rename',{id:data.id})};if(deleteBtn)deleteBtn.onclick=function(){closeModal();showModal('group-delete-confirm',{id:data.id})}},80)}
+else if(type==='rack-menu'){title='操作';body='<div style="display:flex;flex-direction:column;gap:8px;margin:8px 0"><button id="rack-menu-move" style="text-align:left">移动到分组</button><button id="rack-menu-cover" style="text-align:left">换封面</button><button id="rack-menu-delete" class="danger" style="text-align:left">删除</button></div>';actions='<button id="modal-cancel">取消</button>';
+    setTimeout(()=>{const moveBtn=Qs('#rack-menu-move',mc),coverBtn=Qs('#rack-menu-cover',mc),delBtn=Qs('#rack-menu-delete',mc);if(moveBtn)moveBtn.onclick=function(){closeModal();showModal('move-group',{sid:data.sid})};if(coverBtn)coverBtn.onclick=function(){closeModal();showModal('cover-pick',{sid:data.sid})};if(delBtn)delBtn.onclick=function(){let s=findSeries(data.sid);closeModal();if(s)showModal('delete-confirm',{id:data.sid,name:s.name})}},80)}
   else if(type==='set-cover'){title='设封面';body='<p>选择一种方式设置封面：</p><div style="display:flex;flex-direction:column;gap:8px;margin:8px 0"><button id="set-cover-capture">当前画面截图</button><button id="set-cover-upload">上传本地图片</button><button id="set-cover-text">生成文字封面</button><button id="set-cover-cands">从候选页选择</button></div>';actions='<button id="modal-cancel">取消</button>';
     setTimeout(()=>{const cBtn=Qs('#set-cover-capture',mc),uBtn=Qs('#set-cover-upload',mc),tBtn=Qs('#set-cover-text',mc),cdBtn=Qs('#set-cover-cands',mc);if(cBtn)cBtn.onclick=function(){startCoverCapture(data.sid)};if(uBtn)uBtn.onclick=async function(){closeModal();const d=await pickImageCover(data.sid);if(d)setSeriesCover(data.sid,d)};if(tBtn)tBtn.onclick=function(){const s=findSeries(data.sid);const d=makeTextCover(s?s.name:'未命名');closeModal();if(d)setSeriesCover(data.sid,d)};if(cdBtn)cdBtn.onclick=function(){closeModal();showModal('cover-pick',{sid:data.sid})}},80)}
-mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions">'+actions+'</div>';ov.classList.add('show');
+mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions'+(type==='cover-pick'?' cover-pick-actions':'')+'">'+actions+'</div>';ov.classList.add('show');
   const cancelBtn=Qs('#modal-cancel',mc),confirmBtn=Qs('#modal-confirm',mc);
   let modalClosed=false;
   function closeModal(){if(modalClosed)return;modalClosed=true;ov.classList.remove('show');ov.removeEventListener('click',onOverlayClick);if(cancelBtn)cancelBtn.onclick=null;if(confirmBtn)confirmBtn.onclick=null;if(mc._modalCleanup===closeModal)mc._modalCleanup=null}
-  if(cancelBtn)cancelBtn.onclick=closeModal;const resetCoverBtn=Qs('#modal-reset-cover',mc);if(resetCoverBtn)resetCoverBtn.onclick=async function(){closeModal();showToast('正在重新生成封面…');await autoPickCover(data.sid,null,null);showToast('封面已恢复默认')};const makeTextBtn=Qs('#cover-make-text',mc);if(makeTextBtn)makeTextBtn.onclick=function(){const s=findSeries(data.sid);const d=makeTextCover(s?s.name:'未命名');if(d){setSeriesCover(data.sid,d);closeModal();}};const uploadCoverBtn=Qs('#cover-upload',mc);if(uploadCoverBtn)uploadCoverBtn.onclick=async function(){const d=await pickImageCover(data.sid);if(d){setSeriesCover(data.sid,d);closeModal();}};const skipCoverBtn=Qs('#modal-skip-cover',mc);if(skipCoverBtn)skipCoverBtn.onclick=function(){closeModal();showToast('使用默认封面');autoPickCover(data.sid,null,null)};const selTextBtn=Qs('#cover-sel-text',mc);if(selTextBtn)selTextBtn.onclick=function(){const s=findSeries(data.sid);const d=makeTextCover(s?s.name:'未命名');if(d){setSeriesCover(data.sid,d);closeModal();}};const selUploadBtn=Qs('#cover-sel-upload',mc);if(selUploadBtn)selUploadBtn.onclick=async function(){const d=await pickImageCover(data.sid);if(d){setSeriesCover(data.sid,d);closeModal();}};
-  function onOverlayClick(e){if(e.target===ov)closeModal()}ov.addEventListener('click',onOverlayClick);mc._modalCleanup=closeModal;
+  if(cancelBtn)cancelBtn.onclick=closeModal;const readerCoverBtn=Qs('#cover-open-reader',mc);if(readerCoverBtn)readerCoverBtn.onclick=function(){closeModal();if(currentSeries!==data.sid)openSeries(data.sid)};const resetCoverBtn=Qs('#modal-reset-cover',mc);if(resetCoverBtn)resetCoverBtn.onclick=async function(){const s=findSeries(data.sid);closeModal();showToast('正在生成文字封面…');await persistTextCover(data.sid,s?s.name:'未命名',{force:true,successMessage:'文字封面已恢复'})};const makeTextBtn=Qs('#cover-make-text',mc);if(makeTextBtn)makeTextBtn.onclick=function(){const s=findSeries(data.sid);const d=makeTextCover(s?s.name:'未命名');if(d){setSeriesCover(data.sid,d);closeModal();}};const uploadCoverBtn=Qs('#cover-upload',mc);if(uploadCoverBtn)uploadCoverBtn.onclick=async function(){const d=await pickImageCover(data.sid);if(d){setSeriesCover(data.sid,d);closeModal();}};const skipCoverBtn=Qs('#modal-skip-cover',mc);if(skipCoverBtn)skipCoverBtn.onclick=function(){closeModal();showToast('使用文字封面')};const selTextBtn=Qs('#cover-sel-text',mc);if(selTextBtn)selTextBtn.onclick=function(){const s=findSeries(data.sid);const d=makeTextCover(s?s.name:'未命名');if(d){setSeriesCover(data.sid,d);closeModal();}};const selUploadBtn=Qs('#cover-sel-upload',mc);if(selUploadBtn)selUploadBtn.onclick=async function(){const d=await pickImageCover(data.sid);if(d){setSeriesCover(data.sid,d);closeModal();}};
+   function onOverlayClick(e){if(e.target===ov)closeModal()}ov.addEventListener('click',onOverlayClick);mc._modalCleanup=closeModal;
+   const readerMoreDirectory=Qs('#reader-more-directory',mc),readerMoreSettings=Qs('#reader-more-settings',mc),readerMoreCover=Qs('#reader-more-cover',mc),readerMoreFiles=Qs('#reader-more-files',mc);
+   if(readerMoreDirectory)readerMoreDirectory.onclick=function(){closeModal();$('sidebar').classList.toggle('hidden')};
+   if(readerMoreSettings)readerMoreSettings.onclick=function(){closeModal();showModal('settings')};
+   if(readerMoreCover)readerMoreCover.onclick=function(){closeModal();showModal('set-cover',{sid:currentSeries})};
+   if(readerMoreFiles)readerMoreFiles.onclick=async function(){closeModal();if(currentSeries){const files=await pickFilesViaInput();if(files&&files.length)await importFilesToSeries(currentSeries,files)}};
   if(type==='add-choose'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let r=Qs('input[name="addType"]:checked',mc),isNew=!r||r.value==='new';closeModal();try{let files;if(_pendingFiles&&_pendingFiles.length){files=_pendingFiles;_pendingFiles=null}else{if(hasFolderPicker&&_pendingFilesMode!=='input')files=await pickFolder();else files=await pickFilesViaInput()}if(!files||!files.length)return;if(isNew){_pendingFiles=files;_pendingFilesMode='drop';showModal('add-name')}else{let sel=Qs('#modal-existing-select',mc);if(!sel){showToast('没有可用的系列');return}let sid=sel.value;if(sid)await importFilesToSeries(sid,files);else showToast('没有可用的系列')}}catch(e){console.error(e);showToast('操作失败')}}}
   else if(type==='add-name'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let ni=$('modal-name');if(!ni){closeModal();return}let name=ni.value.trim();if(!name){showToast('请输入名称');return}closeModal();let files=_pendingFiles;_pendingFiles=null;if(files)await createSeries(name,files);else showToast('未找到文件，请重新选择')};setTimeout(()=>{let inp=$('modal-name');if(inp){inp.focus();inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&confirmBtn)confirmBtn.click()})}},100)}
+  else if(type==='group-create'){if(!confirmBtn)return;confirmBtn.onclick=async function(){const input=$('modal-group-name');if(!input)return;if(await createGroup(input.value))closeModal()};setTimeout(()=>{const input=$('modal-group-name');if(input){input.focus();input.addEventListener('keydown',e=>{if(e.key==='Enter')confirmBtn.click()})}},80)}
+  else if(type==='group-rename'){if(!confirmBtn)return;confirmBtn.onclick=async function(){const input=$('modal-group-name');if(!input)return;if(await renameGroup(data.id,input.value))closeModal()};setTimeout(()=>{const input=$('modal-group-name');if(input){input.focus();input.select();input.addEventListener('keydown',e=>{if(e.key==='Enter')confirmBtn.click()})}},80)}
+  else if(type==='group-delete-confirm'){if(!confirmBtn)return;confirmBtn.onclick=async function(){closeModal();await deleteGroup(data.id)}}
+  else if(type==='move-group'){if(!confirmBtn)return;confirmBtn.onclick=async function(){const selected=Qs('input[name="moveGroup"]:checked',mc);closeModal();if(selected)await moveSeriesToGroup(data.sid,selected.value||UNGROUPED_GROUP_ID)}}
   else if(type==='delete-confirm'){if(!confirmBtn)return;confirmBtn.onclick=function(){let dc=Qs('#modal-delete-cache',mc),shouldDelete=dc?dc.checked:!0;closeModal();let idx=bookshelf.findIndex(s=>s.seriesId===data.id);if(idx>=0){let s=bookshelf[idx];if(currentSeries===data.id)closeReader();bookshelf.splice(idx,1);renderBookshelf();delete covers[data.id];showToast('已删除「'+s.name+'」');// Background async cleanup
 (async()=>{if(shouldDelete){try{await db.deleteSeriesPDFs(data.id)}catch(e){}try{await db.deleteCover(data.id)}catch(e){}}try{await db.deleteSeries(data.id)}catch(e){}})()}}}
   else if(type==='cache-mgr'){setTimeout(()=>{mc.querySelectorAll('.cache-clear-btn').forEach(btn=>{btn.addEventListener('click',async function(){let sid=this.dataset.sid,s=findSeries(sid),name=s?s.name:sid;try{await db.deleteSeriesPDFs(sid);await db.deleteCover(sid);delete covers[sid];showToast('已清除「'+name+'」的缓存');renderBookshelf()}catch(e){showToast('清除失败')}let stats=await db.getCacheStats(),si=await db.getStorageEstimate();closeModal();showModal('cache-mgr',{stats,storageInfo:si})})})},100)}
@@ -548,10 +950,10 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions">'+actions+'</
 }
 
 async function pickFolder(){try{if(!window.showDirectoryPicker)return await pickFilesViaInput();let dh=await window.showDirectoryPicker(),fs=[];for await(let e of dh.values()){if(e.kind==='file')fs.push(await e.getFile())}let pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('文件夹中没有PDF文件');return null}return pdfs}catch(e){if(e.name!=='AbortError')showToast('操作取消');return null}}
-async function pickFilesViaInput(){return new Promise(resolve=>{let inp=$('hidden-file-input'),ni=inp.cloneNode(!0);inp.parentNode.replaceChild(ni,inp);ni.id='hidden-file-input';ni.accept='';ni.addEventListener('change',function(){let fs=Array.from(this.files),pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('未选中PDF文件');resolve(null);return}resolve(pdfs)});ni.addEventListener('cancel',()=>resolve(null));ni.click()})}
+async function pickFilesViaInput(){return new Promise(resolve=>{let inp=$('hidden-file-input'),ni=inp.cloneNode(!0);inp.parentNode.replaceChild(ni,inp);ni.id='hidden-file-input';ni.accept='application/pdf,.pdf';ni.addEventListener('change',function(){let fs=Array.from(this.files),pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('未选中PDF文件');resolve(null);return}resolve(pdfs)});ni.addEventListener('cancel',()=>resolve(null));ni.click()})}
 function extractChapterNumber(f){let n=f.replace(/\.pdf$/i,'');for(let p of[/第\s*(\d+)\s*[话章节]/g,/[Cc]h(?:apter)?[.\s_-]*(\d+)/g,/^(\d+)[\s_.-]/g,/[[(（](\d+)[\])）]/g,/(\d+)$/g]){let m=[...n.matchAll(p)];if(m.length)return parseInt(m[m.length-1][1])}let m=n.match(/(\d+)/g);return m?parseInt(m[m.length-1]):Infinity}
 
-async function createSeries(name,files){if(!files||!files.length)return;let sid='s'+Date.now()+'_'+Math.random().toString(36).slice(2,6),chs=files.map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));chs.sort((a,b)=>a.chapterNum-b.chapterNum);let s={seriesId:sid,name,chapters:chs,lastChNum:null,lastPage:null,createdAt:new Date().toISOString()};bookshelf.push(s);await db.saveSeries(s);renderBookshelf();if(!covers[sid]){try{if(document.fonts&&document.fonts.load)await document.fonts.load('bold 120px "Ma Shan Zheng"',name)}catch(e){}const tc=makeTextCover(name);if(tc){try{await db.saveCover(sid,tc);covers[sid]=tc}catch(e){}}}showCoverSelectDuringImport(sid,files,chs.length?chs[0].chapterNum:null);await cachePDFs(sid,files,chs);s=findSeries(sid);if(s){s.chapters.forEach(c=>{c.cached=!0;c.loaded=!1});await db.saveSeries(s)}openSeries(sid)}
+async function createSeries(name,files){if(!files||!files.length)return;let sid='s'+Date.now()+'_'+Math.random().toString(36).slice(2,6),chs=files.map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));chs.sort((a,b)=>a.chapterNum-b.chapterNum);let s={seriesId:sid,name,groupId:getImportGroupId(),chapters:chs,lastChNum:null,lastPage:null,createdAt:new Date().toISOString()};bookshelf.push(s);await db.saveSeries(s);await persistTextCover(sid,name,{refresh:false});renderBookshelf();showCoverSelectDuringImport(sid,files,chs.length?chs[0].chapterNum:null);await cachePDFs(sid,files,chs);s=findSeries(sid);if(s){s.chapters.forEach(c=>{c.cached=!0;c.loaded=!1});await db.saveSeries(s)}openSeries(sid)}
 
 async function importFilesToSeries(sid,files){let s=findSeries(sid);if(!s)return;let en=new Set(s.chapters.map(c=>c.name)),vf=files.filter(f=>f.name.toLowerCase().endsWith('.pdf')),nc=vf.filter(f=>!en.has(f.name.replace(/\.pdf$/i,''))).map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));if(!nc.length){showToast('没有新的PDF文件');return}s.chapters.push(...nc);s.chapters.sort((a,b)=>a.chapterNum-b.chapterNum);await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList();prefetchNextSafe(currentChIdx)}renderBookshelf();let fm=[];for(let f of vf){let fn=f.name.replace(/\.pdf$/i,''),ch=s.chapters.find(c=>c.name===fn);if(ch)fm.push({file:f,ch:ch})}await cachePDFs(sid,fm.map(x=>x.file),fm.map(x=>x.ch));s=findSeries(sid);if(s){fm.forEach(({ch})=>{let c=s.chapters.find(sc=>sc.chapterNum===ch.chapterNum&&sc.name===ch.name);if(c){c.cached=!0;c.loaded=!1}});await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList()}}showToast('已追加 '+nc.length+' 章')}
 
@@ -559,7 +961,7 @@ async function cachePDFs(sid,files,chs){if(!files.length)return;showProgress(0,f
 function showProgress(done,total){let p=$('import-progress');if(!p){p=document.createElement('div');p.id='import-progress';p.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:12px 24px;border-radius:12px;z-index:1500;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,0.1)';p.innerHTML='<span id="import-progress-text" style="color:var(--text);font-size:13px"></span><div style="width:120px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="import-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .2s"></div></div>';document.body.appendChild(p)}Qs('#import-progress-text',p).textContent='正在导入 '+done+'/'+total;Qs('#import-progress-bar',p).style.width=(done/total*100)+'%'}
 function hideProgress(){let p=$('import-progress');if(p){Qs('#import-progress-text',p).textContent='导入完成 ✓';setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p)},1500)}}
 
-async function generateCover(sid,file){try{let ab=await file.arrayBuffer(),doc=await pdfjsLib.getDocument({data:ab}).promise,page=await doc.getPage(1),vp=page.getViewport({scale:.4}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;let dataUrl=cv.toDataURL('image/jpeg',.7);await db.saveCover(sid,dataUrl);covers[sid]=dataUrl;doc.destroy();if(!currentSeries)renderBookshelf()}catch(e){console.warn('Cover fail:',e)}}
+async function generateCover(sid,file){try{let ab=await file.arrayBuffer(),doc=await ManhwaPdf.getDocument({data:ab}).promise,page=await doc.getPage(1),vp=page.getViewport({scale:.4}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;let dataUrl=cv.toDataURL('image/jpeg',.7);await db.saveCover(sid,dataUrl);covers[sid]=dataUrl;doc.destroy();if(!currentSeries)renderBookshelf()}catch(e){console.warn('Cover fail:',e)}}
 
 
 async function autoPickCover(sid,files,chapterNum){
@@ -570,7 +972,7 @@ async function autoPickCover(sid,files,chapterNum){
     if(file){try{ab=await file.arrayBuffer()}catch(e){}}
     if(!ab){try{ab=await db.loadPDF(sid,chapterNum||1)}catch(e){}}if(!ab&&!chapterNum){try{const s=findSeries(sid);const ch=[...(s&&s.chapters||[])].filter(c=>c.cached).sort((a,b)=>a.chapterNum-b.chapterNum)[0];if(ch)ab=await db.loadPDF(sid,ch.chapterNum)}catch(e){}}
     if(!ab){console.warn('autoPickCover: no data for',sid);return}
-    const doc=await pdfjsLib.getDocument({data:ab}).promise;
+    const doc=await ManhwaPdf.getDocument({data:ab}).promise;
     const maxP=doc.numPages;
     let best={score:-1,page:1,dataUrl:null};
     for(let p=1;p<=maxP;p++){
@@ -580,7 +982,7 @@ async function autoPickCover(sid,files,chapterNum){
         const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
         await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
         const dataUrl=cv.toDataURL('image/jpeg',.7);
-        const score=scoreCover(cv,vp);
+        const score=scoreCover(cv,vp,p,maxP);
         if(score>best.score)best={score,page:p,dataUrl};
       }catch(e){}
     }
@@ -597,43 +999,43 @@ async function autoPickCover(sid,files,chapterNum){
   }catch(e){console.warn('autoPickCover fail',e);try{await generateCover(sid,files&&files[0])}catch(e2){}}
 }
 
-function scoreCover(cv,vp){
+function scoreCover(cv,vp,pageNum,totalPages){
   try{
-    const ctx=cv.getContext('2d'),w=cv.width,h=cv.height;
+    const ctx=cv&&cv.getContext?cv.getContext('2d'):null,w=Math.max(1,cv&&cv.width||0),h=Math.max(1,cv&&cv.height||0);
+    if(!ctx||!w||!h)return 0;
     const img=ctx.getImageData(0,0,w,h).data;
-    let nonWhite=0,sumLum=0,sumLum2=0;const colors=new Set();
-    // Panel line detection: scan horizontal/vertical strips for continuous dark segments
-    let panelLines=0;
-    const hStrips=Math.floor(h/6),vStrips=Math.floor(w/6);
-    for(let sy=0;sy<h;sy+=6){
-      let darkRun=0;
-      for(let x=0;x<w;x++){const i=(sy*w+x)*4,lum=.299*img[i]+.587*img[i+1]+.114*img[i+2];if(lum<80){darkRun++;if(darkRun>w*.6)panelLines++}else darkRun=0}
+    // Work from a bounded sample grid so long webtoon pages do not make imports slow.
+    const step=Math.max(1,Math.ceil(Math.max(w,h)/220)),cols=Math.ceil(w/step),rows=Math.ceil(h/step),lums=new Array(cols*rows);
+    let count=0,sum=0,sum2=0,content=0,white=0,dark=0,colorful=0,edgeSum=0,edgeCount=0,borderContent=0,centerContent=0,centerCount=0,edgeContent=0,edgeCountContent=0;
+    const colors=new Set();
+    for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+      const x=Math.min(w-1,gx*step),y=Math.min(h-1,gy*step),i=(y*w+x)*4,alpha=(img[i+3]===undefined?255:img[i+3])/255;
+      const r=img[i]*alpha+255*(1-alpha),g=img[i+1]*alpha+255*(1-alpha),b=img[i+2]*alpha+255*(1-alpha),lum=(.299*r+.587*g+.114*b)/255,chroma=(Math.max(r,g,b)-Math.min(r,g,b))/255;
+      const index=gy*cols+gx;lums[index]=lum;count+=1;sum+=lum;sum2+=lum*lum;
+      if(lum<.94)content+=1;if(lum>.96)white+=1;if(lum<.18)dark+=1;if(chroma>.12)colorful+=1;
+      colors.add(Math.floor(r/32)+','+Math.floor(g/32)+','+Math.floor(b/32));
+      const isBorder=gx<cols*.12||gx>=cols*.88||gy<rows*.12||gy>=rows*.88,isCenter=gx>=cols*.3&&gx<cols*.7&&gy>=rows*.25&&gy<rows*.75;
+      if(isBorder){if(lum<.94)borderContent+=1}else if(isCenter){if(lum<.94)centerContent+=1;centerCount+=1}else{if(lum<.94)edgeContent+=1;edgeCountContent+=1}
+      if(gx>0){edgeSum+=Math.abs(lum-lums[index-1]);edgeCount+=1}
+      if(gy>0){edgeSum+=Math.abs(lum-lums[index-cols]);edgeCount+=1}
     }
-    for(let sx=0;sx<w;sx+=6){
-      let darkRun=0;
-      for(let y=0;y<h;y++){const i=(y*w+sx)*4,lum=.299*img[i]+.587*img[i+1]+.114*img[i+2];if(lum<80){darkRun++;if(darkRun>h*.5)panelLines++}else darkRun=0}
+    const mean=sum/count,variance=Math.max(0,sum2/count-mean*mean),coverage=content/count,whiteRate=white/count,darkRate=dark/count,colorRate=colorful/count,colorRich=Math.min(1,colors.size/48),edgeChange=edgeCount?Math.min(1,edgeSum/edgeCount*3):0;
+    const borderTotal=Math.max(1,Math.round(count-(cols*.76)*(rows*.76))),borderRate=borderContent/borderTotal;
+    const centerRate=centerCount?centerContent/centerCount:coverage,outerRate=edgeCountContent?edgeContent/edgeCountContent:coverage,focal=Math.max(0,Math.min(1,centerRate-outerRate+.5));
+    // Long dark runs are common panel borders and speech-bubble outlines, but rare on cover art.
+    let longRows=0,longCols=0;
+    for(let gy=0;gy<rows;gy++){
+      let run=0,maxRun=0;for(let gx=0;gx<cols;gx++){if(lums[gy*cols+gx]<.24){run+=1;maxRun=Math.max(maxRun,run)}else run=0}if(maxRun>=cols*.58)longRows+=1;
     }
-    const lineDensity=Math.min(1,panelLines/Math.max((hStrips+vStrips),1));
-    // Color + coverage
-    const step=6;
-    for(let y=0;y<h;y+=step){for(let x=0;x<w;x+=step){
-      const i=(y*w+x)*4,r=img[i],g=img[i+1],b=img[i+2];
-      const lum=.299*r+.587*g+.114*b;sumLum+=lum;sumLum2+=lum*lum;
-      if(lum<240||r<240||g<240||b<240)nonWhite++;
-      colors.add(Math.floor(r/24)+','+Math.floor(g/24)+','+Math.floor(b/24));
-    }}
-    const n=Math.ceil(w/step)*Math.ceil(h/step);
-    const coverage=nonWhite/n,avg=sumLum/n,variance=sumLum2/n-avg*avg;
-    const colorRich=Math.min(1,colors.size/36);
-    // Center vs edge contrast
-    const cw=Math.floor(w*.4),chh=Math.floor(h*.4),cx=Math.floor(w*.3),cy=Math.floor(h*.3);
-    let centerLum=0,edgeLum=0,cs=0,es=0;
-    for(let y=cy;y<cy+chh;y+=8){for(let x=cx;x<cx+cw;x+=8){const i=(y*w+x)*4;centerLum+=.299*img[i]+.587*img[i+1]+.114*img[i+2];cs++}}
-    for(let y=0;y<h;y+=8){for(let x=0;x<w;x+=8){if(x>=cx&&x<cx+cw&&y>=cy&&y<cy+chh)continue;const i=(y*w+x)*4;edgeLum+=.299*img[i]+.587*img[i+1]+.114*img[i+2];es++}}
-    if(cs>0)centerLum/=cs;if(es>0)edgeLum/=es;
-    const centerContrast=Math.min(1,Math.abs(centerLum-edgeLum)/100);
-    // Covers have LOW panel line density. Score = (1-lines) * coverage * center
-    return Math.max(0,(1-lineDensity)*coverage*centerContrast*10-lineDensity*2);
+    for(let gx=0;gx<cols;gx++){
+      let run=0,maxRun=0;for(let gy=0;gy<rows;gy++){if(lums[gy*cols+gx]<.24){run+=1;maxRun=Math.max(maxRun,run)}else run=0}if(maxRun>=rows*.48)longCols+=1;
+    }
+    const lineDensity=Math.min(1,(longRows+longCols)/Math.max(1,rows+cols));
+    const aspect=Number(vp&&vp.height)/Math.max(1,Number(vp&&vp.width)),aspectPenalty=Number.isFinite(aspect)?Math.min(1,Math.max(0,(aspect-2.35)/1.65)):0;
+    const pagePosition=Number.isFinite(pageNum)&&pageNum>0?Math.max(0,pageNum-1):0,pagePrior=Number.isFinite(totalPages)&&totalPages>1?Math.max(-.12,.12-pagePosition*.012):0;
+    const whitePenalty=Math.pow(Math.max(0,whiteRate-.58),1.35)*5,darkPenalty=Math.pow(Math.max(0,darkRate-.72),1.3)*4;
+    const score=coverage*4.2+Math.min(1,variance*5.5)*3.1+colorRich*1.8+colorRate*1.3+edgeChange*1.2+borderRate*1.5+focal*1.1+(1-lineDensity)*2.2-lineDensity*4.4-whitePenalty-darkPenalty-aspectPenalty*1.4+pagePrior;
+    return Number.isFinite(score)?score:0;
   }catch(e){return 0}
 }
 
@@ -643,20 +1045,34 @@ async function loadCoverCandidates(sid){
   let ab;try{ab=await db.loadPDF(sid,ch.chapterNum)}catch(e){return[]}
   if(!ab)return[];
   try{
-    const doc=await pdfjsLib.getDocument({data:ab}).promise;
+    const doc=await ManhwaPdf.getDocument({data:ab}).promise;
     const maxP=doc.numPages,cands=[];
     for(let p=1;p<=maxP;p++){
       try{
         const pg=await doc.getPage(p),vp=pg.getViewport({scale:.25});
         const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
         await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
-        cands.push({page:p,dataUrl:cv.toDataURL('image/jpeg',.7),score:scoreCover(cv,vp)});
+        cands.push({page:p,chapterNum:ch.chapterNum,dataUrl:cv.toDataURL('image/jpeg',.7),score:scoreCover(cv,vp,p,maxP)});
       }catch(e){}
     }
     doc.destroy();
     cands.sort((a,b)=>b.score-a.score);
     return cands.slice(0,12);
   }catch(e){return[]}
+}
+async function renderCoverCandidate(sid,chapterNum,pageNum){
+  const ab=await db.loadPDF(sid,chapterNum);
+  const doc=await ManhwaPdf.getDocument({data:ab}).promise;
+  try{
+    const page=await doc.getPage(pageNum);
+    let scale=2;
+    let viewport=page.getViewport({scale});
+    const maxPixels=4500000;
+    if(viewport.width*viewport.height>maxPixels){scale*=Math.sqrt(maxPixels/(viewport.width*viewport.height));viewport=page.getViewport({scale})}
+    const cv=document.createElement('canvas');cv.width=Math.ceil(viewport.width);cv.height=Math.ceil(viewport.height);
+    await page.render({canvasContext:cv.getContext('2d',{alpha:false}),viewport}).promise;
+    return cv.toDataURL('image/jpeg',.92);
+  }finally{doc.destroy()}
 }
 function openSeries(id){let s=findSeries(id);if(!s)return;currentSeries=id;chapters=s.chapters;currentChIdx=-1;currentPage=1;isWebtoon=!1;webtoonScrollPct=0;restoringProgress=!1;renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;renderedPages.clear();prefetchQueue=[];prefetching=!1;chapterLoadToken++;(function fadeOpen(){let bs=$('bookshelf'),rd=$('reader');bs.style.transition='opacity .2s ease';bs.style.opacity='0';setTimeout(function(){bs.classList.add('hidden');bs.style.opacity='';rd.classList.remove('hidden');rd.style.opacity='0';void rd.offsetWidth;rd.style.transition='opacity .2s ease';rd.style.opacity='1'},200)})();$('ch-info').textContent=s.name+' — 共 '+chapters.length+' 章';$('ch-count').textContent=chapters.length+' 章';$('page-info').textContent='- / -';$('page-container').innerHTML='';renderChapterList();if(chapters.length>0){let si=0;if(s.lastChNum){let f=chapters.findIndex(c=>c.chapterNum===s.lastChNum);if(f>=0)si=f}const restoreState=s.lastPage&&chapters[si]&&s.lastChNum===chapters[si].chapterNum?{page:s.lastPage,pageProgress:s.lastPageProgress}:null;loadChapter(si,restoreState)}}
 
@@ -672,7 +1088,7 @@ function highlightChapter(i){const cl=$('chapter-list');cl.querySelectorAll('.ch
 function setChapterStatus(i,status){let c=chapters[i];if(c)c.status=status;let el=$('chapter-list').querySelector('[data-idx="'+i+'"] .ch-dot');if(el)el.className='ch-dot dot-'+status}
 
 // Webtoon detection
-function detectWebtoon(){if(!pdfDoc||!settings.webtoonAuto)return!1;try{for(let p=1;p<=Math.min(pdfDoc.numPages,3);p++){let pg=pdfDoc.getPage(p);if(pg){let vp=pg.getViewport({scale:1});if(vp.height/vp.width>3)return!0}}}catch(e){console.warn('webtoon detect fail',e)}return!1}
+async function detectWebtoon(){if(!pdfDoc||!settings.webtoonAuto)return!1;try{const viewports=[];for(let p=1;p<=Math.min(pdfDoc.numPages,3);p++){const pg=await pdfDoc.getPage(p);if(pg)viewports.push(pg.getViewport({scale:1}))}return window.ReaderMode?window.ReaderMode.shouldUseWebtoon(viewports):viewports.some(v=>v.height/v.width>3)}catch(e){console.warn('webtoon detect fail',e);return!1}}
 function getScrollProgress(){let va=$('viewer-area'),pc=$('page-container');if(!va||!pc)return 0;let top=va.scrollTop,maxH=Math.max(pc.scrollHeight-va.clientHeight,1);return Math.round(top/maxH*100)}
 function restoreTokenIsCurrent(token){if(token&&typeof token==='object')return token.chapter===chapterLoadToken&&token.view===viewRestoreGeneration;return token===chapterLoadToken}
 function restoreWebtoonScroll(pct,token){return new Promise(resolve=>{let started=Date.now();function apply(){let va=$('viewer-area'),pc=$('page-container');if(token!==undefined&&!restoreTokenIsCurrent(token)){resolve(!1);return}if(!va||!pc){resolve(!1);return}let maxH=pc.scrollHeight-va.clientHeight;if(maxH>0||Date.now()-started>=2000){va.scrollTop=Math.max(maxH,1)*pct/100;resolve(!0);return}setTimeout(apply,16)}apply()})}
@@ -693,10 +1109,10 @@ async function loadChapter(i,restoreState){
   $('chapter-list').style.pointerEvents='none';$('page-slider').disabled=!0;
   try{let ab;if(c.cached){ab=await db.loadPDF(currentSeries,c.chapterNum)}else{let exists=!1;try{exists=await db.pdfExists(currentSeries,c.chapterNum)}catch(e){}if(exists){try{ab=await db.loadPDF(currentSeries,c.chapterNum);c.cached=!0}catch(e){}}if(!ab){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('该章节未缓存，请重新导入');return}}
   if(myToken!==chapterLoadToken){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
-  pdfDoc=await pdfjsLib.getDocument({data:ab}).promise;if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
+  pdfDoc=await ManhwaPdf.getDocument({data:ab}).promise;if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
   c.pages=pdfDoc.numPages;
   // Detect webtoon
-  isWebtoon=detectWebtoon();c.isWebtoon=isWebtoon;
+  isWebtoon=await detectWebtoon();c.isWebtoon=isWebtoon;
   }catch(e){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('加载失败');console.error(e);return}
   $('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';$('page-slider').disabled=!1;
   currentPage=1;if(!isWebtoon){$('page-slider').max=c.pages;$('page-slider').value=1;updatePageInfo()}else{$('page-slider').style.display='none';updatePageInfo()}let pc=$('page-container');pc.innerHTML='';
@@ -717,8 +1133,17 @@ async function loadChapter(i,restoreState){
 }
 
 function prefetchNextSafe(idx){let n1=idx+1,n2=idx+2;if(n1<chapters.length&&chapters[n1].cached&&!chapters[n1].loaded&&!prefetchQueue.includes(n1))prefetchQueue.push(n1);if(n2<chapters.length&&chapters[n2].cached&&!chapters[n2].loaded&&!prefetchQueue.includes(n2))prefetchQueue.push(n2);if(!prefetching)drainPrefetchSafe()}
-async function drainPrefetchSafe(){prefetching=!0;while(prefetchQueue.length>0){let i=prefetchQueue.shift();if(i>=chapters.length)continue;let c=chapters[i];if(c.loaded||!c.cached)continue;if(Math.abs(i-currentChIdx)>5)continue;try{let ab=await db.loadPDF(currentSeries,c.chapterNum),doc=await pdfjsLib.getDocument({data:ab}).promise;c.pages=doc.numPages;doc.destroy()}catch(e){console.warn('Prefetch fail:',c.name)}}prefetching=!1}
+async function drainPrefetchSafe(){prefetching=!0;while(prefetchQueue.length>0){let i=prefetchQueue.shift();if(i>=chapters.length)continue;let c=chapters[i];if(c.loaded||!c.cached)continue;if(Math.abs(i-currentChIdx)>5)continue;try{let ab=await db.loadPDF(currentSeries,c.chapterNum),doc=await ManhwaPdf.getDocument({data:ab}).promise;c.pages=doc.numPages;doc.destroy()}catch(e){console.warn('Prefetch fail:',c.name)}}prefetching=!1}
 
+function waitForReaderViewport(canvas,version){
+  return new Promise((resolve,reject)=>{
+    let done=false,frame=0;
+    const finish=(width,error)=>{if(done)return;done=true;clearTimeout(deadline);if(frame)cancelAnimationFrame(frame);error?reject(error):resolve(width)};
+    const deadline=setTimeout(()=>finish(null,new Error('Reader viewport did not become measurable (TIMEOUT)')),1500);
+    const measure=()=>{frame=0;if(done)return;if(canvas._captureRenderVersion!==version){finish(null);return}const width=$('viewer-area').clientWidth;if(width>40)finish(width);else frame=requestAnimationFrame(measure)};
+    measure();
+  });
+}
 async function renderPage(pn){
   if(!pdfDoc||renderedPages.has(pn))return;
   const w=$('page-container').querySelector('[data-page="'+pn+'"]');if(!w)return;
@@ -727,8 +1152,8 @@ async function renderPage(pn){
   try{
     const pg=await pdfDoc.getPage(pn);if(cv._captureRenderVersion!==renderVersion)return;
     const vp=pg.getViewport({scale:zoom});let task;
-    if(fitWidth){let cw=$('viewer-area').clientWidth-40,sc=cw/vp.width,fvp=pg.getViewport({scale:sc});cv.width=fvp.width;cv.height=fvp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:fvp})}
-    else{cv.width=vp.width;cv.height=vp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:vp})}
+    if(fitWidth){let width=$('viewer-area').clientWidth;if(width<=40){width=await waitForReaderViewport(cv,renderVersion);if(width===null||cv._captureRenderVersion!==renderVersion)return}let cw=width-40,base=pg.getViewport({scale:1}),sc=cw/base.width,fvp=pg.getViewport({scale:sc});cv.dataset.pdfScale=String(sc);cv.width=fvp.width;cv.height=fvp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:fvp})}
+    else{cv.dataset.pdfScale=String(zoom);cv.width=vp.width;cv.height=vp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:vp})}
     renderTasks.push(task);await task.promise;
     if(setCaptureRenderState(cv,'complete',renderVersion)!==null)w.style.width=cv.style.width||cv.width+'px';
   }catch(e){
@@ -750,7 +1175,7 @@ function requestZoomChange(value){
       if(!fitWidth){const parsed=parseFloat(next);if(Number.isFinite(parsed))zoom=parsed}
       settings.zoom=next;
       const select=$('zoom-select');if(select)select.value=next;
-      try{await reRenderAll(viewState)}catch(e){console.warn('zoom rerender failed',e)}
+      try{await reRenderAll(viewState);if(fitWidth){const viewer=$('viewer-area');withInstantScroll(viewer,()=>{if(viewer)viewer.scrollLeft=0})}}catch(e){console.warn('zoom rerender failed',e)}
     }
   })();
   const finished=zoomChangeRun;
@@ -770,9 +1195,58 @@ async function saveProgress(pageProgressOverride){if(currentChIdx<0||!currentSer
 
 // ===== Event Bindings =====
 $('viewer-area').addEventListener('scroll',()=>{if(scrollTimer)clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{if(!pdfDoc)return;if(!isWebtoon){let cr=$('viewer-area').getBoundingClientRect(),my=cr.top+cr.height*.3,ws=$('page-container').querySelectorAll('.page-wrapper'),bp=currentPage,bd=Infinity;for(let w of ws){let r=w.getBoundingClientRect();if(!(r.height>0))continue;let d=Math.abs(r.top-my);if(d<bd){bd=d;bp=parseInt(w.dataset.page)}}if(bp!==currentPage){currentPage=bp;$('page-slider').value=currentPage;updatePageInfo()}saveProgress()}else{updatePageInfo();saveProgress();if(getScrollProgress()>=99&&currentChIdx<chapters.length){chapters[currentChIdx].status='read'}}renderVisiblePages()},150)});
+function bindMobileReaderGestures(){
+  const viewer=$('viewer-area');
+  if(!viewer||viewer._mobileGestureBound||!window.MobileReader)return;
+  viewer._mobileGestureBound=!0;
+  const pointers=new Map();
+  let swipeStart=null,swipePanning=false,panStartLeft=0,touchPinching=false;
+  let pinchStartDistance=0,pinchStartZoom=1,pinchStartValue=1,pinchLastZoom=1,pinchFrame=0,pinchTarget=null;
+  const point=e=>({x:e.clientX,y:e.clientY});
+  const blocked=()=>captureUiActive||!pdfDoc||$('reader').classList.contains('hidden')||$('modal-overlay').classList.contains('show');
+  const distance=()=>{const values=[...pointers.values()];if(values.length<2)return 0;return Math.hypot(values[0].x-values[1].x,values[0].y-values[1].y)};
+  const schedulePinchZoom=value=>{if(value===pinchLastZoom)return;pinchLastZoom=value;pinchTarget=value;if(pinchFrame)return;pinchFrame=requestAnimationFrame(()=>{pinchFrame=0;if(pinchTarget!==null&&!blocked())requestZoomChange(String(pinchTarget));pinchTarget=null})};
+  const beginPinch=initialDistance=>{pinchStartDistance=initialDistance;pinchStartValue=fitWidth?'fit':zoom;const canvas=fitWidth&&viewer.querySelector('.page-wrapper[data-page="'+currentPage+'"] canvas');pinchStartZoom=canvas?Number(canvas.dataset.pdfScale)||zoom:zoom;pinchLastZoom=pinchStartValue;swipeStart=null;swipePanning=false};
+  const pinchValue=nextDistance=>{const ratio=nextDistance/pinchStartDistance;return Math.abs(ratio-1)<0.03?pinchStartValue:window.MobileReader.clampPinchZoom(pinchStartZoom*ratio)};
+  const reset=cancelled=>{if(pinchFrame)cancelAnimationFrame(pinchFrame);pinchFrame=0;if(!cancelled&&pinchTarget!==null&&!blocked())requestZoomChange(String(pinchTarget));pinchTarget=null;pointers.clear();swipeStart=null;swipePanning=false;pinchStartDistance=0};
+  viewer.addEventListener('pointerdown',function(e){
+    if(e.pointerType!=='touch'||touchPinching||blocked()||e.target.closest('button,input,select,a'))return;
+    pointers.set(e.pointerId,point(e));
+    if(pointers.size===1){swipeStart=point(e);swipePanning=!fitWidth&&viewer.scrollWidth>viewer.clientWidth+1;panStartLeft=viewer.scrollLeft}
+    if(pointers.size===2)beginPinch(distance());
+  },{passive:true});
+  viewer.addEventListener('pointermove',function(e){
+    if(e.pointerType!=='touch'||touchPinching||!pointers.has(e.pointerId))return;
+    if(blocked()){reset(true);return}
+    pointers.set(e.pointerId,point(e));
+    if(pointers.size===1&&swipeStart&&swipePanning){const dx=e.clientX-swipeStart.x,dy=e.clientY-swipeStart.y;if(Math.abs(dx)>Math.abs(dy)){if(e.cancelable)e.preventDefault();viewer.scrollLeft=panStartLeft-dx}return}
+    if(pointers.size<2||!pinchStartDistance)return;
+    if(e.cancelable)e.preventDefault();
+    const next=pinchValue(distance());
+    schedulePinchZoom(next);
+  },{passive:false});
+  const finish=e=>{
+    if(e.pointerType!=='touch'||touchPinching||!pointers.has(e.pointerId))return;
+    pointers.delete(e.pointerId);
+    if(pointers.size<2)pinchStartDistance=0;
+    if(pointers.size!==0)return;
+    if(swipeStart&&!swipePanning&&!isWebtoon&&!blocked()){const direction=window.MobileReader.swipeDirection(swipeStart,point(e));if(direction==='next')nextPage();if(direction==='previous')prevPage()}
+    reset(false);
+  };
+  viewer.addEventListener('pointerup',finish,{passive:true});
+  viewer.addEventListener('pointercancel',e=>{if(e.pointerType==='touch'&&!touchPinching)reset(true)},{passive:true});
+  // Touch events cancel browser pinch before it takes over; one-finger vertical scrolling remains native.
+  const touchDistance=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  viewer.addEventListener('touchstart',e=>{if(e.touches.length<2||blocked())return;reset(true);touchPinching=true;beginPinch(touchDistance(e));if(e.cancelable)e.preventDefault()},{passive:false});
+  viewer.addEventListener('touchmove',e=>{if(!touchPinching)return;if(blocked()){reset(true);touchPinching=false;return}if(e.cancelable)e.preventDefault();if(e.touches.length<2||!pinchStartDistance)return;schedulePinchZoom(pinchValue(touchDistance(e)))},{passive:false});
+  viewer.addEventListener('touchend',e=>{if(touchPinching&&e.touches.length===0){reset(false);touchPinching=false}},{passive:true});
+  viewer.addEventListener('touchcancel',()=>{reset(true);touchPinching=false},{passive:true});
+}
+bindMobileReaderGestures();
 $('page-slider').addEventListener('input',function(){goToPage(parseInt(this.value))});
 $('zoom-select').addEventListener('change',function(){let v=this.value;requestZoomChange(v);db.saveSetting('zoom',v)});
 $('btn-back').addEventListener('click',closeReader);
+$('btn-reader-more').addEventListener('click',function(){showModal('reader-more')});
 $('btn-toggle-sidebar').addEventListener('click',function(){$('sidebar').classList.toggle('hidden')});
 $('btn-prev-pg').addEventListener('click',prevPage);$('btn-next-pg').addEventListener('click',nextPage);
 $('btn-prev-ch').addEventListener('click',prevChapter);$('btn-next-ch').addEventListener('click',nextChapter);
@@ -780,6 +1254,7 @@ $('btn-cache-mgr').addEventListener('click',async function(){let stats=await db.
 $('btn-settings').addEventListener('click',function(){showModal('settings')});const setCoverBtn=$('btn-set-cover');if(setCoverBtn)setCoverBtn.addEventListener('click',function(){if(!currentSeries)return;showModal('set-cover',{sid:currentSeries})});
 $('bs-search').addEventListener('input',function(){searchQuery=this.value;renderBookshelf()});
 $('bs-sort').addEventListener('change',function(){sortMode=this.value;renderBookshelf()});
+$('bs-dock-shelf').addEventListener('click',function(){const pane=$('bs-library-pane');if(pane)pane.scrollTo({top:0,behavior:'smooth'})});
 $('bs-add-folder').addEventListener('click',function(){_pendingFilesMode='folder';showAddModal()});
 $('bs-add-files').addEventListener('click',async function(){
   _pendingFilesMode='input';
@@ -815,6 +1290,6 @@ async function dropHandler(dt){try{let pdfs=[];if(dt.files&&dt.files.length>0){l
 async function collectFiles(entry,out){if(!entry)return;if(entry.isFile){out.push(await new Promise((r,rj)=>entry.file(r,rj)))}else if(entry.isDirectory){let rd=entry.createReader(),batch;do{batch=await new Promise((r,rj)=>rd.readEntries(r,rj));for(let e of batch)await collectFiles(e,out)}while(batch.length>0)}}
 
 function showToast(m){let t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._timeout);t._timeout=setTimeout(function(){t.classList.remove('show')},2000)}
-window.addEventListener('resize',function(){if(fitWidth)reRenderAll(captureReaderViewState());const g=Qs('bs-grid');if(g&&g.dataset.count)applyRackSizing(parseInt(g.dataset.count||'0',10))});
-document.addEventListener('contextmenu',function(e){let card=e.target.closest('.rack-book');if(!card)return;e.preventDefault();let sid=card.dataset.id,s=findSeries(sid);if(s)showModal('delete-confirm',{id:sid,name:s.name})});
+window.addEventListener('resize',function(){if(fitWidth)reRenderAll(captureReaderViewState());const g=Qs('bs-grid');if(g&&g.dataset.count)applyRackSizing(parseInt(g.dataset.count||'0',10));syncRackFixedBodies()});
+document.addEventListener('contextmenu',function(e){let card=e.target.closest('.rack-book');if(!card)return;e.preventDefault();let sid=card.dataset.id,s=findSeries(sid);if(s)showModal('rack-menu',{sid:sid})});
 initApp().then(()=>console.log('📚 v10 — interactive rack + import cover select'));
