@@ -162,9 +162,7 @@ function spineColor(name){
 
 let shelfEnterPending=true; // 书架首次渲染时播放入场交错浮现，之后重渲染（搜索/删除/翻页）不再重播
 function renderBookshelf(){
-  const grid=$('bs-grid'),total=$('bs-total'),continueEl=$('bs-continue'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf'),dock=$('bs-reading-dock');
-  if(shelf)shelf.classList.remove('has-reading-dock');
-  if(dock)dock.hidden=!0;
+  const grid=$('bs-grid'),total=$('bs-total'),continueEl=$('bs-continue'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf');
   if(activeGroupId&&activeGroupId!==UNGROUPED_GROUP_ID&&!getGroupById(activeGroupId))activeGroupId=null;
   renderGroupBar();
   total.textContent=bookshelf.length+' 部';
@@ -205,16 +203,6 @@ function renderBookshelf(){
       continueEl.hidden=!1;
       continueEl.innerHTML='<div class="continue-cover">'+recentCover+'</div><div class="continue-copy"><span class="continue-kicker">继续阅读</span><h2>'+recent.name+'</h2><p class="continue-meta">'+recentLabel+'</p></div><div class="continue-action"><button id="bs-continue-open">继续阅读 <span aria-hidden="true">→</span></button></div>';
       const continueButton=Qs('#bs-continue-open',continueEl);if(continueButton)continueButton.onclick=openRecent;
-      if(dock){
-        const dockStage=$('bs-dock-stage'),dockTitle=$('bs-dock-title'),dockMeta=$('bs-dock-meta'),dockChapter=$('bs-dock-chapter'),dockOpen=$('bs-dock-open');
-        if(shelf)shelf.classList.add('has-reading-dock');
-        dock.hidden=!1;
-        if(dockStage)dockStage.innerHTML='<div class="bs-dock-cover">'+recentCover+'</div><div class="bs-dock-stage-copy"><span>最近阅读</span><strong>'+recent.name+'</strong><p>'+recentLabel+'</p></div>';
-        if(dockTitle)dockTitle.textContent=recent.name;
-        if(dockMeta)dockMeta.textContent=recentLabel;
-        if(dockChapter)dockChapter.textContent=recent.lastChNum?'第 '+recent.lastChNum+' 话':'未开始';
-        if(dockOpen)dockOpen.onclick=openRecent;
-      }
     }
   }
   const PAGE_SIZE=12;
@@ -1266,7 +1254,6 @@ $('btn-cache-mgr').addEventListener('click',async function(){let stats=await db.
 $('btn-settings').addEventListener('click',function(){showModal('settings')});const setCoverBtn=$('btn-set-cover');if(setCoverBtn)setCoverBtn.addEventListener('click',function(){if(!currentSeries)return;showModal('set-cover',{sid:currentSeries})});
 $('bs-search').addEventListener('input',function(){searchQuery=this.value;renderBookshelf()});
 $('bs-sort').addEventListener('change',function(){sortMode=this.value;renderBookshelf()});
-$('bs-dock-shelf').addEventListener('click',function(){const pane=$('bs-library-pane');if(pane)pane.scrollTo({top:0,behavior:'smooth'})});
 $('bs-add-btn').addEventListener('click',function(){_pendingFilesMode=hasFolderPicker?'folder':'input';showAddModal()});
 $('btn-immersive').addEventListener('click',function(){if(chromeHidden)chromeShow();else chromeHide()});
 const themeToggleBtn=$('bs-theme-toggle');if(themeToggleBtn)themeToggleBtn.addEventListener('click',async function(){let t=document.documentElement.getAttribute('data-theme')==='day'?'night':'day';document.documentElement.setAttribute('data-theme',t);settings.theme=t;try{await db.saveSetting('theme',t)}catch(e){}showToast(t==='day'?'已切换到日间模式':'已切换到夜间模式')});

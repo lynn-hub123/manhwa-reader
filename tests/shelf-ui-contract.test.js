@@ -28,26 +28,18 @@ assert.match(html, /\.comic-panel-rule\{/,
   'comic identity should be expressed through restrained panel rules');
 assert.match(html, /id="bs-continue"[^>]*class="bs-continue"/,
   'the page should provide a continue-reading mount point');
-assert.match(html, /id="bs-reading-dock"[^>]*class="bs-reading-dock"/,
-  'desktop shelves should provide a dedicated current-reading dock');
-assert.match(html, /id="bs-dock-stage"/,
-  'the current-reading dock should expose a visual reading stage');
-assert.match(html, /@media\(min-width:900px\)\{[\s\S]*grid-template-columns:minmax\(620px,58%\)/,
-  'desktop bookshelf should give the library enough room beside the current-reading dock');
-assert.match(html, /@media\(min-width:900px\) and \(max-height:820px\)\{[\s\S]*grid-template-columns:minmax\(620px,58%\)/,
-  'short desktop shelves should keep the library wide and the reading dock compact');
-assert.match(html, /#bs-continue\{display:none!important\}/,
-  'desktop shelves should move the continue-reading card out of the left library column');
+assert.doesNotMatch(html, /bs-reading-dock/,
+  'the bulky right-side reading dock was removed; the compact continue-reading card serves all viewports');
+assert.doesNotMatch(html, /grid-template-columns:minmax\(620px,58%\)/,
+  'the bookshelf should stay a single roomy column without the reading dock');
 assert.match(html, /id="bs-library-head"[^>]*class="bs-section-head"/,
   'the page should provide a library section header mount point');
 assert.match(app, /shelf-cover-wrap/,
   'renderBookshelf should render a visible cover-first card');
 assert.match(app, /bs-continue/,
   'renderBookshelf should populate the continue-reading module');
-assert.match(app, /bs-reading-dock/,
-  'renderBookshelf should populate the current-reading dock');
-assert.match(app, /has-reading-dock/,
-  'the bookshelf should track whether a current-reading dock is available');
+assert.doesNotMatch(app, /has-reading-dock/,
+  'renderBookshelf should no longer track the removed reading dock');
 assert.match(app, /bs-empty-add/,
   'the empty bookshelf should expose a direct add action');
 assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/,
@@ -56,10 +48,6 @@ assert.match(html, /@media\(min-width:1100px\) and \(max-height:1200px\)\{[\s\S]
   'normal-height desktop shelves should fit the reference composition without shrinking text');
 assert.match(html, /\.bs-rack\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:12px 20px[\s\S]*max-width:100%/,
   'short desktop shelves should use breathable cover spacing across the widened library pane');
-assert.match(html, /#bs-library-pane\{[^}]*padding-left:12px/,
-  'the left library pane should keep rotated header and navigation controls inside its safe area');
-assert.match(html, /\.bs-dock-cover\{[^}]*width:min\(340px,73%\)/,
-  'the current-reading cover should scale up with the available right-pane width');
 assert.match(html, /\.bs-rack\.rack-add|\.bs-rack \.rack-add/,
   'the add card should have a desktop presentation rule');
 assert.match(html, /\.bs-continue\{[^}]*grid-template-rows:auto auto auto/,
