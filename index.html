@@ -181,7 +181,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft
 /* 空书架 */
 .bs-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--text2);padding:60px 0}
 .bs-empty .empty-icon{font-size:64px;opacity:.3}
-.bs-empty h2{font-size:20px;color:var(--text);margin-top:8px}
+.bs-empty h2{font-family:'Ma Shan Zheng',serif;font-size:24px;font-weight:400;color:var(--text);margin-top:8px;letter-spacing:.06em}
 .bs-empty p{font-size:14px;color:var(--text3);max-width:360px;text-align:center;line-height:1.7}
 /* ===== cover picker ===== */
 .cover-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;max-height:320px;overflow-y:auto}
@@ -323,7 +323,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .bs-brand{display:flex;align-items:center;gap:14px;min-width:220px}
 .bs-title-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--accent);border-radius:10px;color:var(--accent);font-size:18px;box-shadow:var(--shadow-inset);transform:rotate(45deg)}
 .bs-title-mark::first-letter{display:block}
-.bs-brand h1{font-size:28px;font-weight:800;line-height:1.1;color:var(--text);letter-spacing:.02em;text-shadow:none}
+.bs-brand h1{font-family:'Ma Shan Zheng',serif;font-size:30px;font-weight:400;line-height:1.1;color:var(--text);letter-spacing:.04em;text-shadow:none}
 .bs-subtitle{display:block;margin-top:5px;color:var(--text3);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
 .bs-header .bs-count{font-size:14px;color:var(--text3);align-self:flex-end;margin-bottom:3px}
 .bs-header input.bs-search{width:min(300px,30vw);min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:12px 18px;color:var(--text);font-size:15px;box-shadow:var(--shadow-inset);transition:border-color .16s,box-shadow .16s}
@@ -376,7 +376,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .continue-action button:hover{background:var(--accent-hover);box-shadow:var(--shadow)}
 .bs-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:0 0 26px;padding:0 3px 16px;border-bottom:1px solid var(--border);position:relative;flex-shrink:0}
 .bs-section-head::after{content:"";position:absolute;left:0;bottom:-1px;width:78px;height:2px;background:var(--accent);clip-path:polygon(0 0,100% 0,86% 100%,0 100%)}
-.bs-section-kicker{display:block;color:var(--text3);font-size:11px;letter-spacing:.16em;line-height:1.2;text-transform:uppercase;margin-bottom:6px}
+.bs-section-kicker{display:block;font-family:'Ma Shan Zheng',serif;color:var(--accent);font-size:15px;font-weight:400;letter-spacing:.3em;line-height:1.2;margin-bottom:6px;opacity:.85}
 .bs-section-head h2{font-size:24px;line-height:1.1;font-weight:800;color:var(--text)}
 .bs-section-tools{display:flex;align-items:center;gap:12px;color:var(--text3);font-size:14px}
 .bs-section-tools select{background:var(--surface);box-shadow:var(--shadow-soft);border-color:var(--border);border-radius:999px;padding:7px 28px 7px 11px}
@@ -599,13 +599,27 @@ select{box-shadow:var(--shadow-soft)}
 }
 
 /* ===== reduced motion ===== */
-
-/* ===== reduced motion ===== */
 @media (prefers-reduced-motion: reduce){
   .rack-rigid-book,.rack-pages,.rack-cover-box,.rack-physics-spine{transition:none!important;animation:none!important}
   .rack-book,.rack-add{transition:none!important}
+  .bs-rack.rack-enter .rack-book{animation:none!important}
   body.reader-active #topbar,body.reader-active #bottombar,body.reader-active #sidebar{transition:none!important}
 }
+
+/* ===== 书架入场：首次渲染交错浮现 ===== */
+@keyframes rackIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.bs-rack.rack-enter .rack-book{animation:rackIn .5s cubic-bezier(.22,.61,.36,1) both}
+.bs-rack.rack-enter .rack-book:nth-child(2){animation-delay:.05s}
+.bs-rack.rack-enter .rack-book:nth-child(3){animation-delay:.1s}
+.bs-rack.rack-enter .rack-book:nth-child(4){animation-delay:.15s}
+.bs-rack.rack-enter .rack-book:nth-child(5){animation-delay:.2s}
+.bs-rack.rack-enter .rack-book:nth-child(6){animation-delay:.25s}
+.bs-rack.rack-enter .rack-book:nth-child(7){animation-delay:.3s}
+.bs-rack.rack-enter .rack-book:nth-child(8){animation-delay:.35s}
+.bs-rack.rack-enter .rack-book:nth-child(9){animation-delay:.4s}
+.bs-rack.rack-enter .rack-book:nth-child(10){animation-delay:.45s}
+.bs-rack.rack-enter .rack-book:nth-child(11){animation-delay:.5s}
+.bs-rack.rack-enter .rack-book:nth-child(12){animation-delay:.55s}
 
 /* ===== 氛围层：灯光 + 晕影 + 纸纹（深夜书房）===== */
 #bookshelf::before,#reader::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:

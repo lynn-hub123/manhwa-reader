@@ -160,6 +160,7 @@ function spineColor(name){
   return 'hsl('+hue+',42%,42%)';
 }
 
+let shelfEnterPending=true; // 书架首次渲染时播放入场交错浮现，之后重渲染（搜索/删除/翻页）不再重播
 function renderBookshelf(){
   const grid=$('bs-grid'),total=$('bs-total'),continueEl=$('bs-continue'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf'),dock=$('bs-reading-dock');
   if(shelf)shelf.classList.remove('has-reading-dock');
@@ -238,6 +239,7 @@ function renderBookshelf(){
   const addCardClass=pageBooks.length<4?' is-prominent':'';
   html+='<div class="rack-add'+addCardClass+'" id="bs-add-card"><div class="add-icon">＋</div><div class="add-label">添加</div></div>';
   grid.innerHTML=html;
+  if(shelfEnterPending&&pageBooks.length){shelfEnterPending=false;grid.classList.add('rack-enter');setTimeout(function(){grid.classList.remove('rack-enter')},1600)}
   grid.querySelectorAll('.rack-book[data-id]').forEach(card=>{card.addEventListener('click',function(e){if(e.target.closest('.change-cover-btn')||e.target.closest('.rack-menu-btn'))return;openSeries(this.dataset.id)});card.addEventListener('keydown',function(e){if(e.target.closest('.change-cover-btn')||e.target.closest('.rack-menu-btn'))return;if(e.key==='Enter'||e.key===' '){e.preventDefault();openSeries(this.dataset.id)}})});
   grid.querySelectorAll('.change-cover-btn').forEach(btn=>{btn.addEventListener('click',function(e){e.stopPropagation();showModal('cover-pick',{sid:this.dataset.coverSid})})});
   grid.querySelectorAll('.rack-menu-btn').forEach(btn=>{btn.addEventListener('click',function(e){e.stopPropagation();showModal('rack-menu',{sid:this.dataset.menuSid})})});
