@@ -474,10 +474,11 @@ function makeTextCover(name){
     const W=600,H=840;
     const cv=document.createElement('canvas');cv.width=W;cv.height=H;
     const ctx=cv.getContext('2d');
-    const accent=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#7FA08A';
-    // soft gradient
-    const g=ctx.createLinearGradient(0,0,W,H);
-    g.addColorStop(0,accent);g.addColorStop(0.45,'#f4efe8');g.addColorStop(1,accent);
+    let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
+    const hue=h%360,sat=26+(h>>3)%16,li=22+(h>>6)%10;
+    // 布面书壳：按书名散列出不同色相，像一排不同封布的书
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'hsl('+hue+' '+sat+'% '+(li+9)+'%)');g.addColorStop(1,'hsl('+hue+' '+(sat+8)+'% '+(li-9)+'%)');
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
     // subtle paper grain
     ctx.globalAlpha=.04;ctx.fillStyle='#fff';
@@ -913,7 +914,7 @@ function showModal(type,data){
    }
   else if(type==='reader-more'){
     title='阅读操作';
-    body='<div class="reader-action-list"><button id="reader-more-directory" type="button">目录</button><button id="reader-more-settings" type="button">阅读设置</button><button id="reader-more-cover" type="button">设封面</button><button id="reader-more-files" type="button">追加 PDF 文件</button>'+(hasFolderPicker?'<button id="reader-more-folder" type="button">追加文件夹</button>':'')+'</div>';
+    body='<div class="reader-action-list"><button id="reader-more-directory" type="button">目录</button><button id="reader-more-immersive" type="button">沉浸模式</button><button id="reader-more-settings" type="button">阅读设置</button><button id="reader-more-cover" type="button">设封面</button><button id="reader-more-files" type="button">追加 PDF 文件</button>'+(hasFolderPicker?'<button id="reader-more-folder" type="button">追加文件夹</button>':'')+'</div>';
     actions='<button id="modal-cancel">关闭</button>';
   }
   else if(type==='cover-pick'){title='🖼 更换封面';body='<p>选择一张预览图，确认后会重新生成清晰封面：</p><div class="cover-pick-grid" id="cover-pick-grid"><p style="color:var(--text3);font-size:12px">正在加载缩略图…</p></div>';actions='<button id="cover-open-reader">进入阅读器手动选图</button><button id="cover-make-text">文字封面</button><button id="cover-upload">上传</button><button id="modal-reset-cover">恢复默认</button><button id="modal-cancel">取消</button>';
@@ -937,6 +938,7 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions'+(type==='cove
    if(readerMoreSettings)readerMoreSettings.onclick=function(){closeModal();showModal('settings')};
    if(readerMoreCover)readerMoreCover.onclick=function(){closeModal();showModal('set-cover',{sid:currentSeries})};
    if(readerMoreFiles)readerMoreFiles.onclick=async function(){closeModal();if(currentSeries){const files=await pickFilesViaInput();if(files&&files.length)await importFilesToSeries(currentSeries,files)}};
+   const readerMoreImmersive=Qs('#reader-more-immersive',mc);if(readerMoreImmersive)readerMoreImmersive.onclick=function(){closeModal();if(chromeHidden)chromeShow();else chromeHide()};
    const readerMoreFolder=Qs('#reader-more-folder',mc);if(readerMoreFolder)readerMoreFolder.onclick=async function(){closeModal();if(currentSeries){const files=await pickFolder();if(files&&files.length)await importFilesToSeries(currentSeries,files)}};
   if(type==='add-choose'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let r=Qs('input[name="addType"]:checked',mc),isNew=!r||r.value==='new';closeModal();try{let files;if(_pendingFiles&&_pendingFiles.length){files=_pendingFiles;_pendingFiles=null}else{if(hasFolderPicker&&_pendingFilesMode!=='input')files=await pickFolder();else files=await pickFilesViaInput()}if(!files||!files.length)return;if(isNew){_pendingFiles=files;_pendingFilesMode='drop';showModal('add-name')}else{let sel=Qs('#modal-existing-select',mc);if(!sel){showToast('没有可用的系列');return}let sid=sel.value;if(sid)await importFilesToSeries(sid,files);else showToast('没有可用的系列')}}catch(e){console.error(e);showToast('操作失败')}}}
   else if(type==='add-name'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let ni=$('modal-name');if(!ni){closeModal();return}let name=ni.value.trim();if(!name){showToast('请输入名称');return}closeModal();let files=_pendingFiles;_pendingFiles=null;if(files)await createSeries(name,files);else showToast('未找到文件，请重新选择')};setTimeout(()=>{let inp=$('modal-name');if(inp){inp.focus();inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&confirmBtn)confirmBtn.click()})}},100)}
@@ -1193,11 +1195,12 @@ async function nextChapter(){if(currentChIdx+1<chapters.length){setChapterStatus
 async function prevChapter(){if(currentChIdx>0){setChapterStatus(currentChIdx,'read');await loadChapter(currentChIdx-1);if(!isWebtoon)goToPage(chapters[currentChIdx].pages||1);showToast('◀ 第'+chapters[currentChIdx].chapterNum+'话')}else showToast('已经是第一章了')}
 function updateNavButtons(){$('btn-prev-ch').disabled=currentChIdx<=0;$('btn-next-ch').disabled=currentChIdx>=chapters.length-1}
 function updatePageInfo(){let t='- / -';if(pdfDoc)t=isWebtoon?'滚动 '+getScrollProgress()+'%':currentPage+' / '+pdfDoc.numPages;$('page-info').textContent=t;const hud=$('page-hud');if(hud)hud.textContent=t}
-let chromeTimer=null,chromeHidden=!1;
-function chromeShow(){if(chromeTimer)clearTimeout(chromeTimer);chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden');if($('reader').classList.contains('hidden'))return;chromeTimer=setTimeout(chromeHide,3500)}
-function chromeHide(){if(chromeHidden||$('reader').classList.contains('hidden'))return;chromeHidden=!0;document.body.classList.add('reader-chrome-hidden')}
-function stopReaderChrome(){if(chromeTimer){clearTimeout(chromeTimer);chromeTimer=null}chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden')}
-(function(){const rd=$('reader');let lastWake=0;const wake=function(){const now=Date.now();if(now-lastWake<250)return;lastWake=now;if(chromeHidden)chromeShow();else if(!rd.classList.contains('hidden')){if(chromeTimer)clearTimeout(chromeTimer);chromeTimer=setTimeout(chromeHide,3500)}};rd.addEventListener('mousemove',wake);rd.addEventListener('touchstart',wake,{passive:!0});rd.addEventListener('pointerdown',function(e){if(e.target.closest('#topbar,#bottombar,#sidebar'))return;wake()})})();
+let chromeHidden=!1;
+function chromeShow(){chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden');updateImmersiveBtn()}
+function chromeHide(){if(chromeHidden)return;chromeHidden=!0;document.body.classList.add('reader-chrome-hidden');updateImmersiveBtn()}
+function stopReaderChrome(){chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden');updateImmersiveBtn()}
+function updateImmersiveBtn(){const label=chromeHidden?'退出沉浸':'沉浸模式';const b=$('btn-immersive');if(b)b.textContent=label;const m=$('reader-more-immersive');if(m)m.textContent=label}
+(function(){const rd=$('reader');rd.addEventListener('pointerdown',function(e){if(e.target.closest('#topbar,#bottombar,#sidebar'))return;if(chromeHidden)chromeShow()});document.addEventListener('keydown',function(e){if(e.key==='Escape'&&chromeHidden)chromeShow()})})();
 async function saveProgress(pageProgressOverride){if(currentChIdx<0||!currentSeries||restoringProgress)return;let s=findSeries(currentSeries);if(s){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastReadAt=Date.now();s.lastPage=isWebtoon?getScrollProgress():currentPage;if(!isWebtoon){let ratio=pageProgressOverride===undefined?getNormalPageProgress():window.ReadingProgress.normalizePageRatio(pageProgressOverride);if(ratio!==null)s.lastPageProgress=ratio}saveSeriesBg(s)}}
 
 // ===== Event Bindings =====
@@ -1263,6 +1266,8 @@ $('bs-search').addEventListener('input',function(){searchQuery=this.value;render
 $('bs-sort').addEventListener('change',function(){sortMode=this.value;renderBookshelf()});
 $('bs-dock-shelf').addEventListener('click',function(){const pane=$('bs-library-pane');if(pane)pane.scrollTo({top:0,behavior:'smooth'})});
 $('bs-add-btn').addEventListener('click',function(){_pendingFilesMode=hasFolderPicker?'folder':'input';showAddModal()});
+$('btn-immersive').addEventListener('click',function(){if(chromeHidden)chromeShow();else chromeHide()});
+const themeToggleBtn=$('bs-theme-toggle');if(themeToggleBtn)themeToggleBtn.addEventListener('click',async function(){let t=document.documentElement.getAttribute('data-theme')==='day'?'night':'day';document.documentElement.setAttribute('data-theme',t);settings.theme=t;try{await db.saveSetting('theme',t)}catch(e){}showToast(t==='day'?'已切换到日间模式':'已切换到夜间模式')});
 $('btn-add-files-reader').addEventListener('click',async function(){if(!currentSeries)return;let files=await pickFilesViaInput();if(files&&files.length)await importFilesToSeries(currentSeries,files)});
 $('btn-add-folder-reader').addEventListener('click',async function(){if(!currentSeries)return;let files=await pickFolder();if(files&&files.length)await importFilesToSeries(currentSeries,files)});
 

@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#171412">
+<meta name="theme-color" content="#131A15">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,20 +29,20 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
 
-/* ===== 深夜书房 night（默认）===== */
+/* ===== 深夜书房 night（默认）· 墨绿 ===== */
 :root,[data-theme="night"]{
---bg:#171412;--surface:#201C17;--surface2:#292420;--card:#231F1A;
+--bg:#131A15;--surface:#1B241E;--surface2:#232D26;--card:#1D2721;
 --accent:#C9A45C;--accent-hover:#DDB973;
 --accent-soft:rgba(201,164,92,.15);--accent-glow:rgba(201,164,92,.2);
 --accent-ink:#241E12;
---text:#EFE9DC;--text2:#B9B1A1;--text3:#867D6C;
---border:#3B352B;--shadow:10px 10px 22px rgba(10,7,4,.42),-8px -8px 18px rgba(96,84,62,.12);
---shadow-soft:6px 6px 14px rgba(10,7,4,.28),-5px -5px 12px rgba(96,84,62,.1);
---shadow-inset:inset 4px 4px 9px rgba(10,7,4,.25),inset -4px -4px 9px rgba(96,84,62,.1);
---shadow-pressed:inset 3px 3px 7px rgba(10,7,4,.3),inset -3px -3px 7px rgba(96,84,62,.08);
---dot-unread:#6B6355;--dot-reading:#C9A45C;--dot-read:#7FA98C;
---shelf:#292420;--shelf-edge:#3B352B;--shelf-shadow:rgba(10,7,4,.42);
---book-shadow:rgba(10,7,4,.32);--book-spine:rgba(255,255,255,.08);
+--text:#EFE9DC;--text2:#B4B2A3;--text3:#7F857A;
+--border:#34403A;--shadow:10px 10px 22px rgba(4,8,5,.46),-8px -8px 18px rgba(58,74,62,.14);
+--shadow-soft:6px 6px 14px rgba(4,8,5,.3),-5px -5px 12px rgba(58,74,62,.1);
+--shadow-inset:inset 4px 4px 9px rgba(4,8,5,.26),inset -4px -4px 9px rgba(58,74,62,.12);
+--shadow-pressed:inset 3px 3px 7px rgba(4,8,5,.32),inset -3px -3px 7px rgba(58,74,62,.08);
+--dot-unread:#5E6A60;--dot-reading:#C9A45C;--dot-read:#7FA98C;
+--shelf:#232D26;--shelf-edge:#34403A;--shelf-shadow:rgba(4,8,5,.46);
+--book-shadow:rgba(4,8,5,.36);--book-spine:rgba(255,255,255,.08);
 --radius:12px;--radius-sm:8px;
 }
 
@@ -631,8 +631,15 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 .ghost.icon-only svg{display:block}
 .ghost.icon-only:hover{color:var(--text)}
 
-/* ===== 手机阅读器顶栏减负（操作收进「更多」菜单）===== */
-@media(max-width:780px){#topbar .reader-secondary{display:none!important}}
+/* ===== 阅读器顶栏减负：操作全部收进「更多」菜单（全宽度生效）===== */
+#topbar .reader-secondary{display:none!important}
+
+/* ===== 桌面隐藏 PWA 安装说明（手机端保留）===== */
+@media(min-width:781px){#pwa-info{display:none}}
+
+/* ===== 书架卡片：受光立面感（顶亮底暗，像立在灯下的书）===== */
+.rack-cover-box{box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -3px 8px rgba(0,0,0,.30)}
+.rack-cover-box img{filter:brightness(1.02) saturate(1.02)}
 </style>
 </head>
 <body>
@@ -642,7 +649,7 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 <div id="bs-library-pane">
 <div class="bs-header"><div class="bs-brand"><span class="bs-title-mark" aria-hidden="true">◈</span><div><h1>我的书架</h1><span class="bs-subtitle">漫画阅读器</span></div></div><span class="bs-count" id="bs-total">共 0 部</span>
 <input class="bs-search" id="bs-search" placeholder="搜索漫画"><span class="spacer"></span>
-<button class="ghost icon-only" id="bs-settings-btn" aria-label="设置" title="设置"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button class="ghost icon-only" id="btn-cache-mgr" aria-label="缓存管理" title="缓存管理"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></button><div class="btn-group"><button id="bs-add-btn">＋ 添加漫画</button></div></div>
+<button class="ghost icon-only" id="bs-theme-toggle" aria-label="切换日夜主题" title="切换日夜主题"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button><button class="ghost icon-only" id="bs-settings-btn" aria-label="设置" title="设置"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button class="ghost icon-only" id="btn-cache-mgr" aria-label="缓存管理" title="缓存管理"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></button><div class="btn-group"><button id="bs-add-btn">＋ 添加漫画</button></div></div>
 <div id="bs-group-rail" class="bs-group-rail"><button class="bs-group-scroll-btn" id="bs-group-prev" type="button" aria-label="向左查看分组">‹</button><nav id="bs-groups" class="bs-groups" aria-label="漫画分组"></nav><button class="bs-group-scroll-btn" id="bs-group-next" type="button" aria-label="向右查看分组">›</button></div>
 <section id="bs-continue" class="bs-continue" hidden></section>
 <div id="bs-library-head" class="bs-section-head"><div><span class="bs-section-kicker">书房藏书</span><h2 id="bs-library-title">全部漫画</h2></div><div class="bs-section-tools"><span id="bs-library-count"></span><select id="bs-sort"><option value="recent">最近阅读</option><option value="name">名称排序</option><option value="created">添加时间</option></select></div></div>
@@ -650,7 +657,7 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 </div>
 <aside id="bs-reading-dock" class="bs-reading-dock" hidden aria-label="正在阅读"><div class="bs-dock-shell"><div class="bs-dock-header"><button id="bs-dock-shelf" type="button">← 书架</button><strong>正在阅读</strong><span id="bs-dock-chapter">—</span></div><div id="bs-dock-stage" class="bs-dock-stage"></div><div class="bs-dock-footer"><div><strong id="bs-dock-title">—</strong><span id="bs-dock-meta">—</span></div><button id="bs-dock-open" type="button">继续阅读 <span aria-hidden="true">→</span></button></div></div></aside>
 </div>
-<div id="reader" class="hidden"><div id="topbar"><button class="back-btn" id="btn-back">← 书架</button><span class="logo" aria-hidden="true">◈</span><span class="sep"></span><span class="info" id="ch-info">未加载章节</span><span class="spacer"></span><button class="reader-secondary" id="btn-settings">设置</button><button class="reader-secondary" id="btn-set-cover">设封面</button><button class="reader-secondary" id="btn-add-files-reader">追加文件</button><button class="reader-secondary" id="btn-add-folder-reader" style="display:none">追加文件夹</button><button class="reader-secondary" id="btn-toggle-sidebar">目录</button><button id="btn-reader-more" type="button" aria-label="更多阅读操作">更多</button><select id="zoom-select"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5" selected>150%</option><option value="2">200%</option><option value="fit">适应宽度</option></select></div>
+<div id="reader" class="hidden"><div id="topbar"><button class="back-btn" id="btn-back">← 书架</button><span class="logo" aria-hidden="true">◈</span><span class="sep"></span><span class="info" id="ch-info">未加载章节</span><span class="spacer"></span><button class="reader-secondary" id="btn-settings">设置</button><button class="reader-secondary" id="btn-set-cover">设封面</button><button class="reader-secondary" id="btn-add-files-reader">追加文件</button><button class="reader-secondary" id="btn-add-folder-reader" style="display:none">追加文件夹</button><button class="reader-secondary" id="btn-toggle-sidebar">目录</button><button id="btn-reader-more" type="button" aria-label="更多阅读操作">更多</button><button id="btn-immersive" type="button">沉浸模式</button><select id="zoom-select"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5" selected>150%</option><option value="2">200%</option><option value="fit">适应宽度</option></select></div>
 <div id="main"><div id="sidebar"><div id="sidebar-resizer"></div><div id="sidebar-header"><span>章节列表</span><span id="ch-count" style="font-size:11px;opacity:.6"></span></div><div id="chapter-list"></div></div><div id="viewer-area"><div id="loading"><div class="spinner"></div><div class="load-text" id="load-text">加载中...</div></div><div id="page-container"></div><div id="page-hud" aria-hidden="true"></div></div></div>
 <div id="bottombar"><button id="btn-prev-ch">◀◀ 上一章</button><button id="btn-prev-pg">◀</button><span class="page-info" id="page-info">- / -</span><input type="range" id="page-slider" min="1" value="1" step="1" disabled><button id="btn-next-pg">▶</button><button id="btn-next-ch">下一章 ▶▶</button></div></div>
 <div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-content"></div></div><div id="drop-overlay"><div class="drop-text">📥 松开以加载</div></div><div id="toast"></div>
