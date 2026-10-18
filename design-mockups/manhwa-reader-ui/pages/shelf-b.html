@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书架 · 暖纸书店</title>
+    <style id="theme-vars">
+/* ============================================================
+   韩漫阅读器 · 方向 B「暖纸书店」
+   暖纸白/米灰底 + 低饱和深绿点缀，文具店/书店的温柔质感
+   演示主题：日间（html.light）；同时提供完整夜间色板
+   字体层级：苹方系统栈，字号略大、行距宽松，圆角更饱满
+   ============================================================ */
+
+:root {
+  /* —— 语义别名 · 日间（暖纸） —— */
+  --mr-background: #f6f2e8;
+  --mr-foreground: #2f2c25;
+  --mr-card: #fcfaf3;
+  --mr-card-foreground: #2f2c25;
+  --mr-popover: #fffdf6;
+  --mr-popover-foreground: #2f2c25;
+  --mr-primary: #4c5f50;
+  --mr-primary-foreground: #f6f4ea;
+  --mr-muted: #ebe6d7;
+  --mr-muted-foreground: #7b7565;
+  --mr-border: rgba(47, 44, 37, 0.12);
+  --mr-input: rgba(47, 44, 37, 0.07);
+  --mr-ring: #4c5f50;
+
+  /* 圆角层级（比 A 更饱满一档） */
+  --mr-radius-sm: 10px;
+  --mr-radius-md: 14px;
+  --mr-radius-lg: 20px;
+
+  /* —— 扩展令牌 · 日间 —— */
+  --mr-ink-3: #a29b89;
+  --mr-line: rgba(47, 44, 37, 0.09);
+  --mr-line-strong: rgba(47, 44, 37, 0.16);
+  --mr-brand-soft: rgba(76, 95, 80, 0.12);
+  --mr-brand-soft-2: rgba(76, 95, 80, 0.24);
+  --mr-glass: rgba(246, 242, 232, 0.86);
+  --mr-scrim: rgba(47, 44, 37, 0.32);
+  --mr-stage: #efeadd;
+  --mr-page: #e0dac9;
+  --mr-page-line: rgba(47, 44, 37, 0.14);
+  --mr-track: rgba(47, 44, 37, 0.12);
+  --mr-shadow-1: 0 1px 3px rgba(60, 52, 38, 0.05), 0 1px 2px rgba(60, 52, 38, 0.03);
+  --mr-shadow-float: 0 18px 50px -18px rgba(60, 52, 38, 0.32);
+  --mr-cover-1: #dfe4d6;
+  --mr-cover-2: #e9dfc6;
+  --mr-cover-3: #e2d5c4;
+  --mr-cover-4: #d7ddd0;
+  --mr-cover-5: #e6dccf;
+  --mr-cover-6: #d9d2bd;
+  --mr-cover-7: #dce2d9;
+  --mr-cover-8: #e3d8c9;
+  --mr-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --mr-font-display: "SF Pro Display", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mr-font-cover: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+:root.dark {
+  /* —— 语义别名 · 夜间（夜读暖灯） —— */
+  --mr-background: #22251f;
+  --mr-foreground: #eae6d8;
+  --mr-card: #2a2e26;
+  --mr-card-foreground: #eae6d8;
+  --mr-popover: #31352b;
+  --mr-popover-foreground: #eae6d8;
+  --mr-primary: #9db299;
+  --mr-primary-foreground: #1e211c;
+  --mr-muted: #32362c;
+  --mr-muted-foreground: #a8a493;
+  --mr-border: rgba(234, 230, 216, 0.11);
+  --mr-input: rgba(234, 230, 216, 0.07);
+  --mr-ring: #9db299;
+
+  /* —— 扩展令牌 · 夜间 —— */
+  --mr-ink-3: #71705f;
+  --mr-line: rgba(234, 230, 216, 0.08);
+  --mr-line-strong: rgba(234, 230, 216, 0.15);
+  --mr-brand-soft: rgba(157, 178, 153, 0.13);
+  --mr-brand-soft-2: rgba(157, 178, 153, 0.26);
+  --mr-glass: rgba(34, 37, 31, 0.8);
+  --mr-scrim: rgba(12, 13, 10, 0.55);
+  --mr-stage: #1c1f18;
+  --mr-page: #34382e;
+  --mr-page-line: rgba(234, 230, 216, 0.12);
+  --mr-track: rgba(234, 230, 216, 0.14);
+  --mr-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --mr-shadow-float: 0 20px 56px -18px rgba(0, 0, 0, 0.55);
+  --mr-cover-1: #38402f;
+  --mr-cover-2: #453d28;
+  --mr-cover-3: #43382b;
+  --mr-cover-4: #36402f;
+  --mr-cover-5: #42392c;
+  --mr-cover-6: #403a26;
+  --mr-cover-7: #333d30;
+  --mr-cover-8: #453a2e;
+}
+
+/* —— 基础版式 —— */
+.mr-app {
+  font-family: var(--mr-font-body);
+  letter-spacing: 0.012em;
+  font-variant-numeric: tabular-nums;
+}
+.mr-app h1, .mr-app h2, .mr-app h3 {
+  font-family: var(--mr-font-display);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+.mr-hairline { border-color: var(--mr-line); }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--mr-background);
+    --color-foreground: var(--mr-foreground);
+    --color-card: var(--mr-card);
+    --color-card-foreground: var(--mr-card-foreground);
+    --color-popover: var(--mr-popover);
+    --color-popover-foreground: var(--mr-popover-foreground);
+    --color-primary: var(--mr-primary);
+    --color-primary-foreground: var(--mr-primary-foreground);
+    --color-muted: var(--mr-muted);
+    --color-muted-foreground: var(--mr-muted-foreground);
+    --color-border: var(--mr-border);
+    --color-input: var(--mr-input);
+    --color-ring: var(--mr-ring);
+    --radius-sm: var(--mr-radius-sm);
+    --radius-md: var(--mr-radius-md);
+    --radius-lg: var(--mr-radius-lg);
+  }
+  @layer base {
+    body { background: var(--mr-background); color: var(--mr-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--mr-background); }
+      .text-background { color: var(--mr-background); }
+      .border-background { border-color: var(--mr-background); }
+      .ring-background { --tw-ring-color: var(--mr-background); }
+      .bg-foreground { background-color: var(--mr-foreground); }
+      .text-foreground { color: var(--mr-foreground); }
+      .border-foreground { border-color: var(--mr-foreground); }
+      .ring-foreground { --tw-ring-color: var(--mr-foreground); }
+      .bg-card { background-color: var(--mr-card); }
+      .text-card { color: var(--mr-card); }
+      .border-card { border-color: var(--mr-card); }
+      .ring-card { --tw-ring-color: var(--mr-card); }
+      .bg-card-foreground { background-color: var(--mr-card-foreground); }
+      .text-card-foreground { color: var(--mr-card-foreground); }
+      .border-card-foreground { border-color: var(--mr-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--mr-card-foreground); }
+      .bg-popover { background-color: var(--mr-popover); }
+      .text-popover { color: var(--mr-popover); }
+      .border-popover { border-color: var(--mr-popover); }
+      .ring-popover { --tw-ring-color: var(--mr-popover); }
+      .bg-popover-foreground { background-color: var(--mr-popover-foreground); }
+      .text-popover-foreground { color: var(--mr-popover-foreground); }
+      .border-popover-foreground { border-color: var(--mr-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--mr-popover-foreground); }
+      .bg-primary { background-color: var(--mr-primary); }
+      .text-primary { color: var(--mr-primary); }
+      .border-primary { border-color: var(--mr-primary); }
+      .ring-primary { --tw-ring-color: var(--mr-primary); }
+      .bg-primary-foreground { background-color: var(--mr-primary-foreground); }
+      .text-primary-foreground { color: var(--mr-primary-foreground); }
+      .border-primary-foreground { border-color: var(--mr-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--mr-primary-foreground); }
+      .bg-muted { background-color: var(--mr-muted); }
+      .text-muted { color: var(--mr-muted); }
+      .border-muted { border-color: var(--mr-muted); }
+      .ring-muted { --tw-ring-color: var(--mr-muted); }
+      .bg-muted-foreground { background-color: var(--mr-muted-foreground); }
+      .text-muted-foreground { color: var(--mr-muted-foreground); }
+      .border-muted-foreground { border-color: var(--mr-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--mr-muted-foreground); }
+      .bg-border { background-color: var(--mr-border); }
+      .text-border { color: var(--mr-border); }
+      .border-border { border-color: var(--mr-border); }
+      .ring-border { --tw-ring-color: var(--mr-border); }
+      .bg-input { background-color: var(--mr-input); }
+      .text-input { color: var(--mr-input); }
+      .border-input { border-color: var(--mr-input); }
+      .ring-input { --tw-ring-color: var(--mr-input); }
+      .bg-ring { background-color: var(--mr-ring); }
+      .text-ring { color: var(--mr-ring); }
+      .border-ring { border-color: var(--mr-ring); }
+      .ring-ring { --tw-ring-color: var(--mr-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+      <div class="mr-app">
+        <div class="frame">
+          <header class="topbar" id="shelf-header">
+            <div class="brand">
+              <span class="brand-mark"><i data-lucide="book-open"></i></span>
+              <span class="brand-name">漫读</span>
+              <span class="brand-sub">书库</span>
+            </div>
+            <span class="v-divider"></span>
+            <div class="search" role="search">
+              <i data-lucide="search"></i>
+              <span class="search-text">搜索书名 / 作者</span>
+              <span class="kbd">⌘K</span>
+            </div>
+            <div class="spacer"></div>
+            <button class="ghost-pill" type="button"><span>最近阅读</span><i data-lucide="chevron-down"></i></button>
+            <button class="icon-btn" type="button" aria-label="切换日夜主题"><i data-lucide="moon"></i></button>
+            <button class="icon-btn" type="button" aria-label="设置"><i data-lucide="settings-2"></i></button>
+            <button class="primary-pill" type="button"><i data-lucide="plus"></i><span>添加漫画</span></button>
+          </header>
+
+          <div class="content">
+            <div class="chips-row">
+              <div class="segmented" role="tablist" aria-label="收藏分组">
+                <button class="seg active" type="button">全部 <em>12</em></button>
+                <button class="seg" type="button">在读 <em>9</em></button>
+                <button class="seg" type="button">未读 <em>2</em></button>
+                <button class="seg" type="button">已完结 <em>1</em></button>
+              </div>
+            </div>
+
+            <section class="grid" id="shelf-grid" aria-label="漫画书架">
+              <article class="book" tabindex="0" data-dom-id="shelf-b-continue-book">
+                <div class="cover c1"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">全知读者视角</span><span class="stamp"></span>
+                  <span class="badge"><i class="badge-dot"></i>继续阅读</span></div>
+                <h3 class="book-title">全知读者视角</h3>
+                <p class="book-meta">已读 138 / 551 话</p>
+                <div class="progress"><span class="fill" style="width:25%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c2"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">我独自升级</span><span class="stamp"></span></div>
+                <h3 class="book-title">我独自升级</h3>
+                <p class="book-meta">已读 112 / 179 话</p>
+                <div class="progress"><span class="fill" style="width:63%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c3"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">造物主游戏</span><span class="stamp"></span></div>
+                <h3 class="book-title">造物主游戏</h3>
+                <p class="book-meta">已读 201 / 240 话</p>
+                <div class="progress"><span class="fill" style="width:84%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c4"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">双面侦探</span><span class="stamp"></span></div>
+                <h3 class="book-title">双面侦探</h3>
+                <p class="book-meta">已读 89 / 92 话</p>
+                <div class="progress"><span class="fill" style="width:97%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c5"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">时光胶囊</span><span class="stamp"></span></div>
+                <h3 class="book-title">时光胶囊</h3>
+                <p class="book-meta">已完结 · 156 话</p>
+                <div class="progress"><span class="fill" style="width:100%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c6"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">猎魔手记</span><span class="stamp"></span></div>
+                <h3 class="book-title">猎魔手记</h3>
+                <p class="book-meta">已读 67 / 89 话</p>
+                <div class="progress"><span class="fill" style="width:75%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c7"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">深夜书店</span><span class="stamp"></span></div>
+                <h3 class="book-title">深夜书店</h3>
+                <p class="book-meta">已读 23 / 86 话</p>
+                <div class="progress"><span class="fill" style="width:27%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c8"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">光之继承者</span><span class="stamp"></span></div>
+                <h3 class="book-title">光之继承者</h3>
+                <p class="book-meta">已读 45 / 120 话</p>
+                <div class="progress"><span class="fill" style="width:38%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c1"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">白夜浮生录</span><span class="stamp"></span></div>
+                <h3 class="book-title">白夜浮生录</h3>
+                <p class="book-meta">已读 12 / 150 话</p>
+                <div class="progress"><span class="fill" style="width:8%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c3"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">剑与炼金术</span><span class="stamp"></span></div>
+                <h3 class="book-title">剑与炼金术</h3>
+                <p class="book-meta">已读 34 / 78 话</p>
+                <div class="progress"><span class="fill" style="width:44%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c2"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">雾都异闻</span><span class="stamp"></span></div>
+                <h3 class="book-title">雾都异闻</h3>
+                <p class="book-meta">未读 · 32 话</p>
+                <div class="progress"><span class="fill" style="width:0%"></span></div>
+              </article>
+              <article class="book" tabindex="0">
+                <div class="cover c5"><span class="cover-frame"></span><span class="cover-rule"></span><span class="cover-title-h">星辰变奏曲</span><span class="stamp"></span></div>
+                <h3 class="book-title">星辰变奏曲</h3>
+                <p class="book-meta">未读 · 64 话</p>
+                <div class="progress"><span class="fill" style="width:0%"></span></div>
+              </article>
+            </section>
+          </div>
+
+          <footer class="statusbar">
+            <span>本地书库 · 12 部作品 · 3.2 GB</span>
+            <span>上次扫描 今天 14:32 · 日夜主题跟随系统</span>
+          </footer>
+        </div>
+      </div>
+    </main>
+    <style id="page-css">
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+      svg { display: block; }
+      :focus-visible { outline: 2px solid var(--mr-ring); outline-offset: 2px; border-radius: 999px; }
+      .mr-app { background: var(--mr-background); color: var(--mr-foreground); }
+      .frame { max-width: 1440px; min-height: 900px; margin: 0 auto; display: flex; flex-direction: column; }
+      .spacer { flex: 1; }
+      .v-divider { width: 1px; height: 20px; background: var(--mr-border); }
+      .topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 32px; background: var(--mr-glass); backdrop-filter: blur(18px) saturate(1.15); -webkit-backdrop-filter: blur(18px) saturate(1.15); border-bottom: 1px solid var(--mr-border); }
+      .brand { display: flex; align-items: center; gap: 9px; }
+      .brand-mark { display: flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 999px; background: var(--mr-primary); color: var(--mr-primary-foreground); }
+      .brand-mark svg { width: 14px; height: 14px; }
+      .brand-name { font-family: var(--mr-font-display); font-size: 16px; font-weight: 650; letter-spacing: 0.06em; }
+      .brand-sub { font-size: 10.5px; color: var(--mr-ink-3); letter-spacing: 0.18em; border: 1px solid var(--mr-line-strong); border-radius: 999px; padding: 2px 7px 2px 9px; }
+      .search { display: flex; align-items: center; gap: 8px; width: 250px; height: 36px; padding: 0 6px 0 12px; border-radius: 999px; background: var(--mr-input); border: 1px solid var(--mr-border); color: var(--mr-ink-3); }
+      .search svg { width: 15px; height: 15px; }
+      .search-text { font-size: 12.5px; flex: 1; text-align: left; }
+      .kbd { font-size: 10.5px; color: var(--mr-muted-foreground); border: 1px solid var(--mr-border); border-radius: 6px; padding: 1px 6px; background: var(--mr-card); }
+      .ghost-pill { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--mr-border); color: var(--mr-muted-foreground); font-size: 12.5px; transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1); }
+      .ghost-pill svg { width: 14px; height: 14px; }
+      .ghost-pill:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--mr-border); color: var(--mr-muted-foreground); transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1); }
+      .icon-btn svg { width: 15px; height: 15px; }
+      .icon-btn:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .primary-pill { display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 16px; border-radius: 999px; background: var(--mr-primary); color: var(--mr-primary-foreground); font-size: 13px; font-weight: 600; transition: transform .16s cubic-bezier(.2,.8,.2,1), filter .16s cubic-bezier(.2,.8,.2,1); }
+      .primary-pill svg { width: 15px; height: 15px; }
+      .primary-pill:hover { transform: translateY(-1px); filter: brightness(1.05); }
+      .primary-pill:active { transform: translateY(0); }
+      .content { width: 100%; max-width: 1000px; margin: 0 auto; padding: 18px 32px 14px; flex: 1; display: flex; flex-direction: column; }
+      .segmented { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mr-muted); }
+      .seg { display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 13px; border-radius: 999px; font-size: 12.5px; color: var(--mr-muted-foreground); transition: color .16s cubic-bezier(.2,.8,.2,1), background-color .16s cubic-bezier(.2,.8,.2,1); }
+      .seg em { font-style: normal; font-size: 10.5px; color: var(--mr-ink-3); }
+      .seg:hover { color: var(--mr-foreground); }
+      .seg.active { background: var(--mr-card); color: var(--mr-foreground); font-weight: 600; box-shadow: var(--mr-shadow-1); }
+      .seg.active em { color: var(--mr-primary); }
+      .grid { margin-top: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px 30px; }
+      .book { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 4px 4px 8px; border-radius: var(--mr-radius-md); transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+      .book:hover { transform: translateY(-3px); }
+      .cover { position: relative; width: 135px; height: 180px; border-radius: 12px; box-shadow: var(--mr-shadow-1); overflow: hidden; }
+      .cover::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent 0 5px, var(--mr-line) 5px 6px); opacity: .4; }
+      .c1 { background: var(--mr-cover-1); } .c2 { background: var(--mr-cover-2); } .c3 { background: var(--mr-cover-3); } .c4 { background: var(--mr-cover-4); }
+      .c5 { background: var(--mr-cover-5); } .c6 { background: var(--mr-cover-6); } .c7 { background: var(--mr-cover-7); } .c8 { background: var(--mr-cover-8); }
+      .cover-frame { position: absolute; inset: 7px; border: 1px solid var(--mr-page-line); border-radius: 7px; opacity: .55; }
+      .cover-rule { position: absolute; left: 36px; right: 36px; bottom: 52px; height: 1px; background: var(--mr-line-strong); opacity: .5; }
+      .cover-title-h { position: absolute; left: 12px; right: 12px; bottom: 28px; text-align: center; font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; line-height: 1.35; color: var(--mr-foreground); opacity: .82; }
+      .stamp { position: absolute; top: 13px; right: 13px; width: 14px; height: 14px; border-radius: 999px; border: 1.5px solid var(--mr-primary); display: flex; align-items: center; justify-content: center; opacity: .65; }
+      .stamp::after { content: ""; width: 5px; height: 5px; border-radius: 999px; background: var(--mr-primary); }
+      .badge { position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--mr-card); border: 1px solid var(--mr-border); color: var(--mr-primary); font-size: 11px; font-weight: 600; box-shadow: var(--mr-shadow-1); }
+      .badge-dot { width: 5px; height: 5px; border-radius: 999px; background: var(--mr-primary); }
+      .book-title { margin-top: 11px; font-size: 14px; font-weight: 600; line-height: 1.3; max-width: 158px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .book-meta { margin-top: 3px; font-size: 12px; color: var(--mr-muted-foreground); }
+      .progress { margin-top: 8px; width: 135px; height: 3px; border-radius: 999px; background: var(--mr-track); overflow: hidden; }
+      .fill { display: block; height: 100%; border-radius: 999px; background: var(--mr-primary); }
+      .statusbar { display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 32px; border-top: 1px solid var(--mr-border); font-size: 11.5px; color: var(--mr-ink-3); letter-spacing: 0.03em; }
+      @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+    </style>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

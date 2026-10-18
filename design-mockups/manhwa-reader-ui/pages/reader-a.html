@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读器 · 墨青书房</title>
+    <style id="theme-vars">
+/* ============================================================
+   韩漫阅读器 · 方向 A「墨青书房 · 暖金」
+   深墨青/青灰底 + 低饱和暖金点缀，书卷气 + 苹果布局纪律
+   演示主题：夜间（html.dark）；同时提供完整日间色板
+   字体层级：SF Pro Display / 苹方 系统栈；封面题字用单一衬线
+   ============================================================ */
+
+:root {
+  /* —— 语义别名 · 日间（暖纸墨） —— */
+  --mr-background: #f1eee3;
+  --mr-foreground: #272b24;
+  --mr-card: #f9f7ef;
+  --mr-card-foreground: #272b24;
+  --mr-popover: #ffffff;
+  --mr-popover-foreground: #272b24;
+  --mr-primary: #8a7a55;
+  --mr-primary-foreground: #f9f7ef;
+  --mr-muted: #e8e4d6;
+  --mr-muted-foreground: #6f6e5e;
+  --mr-border: rgba(39, 43, 36, 0.12);
+  --mr-input: rgba(39, 43, 36, 0.07);
+  --mr-ring: #8a7a55;
+
+  /* 圆角层级 */
+  --mr-radius-sm: 8px;
+  --mr-radius-md: 12px;
+  --mr-radius-lg: 18px;
+
+  /* —— 扩展令牌 · 日间 —— */
+  --mr-ink-3: #9c998b;
+  --mr-line: rgba(39, 43, 36, 0.09);
+  --mr-line-strong: rgba(39, 43, 36, 0.16);
+  --mr-brand-soft: rgba(138, 122, 85, 0.13);
+  --mr-brand-soft-2: rgba(138, 122, 85, 0.26);
+  --mr-glass: rgba(241, 238, 227, 0.84);
+  --mr-scrim: rgba(32, 34, 28, 0.35);
+  --mr-stage: #e9e5d7;
+  --mr-page: #d9d5c6;
+  --mr-page-line: rgba(39, 43, 36, 0.14);
+  --mr-track: rgba(39, 43, 36, 0.12);
+  --mr-shadow-1: 0 1px 2px rgba(32, 34, 28, 0.04), 0 1px 1px rgba(32, 34, 28, 0.03);
+  --mr-shadow-float: 0 16px 48px -16px rgba(32, 34, 28, 0.3);
+  --mr-cover-1: #dce3da;
+  --mr-cover-2: #e6dec8;
+  --mr-cover-3: #d8e0e5;
+  --mr-cover-4: #e8d9d0;
+  --mr-cover-5: #dee3d1;
+  --mr-cover-6: #e5e0d1;
+  --mr-cover-7: #d4dde2;
+  --mr-cover-8: #e9dfc8;
+  --mr-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --mr-font-display: "SF Pro Display", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mr-font-cover: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+}
+
+:root.dark {
+  /* —— 语义别名 · 夜间（墨青） —— */
+  --mr-background: #171b18;
+  --mr-foreground: #e9e5d7;
+  --mr-card: #1e2420;
+  --mr-card-foreground: #e9e5d7;
+  --mr-popover: #232a25;
+  --mr-popover-foreground: #e9e5d7;
+  --mr-primary: #b7a987;
+  --mr-primary-foreground: #191c17;
+  --mr-muted: #262d27;
+  --mr-muted-foreground: #a3a292;
+  --mr-border: rgba(233, 229, 215, 0.11);
+  --mr-input: rgba(233, 229, 215, 0.07);
+  --mr-ring: #b7a987;
+
+  /* —— 扩展令牌 · 夜间 —— */
+  --mr-ink-3: #6e7163;
+  --mr-line: rgba(233, 229, 215, 0.08);
+  --mr-line-strong: rgba(233, 229, 215, 0.15);
+  --mr-brand-soft: rgba(183, 169, 135, 0.13);
+  --mr-brand-soft-2: rgba(183, 169, 135, 0.26);
+  --mr-glass: rgba(23, 27, 24, 0.78);
+  --mr-scrim: rgba(9, 11, 9, 0.55);
+  --mr-stage: #131714;
+  --mr-page: #2b302b;
+  --mr-page-line: rgba(233, 229, 215, 0.12);
+  --mr-track: rgba(233, 229, 215, 0.14);
+  --mr-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --mr-shadow-float: 0 20px 56px -18px rgba(0, 0, 0, 0.55);
+  --mr-cover-1: #2a332d;
+  --mr-cover-2: #3a3126;
+  --mr-cover-3: #2e3a42;
+  --mr-cover-4: #40312b;
+  --mr-cover-5: #333d2e;
+  --mr-cover-6: #3d3a2f;
+  --mr-cover-7: #29343b;
+  --mr-cover-8: #453b2c;
+}
+
+/* —— 基础版式 —— */
+.mr-app {
+  font-family: var(--mr-font-body);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.mr-app h1, .mr-app h2, .mr-app h3 {
+  font-family: var(--mr-font-display);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+.mr-hairline { border-color: var(--mr-line); }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--mr-background);
+    --color-foreground: var(--mr-foreground);
+    --color-card: var(--mr-card);
+    --color-card-foreground: var(--mr-card-foreground);
+    --color-popover: var(--mr-popover);
+    --color-popover-foreground: var(--mr-popover-foreground);
+    --color-primary: var(--mr-primary);
+    --color-primary-foreground: var(--mr-primary-foreground);
+    --color-muted: var(--mr-muted);
+    --color-muted-foreground: var(--mr-muted-foreground);
+    --color-border: var(--mr-border);
+    --color-input: var(--mr-input);
+    --color-ring: var(--mr-ring);
+    --radius-sm: var(--mr-radius-sm);
+    --radius-md: var(--mr-radius-md);
+    --radius-lg: var(--mr-radius-lg);
+  }
+  @layer base {
+    body { background: var(--mr-background); color: var(--mr-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--mr-background); }
+      .text-background { color: var(--mr-background); }
+      .border-background { border-color: var(--mr-background); }
+      .ring-background { --tw-ring-color: var(--mr-background); }
+      .bg-foreground { background-color: var(--mr-foreground); }
+      .text-foreground { color: var(--mr-foreground); }
+      .border-foreground { border-color: var(--mr-foreground); }
+      .ring-foreground { --tw-ring-color: var(--mr-foreground); }
+      .bg-card { background-color: var(--mr-card); }
+      .text-card { color: var(--mr-card); }
+      .border-card { border-color: var(--mr-card); }
+      .ring-card { --tw-ring-color: var(--mr-card); }
+      .bg-card-foreground { background-color: var(--mr-card-foreground); }
+      .text-card-foreground { color: var(--mr-card-foreground); }
+      .border-card-foreground { border-color: var(--mr-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--mr-card-foreground); }
+      .bg-popover { background-color: var(--mr-popover); }
+      .text-popover { color: var(--mr-popover); }
+      .border-popover { border-color: var(--mr-popover); }
+      .ring-popover { --tw-ring-color: var(--mr-popover); }
+      .bg-popover-foreground { background-color: var(--mr-popover-foreground); }
+      .text-popover-foreground { color: var(--mr-popover-foreground); }
+      .border-popover-foreground { border-color: var(--mr-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--mr-popover-foreground); }
+      .bg-primary { background-color: var(--mr-primary); }
+      .text-primary { color: var(--mr-primary); }
+      .border-primary { border-color: var(--mr-primary); }
+      .ring-primary { --tw-ring-color: var(--mr-primary); }
+      .bg-primary-foreground { background-color: var(--mr-primary-foreground); }
+      .text-primary-foreground { color: var(--mr-primary-foreground); }
+      .border-primary-foreground { border-color: var(--mr-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--mr-primary-foreground); }
+      .bg-muted { background-color: var(--mr-muted); }
+      .text-muted { color: var(--mr-muted); }
+      .border-muted { border-color: var(--mr-muted); }
+      .ring-muted { --tw-ring-color: var(--mr-muted); }
+      .bg-muted-foreground { background-color: var(--mr-muted-foreground); }
+      .text-muted-foreground { color: var(--mr-muted-foreground); }
+      .border-muted-foreground { border-color: var(--mr-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--mr-muted-foreground); }
+      .bg-border { background-color: var(--mr-border); }
+      .text-border { color: var(--mr-border); }
+      .border-border { border-color: var(--mr-border); }
+      .ring-border { --tw-ring-color: var(--mr-border); }
+      .bg-input { background-color: var(--mr-input); }
+      .text-input { color: var(--mr-input); }
+      .border-input { border-color: var(--mr-input); }
+      .ring-input { --tw-ring-color: var(--mr-input); }
+      .bg-ring { background-color: var(--mr-ring); }
+      .text-ring { color: var(--mr-ring); }
+      .border-ring { border-color: var(--mr-ring); }
+      .ring-ring { --tw-ring-color: var(--mr-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+      <div class="mr-app">
+        <div class="frame">
+          <header class="rtop" id="reader-topbar">
+            <button class="back-btn" type="button" data-dom-id="reader-a-back">
+              <i data-lucide="chevron-left"></i><span>书架</span>
+            </button>
+            <span class="v-divider"></span>
+            <div class="chap-info">
+              <h1 class="chap-book">全知读者视角</h1>
+              <p class="chap-sub">第 138 话 · 人生的重启键</p>
+            </div>
+            <div class="spacer"></div>
+            <button class="ghost-btn" type="button"><i data-lucide="image-plus"></i><span>设封面</span></button>
+            <button class="ghost-btn" type="button"><i data-lucide="list"></i><span>目录</span></button>
+            <button class="ghost-btn" type="button"><i data-lucide="more-horizontal"></i><span>更多</span></button>
+            <span class="v-divider"></span>
+            <button class="icon-btn" type="button" aria-label="沉浸模式"><i data-lucide="maximize-2"></i></button>
+            <div class="zoom-pill" role="group" aria-label="缩放">
+              <button type="button" aria-label="缩小"><i data-lucide="minus"></i></button>
+              <span class="zoom-val">100%</span>
+              <button type="button" aria-label="放大"><i data-lucide="plus"></i></button>
+            </div>
+          </header>
+
+          <div class="stage" id="reader-stage">
+            <div class="page-box">
+              <i data-lucide="image" class="stage-ic"></i>
+              <p class="page-label">漫画页 · 第 138-1 页</p>
+              <p class="page-sub">灰色占位框 · 实际渲染导入的 PDF 页面</p>
+            </div>
+
+            <aside class="drawer" id="reader-drawer" aria-label="章节目录">
+              <div class="drawer-head">
+                <div>
+                  <h2 class="drawer-title">章节目录</h2>
+                  <p class="drawer-sub">共 551 话 · 已读 137 话</p>
+                </div>
+                <button class="icon-btn sm" type="button" aria-label="关闭目录"><i data-lucide="x"></i></button>
+              </div>
+              <div class="drawer-search"><i data-lucide="search"></i><span>搜索章节</span></div>
+              <ul class="chapters">
+                <li class="ch current"><span class="ch-name">第 138 话 · 人生的重启键</span><span class="ch-now">阅读中</span></li>
+                <li class="ch"><span class="ch-name">第 137 话 · 白发的内容物</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 136 话</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 135 话</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 134 话</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 133 话</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 132 话</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 131 话</span><i data-lucide="check" class="ch-read"></i></li>
+                <li class="ch"><span class="ch-name">第 130 话</span><span class="ch-dot"></span></li>
+                <li class="ch"><span class="ch-name">第 129 话</span><span class="ch-dot"></span></li>
+                <li class="ch"><span class="ch-name">第 128 话</span><span class="ch-dot"></span></li>
+                <li class="ch"><span class="ch-name">第 127 话</span><span class="ch-dot"></span></li>
+                <li class="ch"><span class="ch-name">第 126 话</span><span class="ch-dot"></span></li>
+              </ul>
+              <p class="drawer-foot">向下滚动加载更多章节</p>
+            </aside>
+          </div>
+
+          <footer class="rbar" id="reader-bottombar">
+            <button class="nav-pill" type="button"><i data-lucide="chevron-left"></i><span>上一章</span></button>
+            <div class="slider" role="slider" aria-label="阅读进度" aria-valuemin="1" aria-valuemax="551" aria-valuenow="138" tabindex="0">
+              <span class="track"><span class="fill" style="width:25%"></span><span class="thumb" style="left:25%"></span></span>
+            </div>
+            <span class="page-val">138 / 551</span>
+            <button class="nav-pill primary" type="button"><span>下一章</span><i data-lucide="chevron-right"></i></button>
+          </footer>
+        </div>
+      </div>
+    </main>
+    <style id="page-css">
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+      ul { list-style: none; }
+      svg { display: block; }
+      :focus-visible { outline: 2px solid var(--mr-ring); outline-offset: 2px; border-radius: 999px; }
+      .mr-app { background: var(--mr-background); color: var(--mr-foreground); }
+      .frame { max-width: 1440px; min-height: 900px; margin: 0 auto; display: flex; flex-direction: column; }
+      .spacer { flex: 1; }
+      .v-divider { width: 1px; height: 18px; background: var(--mr-border); }
+      .rtop { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 20px; background: var(--mr-glass); backdrop-filter: blur(18px) saturate(1.15); -webkit-backdrop-filter: blur(18px) saturate(1.15); border-bottom: 1px solid var(--mr-border); }
+      .back-btn { display: flex; align-items: center; gap: 3px; height: 34px; padding: 0 12px 0 7px; border-radius: 999px; color: var(--mr-muted-foreground); font-size: 13px; transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1); }
+      .back-btn svg { width: 17px; height: 17px; }
+      .back-btn:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .chap-info { margin-left: 6px; min-width: 0; }
+      .chap-book { font-size: 15px; font-weight: 650; letter-spacing: 0.02em; line-height: 1.25; }
+      .chap-sub { margin-top: 2px; font-size: 12px; color: var(--mr-muted-foreground); }
+      .ghost-btn { display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; color: var(--mr-muted-foreground); font-size: 12.5px; transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1); }
+      .ghost-btn svg { width: 15px; height: 15px; }
+      .ghost-btn:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .icon-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--mr-border); color: var(--mr-muted-foreground); transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1); }
+      .icon-btn svg { width: 14.5px; height: 14.5px; }
+      .icon-btn:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .icon-btn.sm { width: 28px; height: 28px; }
+      .icon-btn.sm svg { width: 13px; height: 13px; }
+      .zoom-pill { display: flex; align-items: center; height: 32px; padding: 0 4px; border: 1px solid var(--mr-border); border-radius: 999px; }
+      .zoom-pill button { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 999px; color: var(--mr-muted-foreground); transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1); }
+      .zoom-pill button:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .zoom-pill svg { width: 13px; height: 13px; }
+      .zoom-val { display: flex; align-items: center; justify-content: center; width: 48px; height: 16px; border-left: 1px solid var(--mr-border); border-right: 1px solid var(--mr-border); font-size: 12px; color: var(--mr-muted-foreground); font-variant-numeric: tabular-nums; }
+      .stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--mr-stage); padding: 24px 324px 24px 24px; overflow: hidden; }
+      .page-box { width: 440px; height: 620px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--mr-page); border: 1px solid var(--mr-page-line); border-radius: 4px; box-shadow: var(--mr-shadow-1); }
+      .stage-ic { width: 22px; height: 22px; color: var(--mr-ink-3); opacity: .7; }
+      .page-label { font-size: 12.5px; color: var(--mr-ink-3); }
+      .page-sub { font-size: 11px; color: var(--mr-ink-3); opacity: .75; }
+      .drawer { position: absolute; top: 0; right: 0; bottom: 0; width: 300px; display: flex; flex-direction: column; background: var(--mr-card); border-left: 1px solid var(--mr-border); box-shadow: var(--mr-shadow-float); }
+      .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; }
+      .drawer-title { font-size: 14px; font-weight: 650; }
+      .drawer-sub { margin-top: 3px; font-size: 11.5px; color: var(--mr-ink-3); }
+      .drawer-search { display: flex; align-items: center; gap: 7px; height: 30px; margin: 0 14px 10px; padding: 0 11px; border-radius: 999px; background: var(--mr-input); border: 1px solid var(--mr-border); color: var(--mr-ink-3); font-size: 12px; }
+      .drawer-search svg { width: 13px; height: 13px; }
+      .chapters { flex: 1; min-height: 0; overflow: hidden; padding: 0 8px; }
+      .ch { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 40px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; color: var(--mr-muted-foreground); transition: background-color .16s cubic-bezier(.2,.8,.2,1); }
+      .ch:hover { background: var(--mr-muted); }
+      .ch + .ch { margin-top: 1px; }
+      .ch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ch.current { background: var(--mr-brand-soft); color: var(--mr-primary); font-weight: 600; }
+      .ch-now { flex-shrink: 0; padding: 2px 8px; border-radius: 999px; background: var(--mr-primary); color: var(--mr-primary-foreground); font-size: 10px; font-weight: 600; }
+      .ch-read { flex-shrink: 0; width: 13px; height: 13px; color: var(--mr-ink-3); opacity: .7; }
+      .ch-dot { flex-shrink: 0; width: 5px; height: 5px; border-radius: 999px; border: 1px solid var(--mr-line-strong); }
+      .drawer-foot { margin: 0 14px; padding: 10px 0 12px; border-top: 1px solid var(--mr-line); text-align: center; font-size: 11px; color: var(--mr-ink-3); }
+      .rbar { display: flex; align-items: center; gap: 18px; height: 64px; padding: 0 24px; background: var(--mr-card); border-top: 1px solid var(--mr-border); }
+      .nav-pill { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--mr-border); color: var(--mr-muted-foreground); font-size: 12.5px; transition: background-color .16s cubic-bezier(.2,.8,.2,1), color .16s cubic-bezier(.2,.8,.2,1), transform .16s cubic-bezier(.2,.8,.2,1), filter .16s cubic-bezier(.2,.8,.2,1); }
+      .nav-pill svg { width: 14px; height: 14px; }
+      .nav-pill:hover { background: var(--mr-muted); color: var(--mr-foreground); }
+      .nav-pill.primary { background: var(--mr-primary); border-color: var(--mr-primary); color: var(--mr-primary-foreground); font-weight: 600; }
+      .nav-pill.primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+      .slider { flex: 1; display: flex; align-items: center; min-width: 0; }
+      .track { position: relative; width: 100%; height: 4px; border-radius: 999px; background: var(--mr-track); }
+      .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--mr-primary); }
+      .thumb { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 999px; background: var(--mr-popover); border: 2px solid var(--mr-primary); transform: translate(-50%, -50%); box-shadow: var(--mr-shadow-1); transition: box-shadow .16s cubic-bezier(.2,.8,.2,1); }
+      .slider:hover .thumb { box-shadow: 0 0 0 5px var(--mr-brand-soft); }
+      .page-val { width: 74px; text-align: right; font-size: 12.5px; color: var(--mr-muted-foreground); font-variant-numeric: tabular-nums; }
+      @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+    </style>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

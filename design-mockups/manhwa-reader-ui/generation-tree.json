@@ -1,0 +1,37 @@
+{
+  "root": {
+    "id": "manhwa-reader-ui",
+    "label": "韩漫阅读器 UI 设计稿",
+    "status": "generated",
+    "children": [
+      {
+        "id": "direction-a",
+        "label": "方向A 墨青书房·暖金",
+        "status": "generated",
+        "children": [
+          { "id": "page-shelf-a", "type": "leaf", "status": "generated", "output": "pages/shelf-a.html" },
+          { "id": "page-reader-a", "type": "leaf", "status": "generated", "output": "pages/reader-a.html" }
+        ]
+      },
+      {
+        "id": "direction-b",
+        "label": "方向B 暖纸书店",
+        "status": "generated",
+        "children": [
+          { "id": "page-shelf-b", "type": "leaf", "status": "generated", "output": "pages/shelf-b.html" },
+          { "id": "page-reader-b", "type": "leaf", "status": "generated", "output": "pages/reader-b.html" }
+        ]
+      },
+      {
+        "id": "direction-c",
+        "label": "方向C 暗夜画廊",
+        "status": "generated",
+        "children": [
+          { "id": "page-shelf-c", "type": "leaf", "status": "generated", "output": "pages/shelf-c.html" },
+          { "id": "page-reader-c", "type": "leaf", "status": "generated", "output": "pages/reader-c.html" }
+        ]
+      }
+    ]
+  },
+  "note": "自由探索通道：3 个设计方向各为独立页面分支，方向之间无共享 partials（方向差异即交付目的）；方向内书架/阅读器共享同一设计系统 CSS 与版式锚点。"
+}

@@ -1,0 +1,1472 @@
+{
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.10.13.09.48.16",
+    "version_source": "skill-release-manifest.json",
+    "read_status": "ok"
+  },
+  "designProjectPath": "f:/manhwa-reader/design-mockups/manhwa-reader-ui",
+  "language": "zh-CN",
+  "designSource": {
+    "operatingMode": "free-explore",
+    "cssFilePath": "colors_and_type.css",
+    "brandPrefix": "mr",
+    "note": "自由探索通道无外部 Design Library；colors_and_type.css 为方向A主 CSS，方向B/C 分别为 colors_and_type_b.css / colors_and_type_c.css（见 cssPreflightsByDirection）。manifest 生成的 fillHtmlHeadCommand 未含 --theme 与逐方向 cssPath，实际执行的 head 命令以各页 actualHeadCommand 为准。"
+  },
+  "pages": [
+    {
+      "nodeId": "page-shelf-a",
+      "id": "page-shelf-a",
+      "title": "书架 · 墨青书房",
+      "htmlSrc": "pages/shelf-a.html",
+      "viewportMode": "document-scroll",
+      "deviceType": "web",
+      "cssPath": "colors_and_type.css",
+      "theme": "dark",
+      "pageType": "task-driven",
+      "writeMode": "SectionPlanThenWrite",
+      "stateGroupId": null,
+      "stateRole": null,
+      "chartsRequired": false,
+      "sections": [
+        "frosted-header",
+        "collection-chips",
+        "cover-grid-4x3",
+        "status-bar"
+      ],
+      "domIdsRequired": [
+        "shelf-a-continue-book"
+      ],
+      "assets": [],
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/shelf-a.html"
+      ],
+      "qualityRisks": [
+        "1440×900 一屏容量（12 本 4×3）",
+        "毛玻璃顶栏 backdrop-filter 仅 1 层",
+        "封面不过大：高度约 190px"
+      ],
+      "soulElement": "墨青底上的竖排衬线封面题字 + 暖金发丝线内框，像深夜书架上的烫金书脊",
+      "actualHeadCommand": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type.css pages/shelf-a.html --title=\"书架 · 墨青书房\" --lang=zh-CN --prefix=mr --theme=dark"
+    },
+    {
+      "nodeId": "page-reader-a",
+      "id": "page-reader-a",
+      "title": "阅读器 · 墨青书房",
+      "htmlSrc": "pages/reader-a.html",
+      "viewportMode": "document-scroll",
+      "deviceType": "web",
+      "cssPath": "colors_and_type.css",
+      "theme": "dark",
+      "pageType": "task-driven",
+      "writeMode": "SectionPlanThenWrite",
+      "stateGroupId": null,
+      "stateRole": null,
+      "chartsRequired": false,
+      "sections": [
+        "reader-topbar",
+        "comic-stage",
+        "chapter-drawer",
+        "reader-bottombar"
+      ],
+      "domIdsRequired": [
+        "reader-a-back"
+      ],
+      "assets": [],
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/reader-a.html"
+      ],
+      "qualityRisks": [
+        "固定 chrome 保留内容安全区",
+        "章节抽屉浮动层阴影",
+        "底部栏不与内容重叠"
+      ],
+      "soulElement": "剧场式墨青画面区 + 暖金当前话高亮的章节抽屉",
+      "actualHeadCommand": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type.css pages/reader-a.html --title=\"阅读器 · 墨青书房\" --lang=zh-CN --prefix=mr --theme=dark"
+    },
+    {
+      "nodeId": "page-shelf-b",
+      "id": "page-shelf-b",
+      "title": "书架 · 暖纸书店",
+      "htmlSrc": "pages/shelf-b.html",
+      "viewportMode": "document-scroll",
+      "deviceType": "web",
+      "cssPath": "colors_and_type_b.css",
+      "theme": "light",
+      "pageType": "task-driven",
+      "writeMode": "SectionPlanThenWrite",
+      "stateGroupId": null,
+      "stateRole": null,
+      "chartsRequired": false,
+      "sections": [
+        "frosted-header",
+        "collection-chips",
+        "cover-grid-4x3",
+        "status-bar"
+      ],
+      "domIdsRequired": [
+        "shelf-b-continue-book"
+      ],
+      "assets": [],
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/shelf-b.html"
+      ],
+      "qualityRisks": [
+        "浅色底对比度 ≥4.5:1",
+        "日间一屏容量",
+        "分段控件 active 态单一强调"
+      ],
+      "soulElement": "暖纸白上的圆点钤记封面 + 深绿胶囊分段控件，像文具店的分格木架",
+      "actualHeadCommand": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type_b.css pages/shelf-b.html --title=\"书架 · 暖纸书店\" --lang=zh-CN --prefix=mr --theme=light"
+    },
+    {
+      "nodeId": "page-reader-b",
+      "id": "page-reader-b",
+      "title": "阅读器 · 暖纸书店",
+      "htmlSrc": "pages/reader-b.html",
+      "viewportMode": "document-scroll",
+      "deviceType": "web",
+      "cssPath": "colors_and_type_b.css",
+      "theme": "light",
+      "pageType": "task-driven",
+      "writeMode": "SectionPlanThenWrite",
+      "stateGroupId": null,
+      "stateRole": null,
+      "chartsRequired": false,
+      "sections": [
+        "reader-topbar",
+        "comic-stage",
+        "chapter-drawer",
+        "reader-bottombar"
+      ],
+      "domIdsRequired": [
+        "reader-b-back"
+      ],
+      "assets": [],
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/reader-b.html"
+      ],
+      "qualityRisks": [
+        "固定 chrome 保留内容安全区",
+        "浅色底毛玻璃可读性",
+        "底部栏不与内容重叠"
+      ],
+      "soulElement": "米纸画面区上的暖灰漫画页占位 + 深绿当前话书签式高亮",
+      "actualHeadCommand": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type_b.css pages/reader-b.html --title=\"阅读器 · 暖纸书店\" --lang=zh-CN --prefix=mr --theme=light"
+    },
+    {
+      "nodeId": "page-shelf-c",
+      "id": "page-shelf-c",
+      "title": "书架 · 暗夜画廊",
+      "htmlSrc": "pages/shelf-c.html",
+      "viewportMode": "document-scroll",
+      "deviceType": "web",
+      "cssPath": "colors_and_type_c.css",
+      "theme": "dark",
+      "pageType": "task-driven",
+      "writeMode": "SectionPlanThenWrite",
+      "stateGroupId": null,
+      "stateRole": null,
+      "chartsRequired": false,
+      "sections": [
+        "frosted-header",
+        "collection-chips",
+        "cover-grid-4x3",
+        "status-bar"
+      ],
+      "domIdsRequired": [
+        "shelf-c-continue-book"
+      ],
+      "assets": [],
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/shelf-c.html"
+      ],
+      "qualityRisks": [
+        "近黑底非纯黑 (#101113)",
+        "大留白下网格仍居中有锚",
+        "画廊编号不得成为噪音"
+      ],
+      "soulElement": "近黑展墙上封面即展品：细体编号 01–12 + 雾蓝 hairline 进度",
+      "actualHeadCommand": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type_c.css pages/shelf-c.html --title=\"书架 · 暗夜画廊\" --lang=zh-CN --prefix=mr --theme=dark"
+    },
+    {
+      "nodeId": "page-reader-c",
+      "id": "page-reader-c",
+      "title": "阅读器 · 暗夜画廊",
+      "htmlSrc": "pages/reader-c.html",
+      "viewportMode": "document-scroll",
+      "deviceType": "web",
+      "cssPath": "colors_and_type_c.css",
+      "theme": "dark",
+      "pageType": "task-driven",
+      "writeMode": "SectionPlanThenWrite",
+      "stateGroupId": null,
+      "stateRole": null,
+      "chartsRequired": false,
+      "sections": [
+        "reader-topbar",
+        "comic-stage",
+        "chapter-drawer",
+        "reader-bottombar"
+      ],
+      "domIdsRequired": [
+        "reader-c-back"
+      ],
+      "assets": [],
+      "supplementaryReads": [],
+      "allowedWritePaths": [
+        "pages/reader-c.html"
+      ],
+      "qualityRisks": [
+        "固定 chrome 保留内容安全区",
+        "近黑底对比度",
+        "底部栏不与内容重叠"
+      ],
+      "soulElement": "黑展厅中央一幅漫画页，雾蓝细线滑杆与编号页码",
+      "actualHeadCommand": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type_c.css pages/reader-c.html --title=\"阅读器 · 暗夜画廊\" --lang=zh-CN --prefix=mr --theme=dark"
+    }
+  ],
+  "project": {
+    "resolvedLane": "free_exploration",
+    "selectedIntentWorkflowRead": true,
+    "contextRequirementsLoaded": [
+      {
+        "path": "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/page-rendering-quality-gate.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/design-artifact-validation.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "delivery-quality/delivery-evidence-contract.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      },
+      {
+        "path": "visual-experience/visual-experience-guidelines.md",
+        "readStatus": "loaded",
+        "bodyRead": true
+      }
+    ],
+    "contextReadScope": {
+      "mainAgent": {
+        "forbiddenReads": [
+          "other intent-workflows/**",
+          "Sub-Agent implementation files before dispatch"
+        ]
+      },
+      "pageSubAgent": {
+        "allowedReads": [
+          "current lane page runtime guide",
+          "current lane dispatch contract excerpt",
+          "current Page Packet",
+          "supplementaryReads[] only"
+        ],
+        "forbiddenReads": [
+          "SKILL.md full re-read",
+          "other intent-workflows/**",
+          "full runtime-orchestration-summary.json unless explicitly sliced"
+        ]
+      },
+      "readScopeLedgerWriter": "shared-runtime/deterministic-tooling/build-page-dispatch-manifest.mjs"
+    },
+    "validationRunDiscipline": {
+      "maxFullValidationRuns": 2,
+      "softWarningsTriggerRepair": false,
+      "blockingRepairMode": "targeted-once",
+      "forbiddenRepairTriggers": [
+        "soft-warning-only",
+        "provenance-warning-only",
+        "style-warning-only"
+      ]
+    },
+    "lowValueCallWatchdog": {
+      "applies": true,
+      "noProgressSignals": [
+        "no_tool_call",
+        "no_artifact_diff",
+        "no_structured_decision"
+      ],
+      "noProgressNextAction": "enter_readiness_or_blocked_summary"
+    },
+    "intentProfile": {
+      "caseFamily": "free_exploration",
+      "surface": "page",
+      "sourceType": "user-brief",
+      "operatingMode": "free-explore",
+      "routingReason": "Route card: mode=free-explore, surface=page, complexity=stateful-free-fast（6 个 1440×900 固定一屏桌面页，无图表），无 Design Library、无还原目标、无位图交付物 → P9 free_exploration。3 个设计方向 × 2 页以独立 FreePagePacket 派发。环境无子 agent 派生工具，页面 HTML 由主 agent 按同一 Page Packet 约束内联生成（仅写 allowedWritePaths、不跑验证、不启预览），工具纪律与验证门槛不变。",
+      "designRead": "本地漫画阅读器双页 / 中文重度阅读用户 / 深夜书房×苹果系统纪律，低饱和小设计感 / 中密度固定一屏 / 拒绝紫渐变与AI默认灰白",
+      "designDials": {
+        "layoutVariance": 2,
+        "motionIntensity": 2,
+        "visualDensity": 3
+      },
+      "dispatchMode": "inline-by-main-agent"
+    },
+    "deviceType": "desktop",
+    "viewportMode": "document-scroll",
+    "cssPreflightEvidence": {
+      "applies": true,
+      "status": "passed",
+      "command": "node {SKILL_DIR}/shared-runtime/deterministic-tooling/apply-html-head-contract.mjs colors_and_type.css .preflight/preflight-a.html --title=\"Preflight A\" --lang=zh-CN --prefix=mr --theme=dark",
+      "brandPrefix": "mr",
+      "checks": {
+        "themeVars": "present",
+        "semanticTokenFallback": "present",
+        "themeInline": "present",
+        "tailwindCdn": "present",
+        "htmlClass": "present",
+        "semanticMappings": "resolved"
+      },
+      "retryCount": 0,
+      "blockingReason": null
+    },
+    "cssPreflightsByDirection": [
+      {
+        "direction": "A 墨青书房·暖金",
+        "cssPath": "colors_and_type.css",
+        "preflightHtml": ".preflight/preflight-a.html",
+        "status": "passed",
+        "exitCode": 0,
+        "theme": "dark",
+        "checks": {
+          "themeVars": "present",
+          "semanticTokenFallback": "present",
+          "themeInline": "present",
+          "tailwindCdn": "present",
+          "htmlClass": "present",
+          "semanticMappings": "resolved"
+        }
+      },
+      {
+        "direction": "B 暖纸书店",
+        "cssPath": "colors_and_type_b.css",
+        "preflightHtml": ".preflight/preflight-b.html",
+        "status": "passed",
+        "exitCode": 0,
+        "theme": "light",
+        "checks": {
+          "themeVars": "present",
+          "semanticTokenFallback": "present",
+          "themeInline": "present",
+          "tailwindCdn": "present",
+          "htmlClass": "present",
+          "semanticMappings": "resolved"
+        }
+      },
+      {
+        "direction": "C 暗夜画廊",
+        "cssPath": "colors_and_type_c.css",
+        "preflightHtml": ".preflight/preflight-c.html",
+        "status": "passed",
+        "exitCode": 0,
+        "theme": "dark",
+        "checks": {
+          "themeVars": "present",
+          "semanticTokenFallback": "present",
+          "themeInline": "present",
+          "tailwindCdn": "present",
+          "htmlClass": "present",
+          "semanticMappings": "resolved"
+        }
+      }
+    ],
+    "styleContinuityAnchors": {
+      "sharedTypeStack": "SF Pro Display / PingFang SC / HarmonyOS Sans 系统栈，全部数字 tabular-nums；仅方向A封面题字使用唯一衬线 Noto Serif SC（书卷气角色），正文一律无衬线",
+      "sharedLayoutDiscipline": "1440×900 固定一屏框架；sticky 毛玻璃顶栏（每页至多 1 层 backdrop-filter + hairline 底边，无阴影）；胶囊按钮语言；hairline 分割线；卡片区留白舒适",
+      "continuityAnchors": [
+        "毛玻璃顶栏+hairline",
+        "胶囊按钮",
+        "封面 3:4 + 进度条",
+        "tabular-nums 数字层级",
+        "中文 UI 文案"
+      ],
+      "note": "sharedProjectShellContract 已提升至 project 级，见下"
+    },
+    "sharedProjectShellContract": {
+      "headerPattern": "毛玻璃 sticky 顶栏：左品牌、中搜索/章节信息、右操作组；hairline 底边；每页至多 1 层 backdrop-filter",
+      "radiusSystem": "方向A 8/12/18 · 方向B 10/14/20 · 方向C 6/10/14；按钮/标签一律胶囊（用户明确要求大圆角与胶囊语言）",
+      "primaryHueRule": "每方向单一主色：A 暖金 #B7A987(夜)/#8A7A55(日)，B 深绿 #9DB299(夜)/#4C5F50(日)，C 雾蓝 #8FA8C4(夜)/#5A7A9E(日)；无 secondary/accent",
+      "coverTreatment": "排版式封面：低饱和色块 + hairline 内框 + 题字 + 方向性小细节（A 竖排衬线+印角 / B 圆点钤记 / C 画廊编号），不使用位图",
+      "surfaceModel": "bg → card → muted 三层表面分区，优先表面分层而非画线；hairline 仅用于顶栏底边、分组边界与进度槽",
+      "alignmentRhythm": "网格居中容器，4 列等宽 gap 32/24；顶栏左右各 32px 安全边距；控件组显式 gap，无零间距簇"
+    },
+    "pageCompletenessGate": {
+      "expectedPages": [
+        "shelf-a",
+        "reader-a",
+        "shelf-b",
+        "reader-b",
+        "shelf-c",
+        "reader-c"
+      ],
+      "requiredStates": [
+        "书架：12 本封面网格（4 列 × 3 行，含 1 本「继续阅读」徽章、进度条、分组计数）",
+        "阅读器：顶栏 + 灰色漫画页占位 + 打开的右侧章节抽屉 + 底部翻页栏"
+      ],
+      "requiredInteractions": [
+        "continue-reading（书架→阅读器）",
+        "back-to-shelf（阅读器→书架，hideEdge）"
+      ],
+      "requiredNavigation": [
+        "书架→阅读器",
+        "阅读器→书架（返回）"
+      ],
+      "missingAllowed": []
+    },
+    "defaultDeliverableVisibility": {
+      "applies": true,
+      "requiredVisibleRegions": [
+        {
+          "htmlSrc": "pages/shelf-a.html",
+          "selector": "#shelf-header",
+          "label": "书架顶栏",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/shelf-a.html",
+          "selector": "#shelf-grid",
+          "label": "12 本封面网格",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/shelf-b.html",
+          "selector": "#shelf-header",
+          "label": "书架顶栏",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/shelf-b.html",
+          "selector": "#shelf-grid",
+          "label": "12 本封面网格",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/shelf-c.html",
+          "selector": "#shelf-header",
+          "label": "书架顶栏",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/shelf-c.html",
+          "selector": "#shelf-grid",
+          "label": "12 本封面网格",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/reader-a.html",
+          "selector": "#reader-stage",
+          "label": "漫画画面区",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/reader-a.html",
+          "selector": "#reader-drawer",
+          "label": "章节抽屉",
+          "source": "user brief 可展示侧边章节抽屉"
+        },
+        {
+          "htmlSrc": "pages/reader-b.html",
+          "selector": "#reader-stage",
+          "label": "漫画画面区",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/reader-b.html",
+          "selector": "#reader-drawer",
+          "label": "章节抽屉",
+          "source": "user brief 可展示侧边章节抽屉"
+        },
+        {
+          "htmlSrc": "pages/reader-c.html",
+          "selector": "#reader-stage",
+          "label": "漫画画面区",
+          "source": "user brief"
+        },
+        {
+          "htmlSrc": "pages/reader-c.html",
+          "selector": "#reader-drawer",
+          "label": "章节抽屉",
+          "source": "user brief 可展示侧边章节抽屉"
+        }
+      ],
+      "hiddenAllowed": []
+    },
+    "generationTree": {
+      "materialized": "generation-tree.json",
+      "shape": "root → 3 个方向分支（direction-a/b/c）→ 各 2 个叶子页（书架/阅读器）；方向间无共享 partials，方向差异即交付目的",
+      "sharedFragments": []
+    },
+    "imagePlan": {
+      "status": "degraded-by-user-requirement",
+      "reason": "用户明确要求漫画画面区用灰色占位框表示；书封为本地导入 PDF 的排版式封面占位（色块+hairline+题字），assets/ 无位图，无需图片注册",
+      "assets": []
+    },
+    "pagesDetail": [
+      {
+        "nodeId": "page-shelf-a",
+        "group": 0,
+        "direction": "A 墨青书房·暖金",
+        "soulElement": "竖排衬线封面题字 + 暖金发丝线内框"
+      },
+      {
+        "nodeId": "page-reader-a",
+        "group": 0,
+        "direction": "A 墨青书房·暖金",
+        "soulElement": "剧场式墨青画面区 + 暖金当前话高亮抽屉"
+      },
+      {
+        "nodeId": "page-shelf-b",
+        "group": 1,
+        "direction": "B 暖纸书店",
+        "soulElement": "圆点钤记封面 + 深绿分段控件"
+      },
+      {
+        "nodeId": "page-reader-b",
+        "group": 1,
+        "direction": "B 暖纸书店",
+        "soulElement": "米纸画面区 + 深绿书签式当前话高亮"
+      },
+      {
+        "nodeId": "page-shelf-c",
+        "group": 2,
+        "direction": "C 暗夜画廊",
+        "soulElement": "封面即展品：细体编号 01–12 + 雾蓝 hairline 进度"
+      },
+      {
+        "nodeId": "page-reader-c",
+        "group": 2,
+        "direction": "C 暗夜画廊",
+        "soulElement": "黑展厅独幅漫画页 + 雾蓝细线滑杆"
+      }
+    ],
+    "dispatchPreflightManifest": [
+      {
+        "recorded_at": "2026-10-18T04:46:22.854Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "FreePagePacket",
+        "laneContract": {
+          "resolvedLane": "free_exploration",
+          "packetType": "FreePagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-page-free-exploration/dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "nodeId": "page-shelf-a",
+        "htmlSrc": "pages/shelf-a.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/shelf-a.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/shelf-a.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\" --node-id=\"page-shelf-a\" --html-src=\"pages/shelf-a.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css",
+        "htmlFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\shelf-a.html",
+        "brandPrefix": "mr",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\shelf-a.html\" --title=\"书架 · 墨青书房\" --lang=\"zh-CN\" --prefix=\"mr\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": "document-scroll",
+        "completionSchemaExpected": "compact",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "manhwa-reader-ui.design": "2fa2118ad0d5d6bca902067198db8cc15d51ece033e0a74027381b13ac8c77f0"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-page-free-exploration/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-10-18T04:46:22.854Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "FreePagePacket",
+        "laneContract": {
+          "resolvedLane": "free_exploration",
+          "packetType": "FreePagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-page-free-exploration/dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "nodeId": "page-reader-a",
+        "htmlSrc": "pages/reader-a.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/reader-a.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/reader-a.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\" --node-id=\"page-reader-a\" --html-src=\"pages/reader-a.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css",
+        "htmlFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\reader-a.html",
+        "brandPrefix": "mr",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\reader-a.html\" --title=\"阅读器 · 墨青书房\" --lang=\"zh-CN\" --prefix=\"mr\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": "document-scroll",
+        "completionSchemaExpected": "compact",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "manhwa-reader-ui.design": "2fa2118ad0d5d6bca902067198db8cc15d51ece033e0a74027381b13ac8c77f0"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-page-free-exploration/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-10-18T04:46:22.854Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "FreePagePacket",
+        "laneContract": {
+          "resolvedLane": "free_exploration",
+          "packetType": "FreePagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-page-free-exploration/dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "nodeId": "page-shelf-b",
+        "htmlSrc": "pages/shelf-b.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/shelf-b.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/shelf-b.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\" --node-id=\"page-shelf-b\" --html-src=\"pages/shelf-b.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css",
+        "htmlFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\shelf-b.html",
+        "brandPrefix": "mr",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\shelf-b.html\" --title=\"书架 · 暖纸书店\" --lang=\"zh-CN\" --prefix=\"mr\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": "document-scroll",
+        "completionSchemaExpected": "compact",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "manhwa-reader-ui.design": "2fa2118ad0d5d6bca902067198db8cc15d51ece033e0a74027381b13ac8c77f0"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-page-free-exploration/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-10-18T04:46:22.854Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "FreePagePacket",
+        "laneContract": {
+          "resolvedLane": "free_exploration",
+          "packetType": "FreePagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-page-free-exploration/dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "nodeId": "page-reader-b",
+        "htmlSrc": "pages/reader-b.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/reader-b.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/reader-b.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\" --node-id=\"page-reader-b\" --html-src=\"pages/reader-b.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css",
+        "htmlFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\reader-b.html",
+        "brandPrefix": "mr",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\reader-b.html\" --title=\"阅读器 · 暖纸书店\" --lang=\"zh-CN\" --prefix=\"mr\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": "document-scroll",
+        "completionSchemaExpected": "compact",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "manhwa-reader-ui.design": "2fa2118ad0d5d6bca902067198db8cc15d51ece033e0a74027381b13ac8c77f0"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-page-free-exploration/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-10-18T04:46:22.854Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "FreePagePacket",
+        "laneContract": {
+          "resolvedLane": "free_exploration",
+          "packetType": "FreePagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-page-free-exploration/dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "nodeId": "page-shelf-c",
+        "htmlSrc": "pages/shelf-c.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/shelf-c.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/shelf-c.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\" --node-id=\"page-shelf-c\" --html-src=\"pages/shelf-c.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css",
+        "htmlFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\shelf-c.html",
+        "brandPrefix": "mr",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\shelf-c.html\" --title=\"书架 · 暗夜画廊\" --lang=\"zh-CN\" --prefix=\"mr\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": "document-scroll",
+        "completionSchemaExpected": "compact",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "manhwa-reader-ui.design": "2fa2118ad0d5d6bca902067198db8cc15d51ece033e0a74027381b13ac8c77f0"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-page-free-exploration/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      },
+      {
+        "recorded_at": "2026-10-18T04:46:22.854Z",
+        "generatedBy": "build-page-dispatch-manifest.mjs",
+        "packetType": "FreePagePacket",
+        "laneContract": {
+          "resolvedLane": "free_exploration",
+          "packetType": "FreePagePacket",
+          "pageRuntimeGuide": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+          "dispatchContract": "intent-workflows/intent-page-free-exploration/dispatch-contract.md"
+        },
+        "taskLinePresent": true,
+        "outputPathPresent": true,
+        "sharedTemplate": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "nodeId": "page-reader-c",
+        "htmlSrc": "pages/reader-c.html",
+        "supplementaryReads": [],
+        "allowedWritePaths": [
+          "pages/reader-c.html",
+          "assets/"
+        ],
+        "forbiddenWriteRoots": [
+          "*.design",
+          "runtime-orchestration-summary.json",
+          "validation-report.json",
+          "finish-readiness-report.json",
+          "restore-contract-report.json",
+          "page-generation-summary.json"
+        ],
+        "toolPolicy": {
+          "todoWriteAllowed": false,
+          "validationScriptsAllowed": false,
+          "previewAllowed": false,
+          "helperScriptsAllowed": false,
+          "designFileWriteAllowed": false,
+          "allowedWritePaths": [
+            "pages/reader-c.html",
+            "assets/"
+          ]
+        },
+        "skillRuntime": {
+          "skillDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design",
+          "deterministicToolDir": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling",
+          "toolPaths": {
+            "applyHtmlHeadContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs",
+            "recordDispatchCompletion": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs",
+            "buildPageDispatchManifest": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\build-page-dispatch-manifest.mjs",
+            "validateDesignWorkspace": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-design-workspace.mjs",
+            "validateFinishReadiness": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs",
+            "validateRestoreContract": "c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-restore-contract.mjs"
+          },
+          "requiredForPageSubAgent": [
+            "applyHtmlHeadContract",
+            "recordDispatchCompletion"
+          ],
+          "pathInjection": "absolute",
+          "pathContract": "Do not use {SKILL_DIR} placeholders inside Page Sub-Agent packets; use toolPaths.* absolute paths.",
+          "commandTemplates": {
+            "recordDispatchCompletion": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\record-dispatch-completion.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\" --node-id=\"page-reader-c\" --html-src=\"pages/reader-c.html\" --status=completed --changed-files=<comma-separated-project-relative-files> --trace-digest=<main-agent-runtime-trace-digest> --tool-ledger-json=<tool-ledger-json-or-file>"
+          }
+        },
+        "cssFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css",
+        "htmlFilePath": "f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\reader-c.html",
+        "brandPrefix": "mr",
+        "aestheticsMode": "free-explore",
+        "toolDisciplineBlockPresent": true,
+        "fillHtmlHeadCommand": "node \"c:\\Users\\夏\\.trae-cn\\plugins\\trae-remote-official\\trae-design\\0.1.3\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\apply-html-head-contract.mjs\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\colors_and_type.css\" \"f:\\manhwa-reader\\design-mockups\\manhwa-reader-ui\\pages\\reader-c.html\" --title=\"阅读器 · 暗夜画廊\" --lang=\"zh-CN\" --prefix=\"mr\"",
+        "headFillMode": "skeleton-first",
+        "viewportMode": "document-scroll",
+        "completionSchemaExpected": "compact",
+        "restoreFields": null,
+        "restoreContractStatus": null,
+        "restoreCompactPacket": null,
+        "deterministicCommands": null,
+        "sourceAuthorityLock": null,
+        "preDispatchFileHashes": {
+          "manhwa-reader-ui.design": "2fa2118ad0d5d6bca902067198db8cc15d51ece033e0a74027381b13ac8c77f0"
+        },
+        "contextPreflight": {
+          "workflowPath": "intent-workflows/intent-page-free-exploration/INTENT_WORKFLOW.md",
+          "requiredContextFiles": [
+            "shared-runtime/runtime-boundaries/lane-runtime-contracts.md",
+            "shared-runtime/agent-dispatch-runtime/lane-dispatch-index.md",
+            "delivery-quality/page-rendering-quality-gate.md",
+            "delivery-quality/design-artifact-validation.md",
+            "delivery-quality/delivery-evidence-contract.md",
+            "visual-experience/visual-experience-guidelines.md"
+          ],
+          "optionalContextFiles": [],
+          "passed": true
+        },
+        "pageSliceOnly": true,
+        "requiredFieldsPresent": true,
+        "missingFields": [],
+        "fillHtmlHeadCommandValid": true,
+        "mobileNavigation": {
+          "required": false,
+          "appliesToThisPage": false,
+          "canonicalHtmlIncluded": false,
+          "missingFields": []
+        },
+        "persistedToSummary": true,
+        "taskQueryAudited": false,
+        "proofSource": "summary-only",
+        "largeWorkflowFilesInTaskQuery": null
+      }
+    ],
+    "readScopeLedger": [
+      {
+        "actor": "page-sub-agent",
+        "lane": "free_exploration",
+        "path": "intent-workflows/intent-page-free-exploration/free-exploration-page-runtime.md",
+        "reason": "page runtime guide",
+        "scopeClass": "page-runtime",
+        "declaredBeforeRead": true,
+        "recordedAt": "2026-10-18T04:46:22.854Z",
+        "nodeId": "page-shelf-a",
+        "htmlSrc": "pages/shelf-a.html"
+      },
+      {
+        "actor": "page-sub-agent",
+        "lane": "free_exploration",
+        "path": "intent-workflows/intent-page-free-exploration/dispatch-contract.md",
+        "reason": "dispatch contract",
+        "scopeClass": "dispatch-contract",
+        "declaredBeforeRead": true,
+        "recordedAt": "2026-10-18T04:46:22.854Z",
+        "nodeId": "page-shelf-a",
+        "htmlSrc": "pages/shelf-a.html"
+      }
+    ],
+    "expectedDispatches": [
+      {
+        "nodeId": "page-shelf-a",
+        "pageId": "page-shelf-a",
+        "targetPageId": "page-shelf-a",
+        "htmlSrc": "pages/shelf-a.html",
+        "packetType": "FreePagePacket",
+        "status": "completed",
+        "changedFiles": [
+          "pages/shelf-a.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "inline-main-agent-shelf-a-skeleton-then-single-main-replace",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        },
+        "recordedAt": "2026-10-18T05:02:09.691Z",
+        "source": "record-dispatch-completion.mjs"
+      },
+      {
+        "nodeId": "page-reader-a",
+        "pageId": "page-reader-a",
+        "targetPageId": "page-reader-a",
+        "htmlSrc": "pages/reader-a.html",
+        "packetType": "FreePagePacket",
+        "status": "completed",
+        "changedFiles": [
+          "pages/reader-a.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "inline-main-agent-reader-a-skeleton-then-single-main-replace",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        },
+        "recordedAt": "2026-10-18T04:57:14.364Z",
+        "source": "record-dispatch-completion.mjs"
+      },
+      {
+        "nodeId": "page-shelf-b",
+        "pageId": "page-shelf-b",
+        "targetPageId": "page-shelf-b",
+        "htmlSrc": "pages/shelf-b.html",
+        "packetType": "FreePagePacket",
+        "status": "completed",
+        "changedFiles": [
+          "pages/shelf-b.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "inline-main-agent-shelf-b-skeleton-then-single-main-replace",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        },
+        "recordedAt": "2026-10-18T04:57:14.475Z",
+        "source": "record-dispatch-completion.mjs"
+      },
+      {
+        "nodeId": "page-reader-b",
+        "pageId": "page-reader-b",
+        "targetPageId": "page-reader-b",
+        "htmlSrc": "pages/reader-b.html",
+        "packetType": "FreePagePacket",
+        "status": "completed",
+        "changedFiles": [
+          "pages/reader-b.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "inline-main-agent-reader-b-skeleton-then-single-main-replace",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        },
+        "recordedAt": "2026-10-18T04:57:14.590Z",
+        "source": "record-dispatch-completion.mjs"
+      },
+      {
+        "nodeId": "page-shelf-c",
+        "pageId": "page-shelf-c",
+        "targetPageId": "page-shelf-c",
+        "htmlSrc": "pages/shelf-c.html",
+        "packetType": "FreePagePacket",
+        "status": "completed",
+        "changedFiles": [
+          "pages/shelf-c.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "inline-main-agent-shelf-c-skeleton-then-single-main-replace",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        },
+        "recordedAt": "2026-10-18T04:57:14.696Z",
+        "source": "record-dispatch-completion.mjs"
+      },
+      {
+        "nodeId": "page-reader-c",
+        "pageId": "page-reader-c",
+        "targetPageId": "page-reader-c",
+        "htmlSrc": "pages/reader-c.html",
+        "packetType": "FreePagePacket",
+        "status": "completed",
+        "changedFiles": [
+          "pages/reader-c.html"
+        ],
+        "toolCallLedger": {
+          "source": "main-agent-runtime-trace",
+          "traceDigest": "inline-main-agent-reader-c-skeleton-then-single-main-replace",
+          "todoWriteCalls": 0,
+          "previewCalls": 0,
+          "validationScriptCalls": 0,
+          "helperScriptWrites": 0
+        },
+        "recordedAt": "2026-10-18T04:57:14.800Z",
+        "source": "record-dispatch-completion.mjs"
+      }
+    ],
+    "mainAgentPostDispatchMutations": [
+      {
+        "path": "manhwa-reader-ui.design",
+        "reason": "main-agent registered 6 page navigation interactions into design canvas after dispatch",
+        "owner": "main-agent",
+        "recordedAt": "2026-10-18T05:02:09.691Z",
+        "source": "record-dispatch-completion.mjs"
+      }
+    ],
+    "validationHistory": [
+      {
+        "reportPath": "validation-report.json",
+        "reportHash": "5879e1b88f94001052291a04328d52c2a1f40a63607a6b89eeddc838d5126e58",
+        "checkedAt": "2026-10-18T04:57:25.573Z",
+        "success": false,
+        "exitCode": 1,
+        "renderBlockingErrorCount": 6,
+        "repairPlanHints": [],
+        "errorSignatures": [
+          {
+            "errorClass": "artifact-readiness",
+            "normalized": "[dispatch-changed-files] pages/shelf-a.html: controlled file changed after dispatch preflight without mainAgentPostDispatchMutations evidence: manhwa-reader-ui.design",
+            "signature": "75e82e9ebbf31df672aca697fcedebe9e79e89a11e533909e84f155b7aadae1a"
+          },
+          {
+            "errorClass": "artifact-readiness",
+            "normalized": "[dispatch-changed-files] pages/reader-a.html: controlled file changed after dispatch preflight without mainAgentPostDispatchMutations evidence: manhwa-reader-ui.design",
+            "signature": "c0c9b8dc6bec1b82ef8eee6ec38b046a40d757ace65dbd459d5c7839e70bcc19"
+          },
+          {
+            "errorClass": "artifact-readiness",
+            "normalized": "[dispatch-changed-files] pages/shelf-b.html: controlled file changed after dispatch preflight without mainAgentPostDispatchMutations evidence: manhwa-reader-ui.design",
+            "signature": "d1c5e0c7f340d9a995ec3fe1a9cbf57e23c4133bfa46a3a0c95b97d5762a0140"
+          },
+          {
+            "errorClass": "artifact-readiness",
+            "normalized": "[dispatch-changed-files] pages/reader-b.html: controlled file changed after dispatch preflight without mainAgentPostDispatchMutations evidence: manhwa-reader-ui.design",
+            "signature": "24e68688649807dad526edb80bada12373712c4c88bf0d15271fe7f5af65b4c1"
+          },
+          {
+            "errorClass": "artifact-readiness",
+            "normalized": "[dispatch-changed-files] pages/shelf-c.html: controlled file changed after dispatch preflight without mainAgentPostDispatchMutations evidence: manhwa-reader-ui.design",
+            "signature": "7040cd3b0aa8bd043dd0d25797882a190f45ca464c390aecfbfd0a2b56cf4118"
+          },
+          {
+            "errorClass": "artifact-readiness",
+            "normalized": "[dispatch-changed-files] pages/reader-c.html: controlled file changed after dispatch preflight without mainAgentPostDispatchMutations evidence: manhwa-reader-ui.design",
+            "signature": "ae672dd7ac6ef8bf90ff0bffaf38976c79b16cefb535948bff3775781712525f"
+          }
+        ],
+        "terminalState": null
+      }
+    ],
+    "validationRepairLedger": [
+      {
+        "failedReportPath": "validation-report.json",
+        "failedReportHash": "5879e1b88f94001052291a04328d52c2a1f40a63607a6b89eeddc838d5126e58",
+        "repairWorkflowReadPath": "intent-workflows/intent-project-mutation/main-agent-repair-workflow.md",
+        "repairStartedAt": "2026-10-18T04:58:03.133Z",
+        "repairEntryStatus": "started-awaiting-owner-batch-repair",
+        "ownerTriage": [
+          {
+            "owner": "main-agent",
+            "errorClass": "artifact-readiness",
+            "affectedFiles": [],
+            "repairScope": "repair_design_registration_or_file_reference_only",
+            "strategy": "read .design and affected file metadata only"
+          },
+          {
+            "owner": "main-agent",
+            "errorClass": "artifact-readiness",
+            "affectedFiles": [],
+            "repairScope": "repair_design_registration_or_file_reference_only",
+            "strategy": "read .design and affected file metadata only"
+          },
+          {
+            "owner": "main-agent",
+            "errorClass": "artifact-readiness",
+            "affectedFiles": [],
+            "repairScope": "repair_design_registration_or_file_reference_only",
+            "strategy": "read .design and affected file metadata only"
+          },
+          {
+            "owner": "main-agent",
+            "errorClass": "artifact-readiness",
+            "affectedFiles": [],
+            "repairScope": "repair_design_registration_or_file_reference_only",
+            "strategy": "read .design and affected file metadata only"
+          },
+          {
+            "owner": "main-agent",
+            "errorClass": "artifact-readiness",
+            "affectedFiles": [],
+            "repairScope": "repair_design_registration_or_file_reference_only",
+            "strategy": "read .design and affected file metadata only"
+          },
+          {
+            "owner": "main-agent",
+            "errorClass": "artifact-readiness",
+            "affectedFiles": [],
+            "repairScope": "repair_design_registration_or_file_reference_only",
+            "strategy": "read .design and affected file metadata only"
+          }
+        ],
+        "repairPlanHints": [],
+        "repairActions": [],
+        "revalidationReportPath": null,
+        "revalidationReportHash": null,
+        "revalidationSuccess": null,
+        "blockedReason": null
+      }
+    ],
+    "repairEntryEvidence": [
+      {
+        "failedReportPath": "validation-report.json",
+        "failedReportHash": "5879e1b88f94001052291a04328d52c2a1f40a63607a6b89eeddc838d5126e58",
+        "repairWorkflowReadPath": "intent-workflows/intent-project-mutation/main-agent-repair-workflow.md",
+        "repairStartedAt": "2026-10-18T04:58:03.133Z",
+        "ledgerIndex": 0,
+        "ownerTriageCount": 6,
+        "repairActionCount": 0,
+        "revalidationReportPath": null,
+        "revalidationReportHash": null,
+        "revalidationSuccess": null
+      }
+    ]
+  }
+}

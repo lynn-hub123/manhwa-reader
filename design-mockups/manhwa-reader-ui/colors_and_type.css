@@ -1,0 +1,107 @@
+/* ============================================================
+   韩漫阅读器 · 方向 A「墨青书房 · 暖金」
+   深墨青/青灰底 + 低饱和暖金点缀，书卷气 + 苹果布局纪律
+   演示主题：夜间（html.dark）；同时提供完整日间色板
+   字体层级：SF Pro Display / 苹方 系统栈；封面题字用单一衬线
+   ============================================================ */
+
+:root {
+  /* —— 语义别名 · 日间（暖纸墨） —— */
+  --mr-background: #f1eee3;
+  --mr-foreground: #272b24;
+  --mr-card: #f9f7ef;
+  --mr-card-foreground: #272b24;
+  --mr-popover: #ffffff;
+  --mr-popover-foreground: #272b24;
+  --mr-primary: #8a7a55;
+  --mr-primary-foreground: #f9f7ef;
+  --mr-muted: #e8e4d6;
+  --mr-muted-foreground: #6f6e5e;
+  --mr-border: rgba(39, 43, 36, 0.12);
+  --mr-input: rgba(39, 43, 36, 0.07);
+  --mr-ring: #8a7a55;
+
+  /* 圆角层级 */
+  --mr-radius-sm: 8px;
+  --mr-radius-md: 12px;
+  --mr-radius-lg: 18px;
+
+  /* —— 扩展令牌 · 日间 —— */
+  --mr-ink-3: #9c998b;
+  --mr-line: rgba(39, 43, 36, 0.09);
+  --mr-line-strong: rgba(39, 43, 36, 0.16);
+  --mr-brand-soft: rgba(138, 122, 85, 0.13);
+  --mr-brand-soft-2: rgba(138, 122, 85, 0.26);
+  --mr-glass: rgba(241, 238, 227, 0.84);
+  --mr-scrim: rgba(32, 34, 28, 0.35);
+  --mr-stage: #e9e5d7;
+  --mr-page: #d9d5c6;
+  --mr-page-line: rgba(39, 43, 36, 0.14);
+  --mr-track: rgba(39, 43, 36, 0.12);
+  --mr-shadow-1: 0 1px 2px rgba(32, 34, 28, 0.04), 0 1px 1px rgba(32, 34, 28, 0.03);
+  --mr-shadow-float: 0 16px 48px -16px rgba(32, 34, 28, 0.3);
+  --mr-cover-1: #dce3da;
+  --mr-cover-2: #e6dec8;
+  --mr-cover-3: #d8e0e5;
+  --mr-cover-4: #e8d9d0;
+  --mr-cover-5: #dee3d1;
+  --mr-cover-6: #e5e0d1;
+  --mr-cover-7: #d4dde2;
+  --mr-cover-8: #e9dfc8;
+  --mr-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --mr-font-display: "SF Pro Display", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mr-font-cover: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+}
+
+:root.dark {
+  /* —— 语义别名 · 夜间（墨青） —— */
+  --mr-background: #171b18;
+  --mr-foreground: #e9e5d7;
+  --mr-card: #1e2420;
+  --mr-card-foreground: #e9e5d7;
+  --mr-popover: #232a25;
+  --mr-popover-foreground: #e9e5d7;
+  --mr-primary: #b7a987;
+  --mr-primary-foreground: #191c17;
+  --mr-muted: #262d27;
+  --mr-muted-foreground: #a3a292;
+  --mr-border: rgba(233, 229, 215, 0.11);
+  --mr-input: rgba(233, 229, 215, 0.07);
+  --mr-ring: #b7a987;
+
+  /* —— 扩展令牌 · 夜间 —— */
+  --mr-ink-3: #6e7163;
+  --mr-line: rgba(233, 229, 215, 0.08);
+  --mr-line-strong: rgba(233, 229, 215, 0.15);
+  --mr-brand-soft: rgba(183, 169, 135, 0.13);
+  --mr-brand-soft-2: rgba(183, 169, 135, 0.26);
+  --mr-glass: rgba(23, 27, 24, 0.78);
+  --mr-scrim: rgba(9, 11, 9, 0.55);
+  --mr-stage: #131714;
+  --mr-page: #2b302b;
+  --mr-page-line: rgba(233, 229, 215, 0.12);
+  --mr-track: rgba(233, 229, 215, 0.14);
+  --mr-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --mr-shadow-float: 0 20px 56px -18px rgba(0, 0, 0, 0.55);
+  --mr-cover-1: #2a332d;
+  --mr-cover-2: #3a3126;
+  --mr-cover-3: #2e3a42;
+  --mr-cover-4: #40312b;
+  --mr-cover-5: #333d2e;
+  --mr-cover-6: #3d3a2f;
+  --mr-cover-7: #29343b;
+  --mr-cover-8: #453b2c;
+}
+
+/* —— 基础版式 —— */
+.mr-app {
+  font-family: var(--mr-font-body);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.mr-app h1, .mr-app h2, .mr-app h3 {
+  font-family: var(--mr-font-display);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+.mr-hairline { border-color: var(--mr-line); }

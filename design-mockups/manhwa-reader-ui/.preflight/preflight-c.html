@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preflight C</title>
+    <style id="theme-vars">
+/* ============================================================
+   韩漫阅读器 · 方向 C「暗夜画廊」
+   近黑中性底 + 单一低饱和雾蓝强调，画廊式极简，封面即主角
+   演示主题：夜间（html.dark）；同时提供完整日间色板
+   字体层级：细体大字距的画廊标注风，数字用 tabular-nums
+   ============================================================ */
+
+:root {
+  /* —— 语义别名 · 日间（展墙白） —— */
+  --mr-background: #f4f4f2;
+  --mr-foreground: #1c1d1f;
+  --mr-card: #fcfcfb;
+  --mr-card-foreground: #1c1d1f;
+  --mr-popover: #ffffff;
+  --mr-popover-foreground: #1c1d1f;
+  --mr-primary: #5a7a9e;
+  --mr-primary-foreground: #f4f4f2;
+  --mr-muted: #eaeae6;
+  --mr-muted-foreground: #75777b;
+  --mr-border: rgba(28, 29, 31, 0.11);
+  --mr-input: rgba(28, 29, 31, 0.06);
+  --mr-ring: #5a7a9e;
+
+  /* 圆角层级（画廊式克制小圆角） */
+  --mr-radius-sm: 6px;
+  --mr-radius-md: 10px;
+  --mr-radius-lg: 14px;
+
+  /* —— 扩展令牌 · 日间 —— */
+  --mr-ink-3: #a0a2a6;
+  --mr-line: rgba(28, 29, 31, 0.08);
+  --mr-line-strong: rgba(28, 29, 31, 0.15);
+  --mr-brand-soft: rgba(90, 122, 158, 0.12);
+  --mr-brand-soft-2: rgba(90, 122, 158, 0.24);
+  --mr-glass: rgba(244, 244, 242, 0.85);
+  --mr-scrim: rgba(20, 21, 23, 0.35);
+  --mr-stage: #ebebe8;
+  --mr-page: #dcdcd8;
+  --mr-page-line: rgba(28, 29, 31, 0.13);
+  --mr-track: rgba(28, 29, 31, 0.12);
+  --mr-shadow-1: 0 1px 2px rgba(20, 21, 23, 0.04), 0 1px 1px rgba(20, 21, 23, 0.03);
+  --mr-shadow-float: 0 16px 48px -16px rgba(20, 21, 23, 0.28);
+  --mr-cover-1: #e3e5e8;
+  --mr-cover-2: #e8e4dd;
+  --mr-cover-3: #dfe4e1;
+  --mr-cover-4: #e5e0e4;
+  --mr-cover-5: #e1e4e6;
+  --mr-cover-6: #e8e6e0;
+  --mr-cover-7: #dde2e5;
+  --mr-cover-8: #e6e2da;
+  --mr-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --mr-font-display: "SF Pro Display", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --mr-font-cover: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+:root.dark {
+  /* —— 语义别名 · 夜间（暗夜展厅） —— */
+  --mr-background: #101113;
+  --mr-foreground: #ededeb;
+  --mr-card: #17181b;
+  --mr-card-foreground: #ededeb;
+  --mr-popover: #1d1f22;
+  --mr-popover-foreground: #ededeb;
+  --mr-primary: #8fa8c4;
+  --mr-primary-foreground: #0f1113;
+  --mr-muted: #1e2023;
+  --mr-muted-foreground: #9b9da1;
+  --mr-border: rgba(237, 237, 235, 0.1);
+  --mr-input: rgba(237, 237, 235, 0.06);
+  --mr-ring: #8fa8c4;
+
+  /* —— 扩展令牌 · 夜间 —— */
+  --mr-ink-3: #63656b;
+  --mr-line: rgba(237, 237, 235, 0.07);
+  --mr-line-strong: rgba(237, 237, 235, 0.14);
+  --mr-brand-soft: rgba(143, 168, 196, 0.12);
+  --mr-brand-soft-2: rgba(143, 168, 196, 0.24);
+  --mr-glass: rgba(16, 17, 19, 0.8);
+  --mr-scrim: rgba(5, 6, 7, 0.6);
+  --mr-stage: #0c0d0e;
+  --mr-page: #222428;
+  --mr-page-line: rgba(237, 237, 235, 0.11);
+  --mr-track: rgba(237, 237, 235, 0.13);
+  --mr-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --mr-shadow-float: 0 20px 56px -18px rgba(0, 0, 0, 0.6);
+  --mr-cover-1: #23282e;
+  --mr-cover-2: #2a2521;
+  --mr-cover-3: #1f2a26;
+  --mr-cover-4: #262331;
+  --mr-cover-5: #21272c;
+  --mr-cover-6: #2b2823;
+  --mr-cover-7: #1e242b;
+  --mr-cover-8: #29262b;
+}
+
+/* —— 基础版式 —— */
+.mr-app {
+  font-family: var(--mr-font-body);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.mr-app h1, .mr-app h2, .mr-app h3 {
+  font-family: var(--mr-font-display);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+.mr-hairline { border-color: var(--mr-line); }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--mr-background);
+    --color-foreground: var(--mr-foreground);
+    --color-card: var(--mr-card);
+    --color-card-foreground: var(--mr-card-foreground);
+    --color-popover: var(--mr-popover);
+    --color-popover-foreground: var(--mr-popover-foreground);
+    --color-primary: var(--mr-primary);
+    --color-primary-foreground: var(--mr-primary-foreground);
+    --color-muted: var(--mr-muted);
+    --color-muted-foreground: var(--mr-muted-foreground);
+    --color-border: var(--mr-border);
+    --color-input: var(--mr-input);
+    --color-ring: var(--mr-ring);
+    --radius-sm: var(--mr-radius-sm);
+    --radius-md: var(--mr-radius-md);
+    --radius-lg: var(--mr-radius-lg);
+  }
+  @layer base {
+    body { background: var(--mr-background); color: var(--mr-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--mr-background); }
+      .text-background { color: var(--mr-background); }
+      .border-background { border-color: var(--mr-background); }
+      .ring-background { --tw-ring-color: var(--mr-background); }
+      .bg-foreground { background-color: var(--mr-foreground); }
+      .text-foreground { color: var(--mr-foreground); }
+      .border-foreground { border-color: var(--mr-foreground); }
+      .ring-foreground { --tw-ring-color: var(--mr-foreground); }
+      .bg-card { background-color: var(--mr-card); }
+      .text-card { color: var(--mr-card); }
+      .border-card { border-color: var(--mr-card); }
+      .ring-card { --tw-ring-color: var(--mr-card); }
+      .bg-card-foreground { background-color: var(--mr-card-foreground); }
+      .text-card-foreground { color: var(--mr-card-foreground); }
+      .border-card-foreground { border-color: var(--mr-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--mr-card-foreground); }
+      .bg-popover { background-color: var(--mr-popover); }
+      .text-popover { color: var(--mr-popover); }
+      .border-popover { border-color: var(--mr-popover); }
+      .ring-popover { --tw-ring-color: var(--mr-popover); }
+      .bg-popover-foreground { background-color: var(--mr-popover-foreground); }
+      .text-popover-foreground { color: var(--mr-popover-foreground); }
+      .border-popover-foreground { border-color: var(--mr-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--mr-popover-foreground); }
+      .bg-primary { background-color: var(--mr-primary); }
+      .text-primary { color: var(--mr-primary); }
+      .border-primary { border-color: var(--mr-primary); }
+      .ring-primary { --tw-ring-color: var(--mr-primary); }
+      .bg-primary-foreground { background-color: var(--mr-primary-foreground); }
+      .text-primary-foreground { color: var(--mr-primary-foreground); }
+      .border-primary-foreground { border-color: var(--mr-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--mr-primary-foreground); }
+      .bg-muted { background-color: var(--mr-muted); }
+      .text-muted { color: var(--mr-muted); }
+      .border-muted { border-color: var(--mr-muted); }
+      .ring-muted { --tw-ring-color: var(--mr-muted); }
+      .bg-muted-foreground { background-color: var(--mr-muted-foreground); }
+      .text-muted-foreground { color: var(--mr-muted-foreground); }
+      .border-muted-foreground { border-color: var(--mr-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--mr-muted-foreground); }
+      .bg-border { background-color: var(--mr-border); }
+      .text-border { color: var(--mr-border); }
+      .border-border { border-color: var(--mr-border); }
+      .ring-border { --tw-ring-color: var(--mr-border); }
+      .bg-input { background-color: var(--mr-input); }
+      .text-input { color: var(--mr-input); }
+      .border-input { border-color: var(--mr-input); }
+      .ring-input { --tw-ring-color: var(--mr-input); }
+      .bg-ring { background-color: var(--mr-ring); }
+      .text-ring { color: var(--mr-ring); }
+      .border-ring { border-color: var(--mr-ring); }
+      .ring-ring { --tw-ring-color: var(--mr-ring); }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main>
+    </main>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+{
+  "data": [
+    {
+      "id": "page-shelf-a",
+      "title": "方向A 墨青书房 · 书架",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1792299000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 992,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-9eec91cc",
+          "measuredAt": 1792299975487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/shelf-a.html",
+        "interactions": [
+          {
+            "domId": "shelf-a-continue-book",
+            "targetPageId": "page-reader-a",
+            "transitionLabel": "继续阅读"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-reader-a",
+      "title": "方向A 墨青书房 · 阅读器",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1792299000001,
+      "canvasData": {
+        "x": 480,
+        "y": 0,
+        "group": 0,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-94a2e52f",
+          "measuredAt": 1792299975487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/reader-a.html",
+        "interactions": [
+          {
+            "domId": "reader-a-back",
+            "targetPageId": "page-shelf-a",
+            "transitionLabel": "返回书架",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-shelf-b",
+      "title": "方向B 暖纸书店 · 书架",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1792299000002,
+      "canvasData": {
+        "x": 0,
+        "y": 373,
+        "group": 1,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 992,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-1d69260b",
+          "measuredAt": 1792299975487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/shelf-b.html",
+        "interactions": [
+          {
+            "domId": "shelf-b-continue-book",
+            "targetPageId": "page-reader-b",
+            "transitionLabel": "继续阅读"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-reader-b",
+      "title": "方向B 暖纸书店 · 阅读器",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1792299000003,
+      "canvasData": {
+        "x": 480,
+        "y": 373,
+        "group": 1,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-f903a6dd",
+          "measuredAt": 1792299975487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/reader-b.html",
+        "interactions": [
+          {
+            "domId": "reader-b-back",
+            "targetPageId": "page-shelf-b",
+            "transitionLabel": "返回书架",
+            "hideEdge": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-shelf-c",
+      "title": "方向C 暗夜画廊 · 书架",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1792299000004,
+      "canvasData": {
+        "x": 0,
+        "y": 746,
+        "group": 2,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 994,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-34d9a806",
+          "measuredAt": 1792299975487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/shelf-c.html",
+        "interactions": [
+          {
+            "domId": "shelf-c-continue-book",
+            "targetPageId": "page-reader-c",
+            "transitionLabel": "继续阅读"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-reader-c",
+      "title": "方向C 暗夜画廊 · 阅读器",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1792299000005,
+      "canvasData": {
+        "x": 480,
+        "y": 746,
+        "group": 2,
+        "layoutSnapshot": {
+          "version": 1,
+          "contentHeight": 900,
+          "viewportWidth": 1440,
+          "sourceHash": "fnv1a-26161c03",
+          "measuredAt": 1792299975487
+        }
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/reader-c.html",
+        "interactions": [
+          {
+            "domId": "reader-c-back",
+            "targetPageId": "page-shelf-c",
+            "transitionLabel": "返回书架",
+            "hideEdge": true
+          }
+        ]
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "desktop",
+    "projectName": "韩漫阅读器 UI 设计稿"
+  }
+}
