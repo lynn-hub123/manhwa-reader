@@ -162,6 +162,7 @@ function spineColor(name){
 
 let shelfEnterPending=true; // 书架首次渲染时播放入场交错浮现，之后重渲染（搜索/删除/翻页）不再重播
 function renderBookshelf(){
+  try{$('bs-add-btn').style.display=''}catch(e){}
   const grid=$('bs-grid'),total=$('bs-total'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf');
   if(activeGroupId&&activeGroupId!==UNGROUPED_GROUP_ID&&!getGroupById(activeGroupId))activeGroupId=null;
   renderGroupBar();
@@ -185,6 +186,7 @@ function renderBookshelf(){
     const desc=bookshelf.length?(searchQuery?'换个关键词试试':'可以把漫画移入这个分组'):'选择 PDF 文件或文件夹开始导入';
     grid.innerHTML='<div class="bs-empty"><div class="empty-icon"></div><h2>'+title+'</h2><p>'+desc+'</p><button class="empty-action" id="bs-empty-add">+ 添加漫画</button></div>';
     const emptyAdd=Qs('#bs-empty-add',grid);if(emptyAdd)emptyAdd.onclick=()=>showAddModal();
+    try{$('bs-add-btn').style.display='none'}catch(e){}
     $('rack-pager').style.display='none';
     return;
   }
@@ -932,7 +934,17 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions'+(type==='cove
 }
 
 async function pickFolder(){try{if(!window.showDirectoryPicker)return await pickFilesViaInput();let dh=await window.showDirectoryPicker(),fs=[];for await(let e of dh.values()){if(e.kind==='file')fs.push(await e.getFile())}let pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('文件夹中没有PDF文件');return null}return pdfs}catch(e){if(e.name!=='AbortError')showToast('操作取消');return null}}
-async function pickFilesViaInput(){return new Promise(resolve=>{let inp=$('hidden-file-input'),ni=inp.cloneNode(!0);inp.parentNode.replaceChild(ni,inp);ni.id='hidden-file-input';ni.accept='application/pdf,.pdf';ni.addEventListener('change',function(){let fs=Array.from(this.files),pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('未选中PDF文件');resolve(null);return}resolve(pdfs)});ni.addEventListener('cancel',()=>resolve(null));ni.click()})}
+async function pickFilesViaInput(){
+  const cap=window.Capacitor;
+  if(cap&&cap.isNativePlatform&&cap.isNativePlatform()&&cap.Plugins&&cap.Plugins.CapacitorFilePicker){
+    try{
+      const r=await cap.Plugins.CapacitorFilePicker.pickFiles({multiple:!0,types:['application/pdf'],readData:!0});
+      const pdfs=(r.files||[]).filter(f=>(f.name||'').toLowerCase().endsWith('.pdf')).map(f=>{const bin=atob(f.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new File([new Blob([u8],{type:f.mimeType||'application/pdf'})],f.name,{type:f.mimeType||'application/pdf'})});
+      if(!pdfs.length){showToast('未选中PDF文件');return null}
+      return pdfs;
+    }catch(e){return null}
+  }
+  return new Promise(resolve=>{let inp=$('hidden-file-input'),ni=inp.cloneNode(!0);inp.parentNode.replaceChild(ni,inp);ni.id='hidden-file-input';ni.accept='application/pdf,.pdf';ni.addEventListener('change',function(){let fs=Array.from(this.files),pdfs=fs.filter(f=>f.name.toLowerCase().endsWith('.pdf'));if(!pdfs.length){showToast('未选中PDF文件');resolve(null);return}resolve(pdfs)});ni.addEventListener('cancel',()=>resolve(null));ni.click()})}
 function extractChapterNumber(f){let n=f.replace(/\.pdf$/i,'');for(let p of[/第\s*(\d+)\s*[话章节]/g,/[Cc]h(?:apter)?[.\s_-]*(\d+)/g,/^(\d+)[\s_.-]/g,/[[(（](\d+)[\])）]/g,/(\d+)$/g]){let m=[...n.matchAll(p)];if(m.length)return parseInt(m[m.length-1][1])}let m=n.match(/(\d+)/g);return m?parseInt(m[m.length-1]):NaN}
 function assignFallbackChapterNums(list,existing){let mx=(existing||list).reduce((m,c)=>isFinite(c.chapterNum)&&c.chapterNum>m?c.chapterNum:m,0),seq=mx+1;list.forEach(c=>{if(!isFinite(c.chapterNum))c.chapterNum=seq++})}
 
