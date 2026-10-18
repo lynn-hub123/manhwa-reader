@@ -7,8 +7,8 @@ const absolute = path => new URL(path, scope).href;
 
 self.addEventListener('install', event => {
   // addAll is atomic: an unavailable required resource rejects installation.
-  // Updates wait for old windows to close; no forced takeover of an old renderer.
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(APP_SHELL)));
+  // skipWaiting lets UI fixes land on the very next open instead of after two restarts.
+  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
