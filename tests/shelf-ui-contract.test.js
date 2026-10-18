@@ -8,13 +8,13 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 
-assert.match(html, /--accent:#0A84FF/i,
-  'the iOS-style palette should use the system blue accent');
+assert.match(html, /--accent:#B7A987/i,
+  'the low-saturation study palette should use a muted warm-gold accent');
 assert.match(html, /#bookshelf\{[^}]*background:var\(--bg\)/,
   'the bookshelf needs an explicit surface background');
 assert.match(html, /\.bs-rack\{[^}]*display:grid[^}]*grid-template-columns:repeat\(auto-fill,minmax\(/,
   'the shelf should render as a responsive cover grid');
-assert.match(html, /grid-template-columns:repeat\(auto-fill,minmax\(198px,1fr\)/,
+assert.match(html, /grid-template-columns:repeat\(auto-fill,minmax\(168px,1fr\)/,
   'desktop cover cards should stay large enough for titles and artwork');
 assert.match(html, /\.bs-header\{[^}]*flex-shrink:0/,
   'the shelf header should keep its height when the grid overflows');
@@ -36,7 +36,7 @@ assert.doesNotMatch(app, /has-reading-dock/,
   'renderBookshelf should no longer track the removed reading dock');
 assert.match(app, /bs-empty-add/,
   'the empty bookshelf should expose a direct add action');
-assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*--colw:max\(132px,min\(198px,calc\(\(100dvh - 396px\)\/4\.2\)\)\)/,
+assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*--colw:max\(118px,min\(150px,calc\(\(100dvh - 396px\)\/4\.2\)\)\)/,
   'wide desktop shelves should scale cover width from the viewport so a full rack fits one screen');
 assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*position:sticky;top:0;z-index:20/,
   'the desktop shelf header should stay pinned with a translucent material while the rack scrolls under it');

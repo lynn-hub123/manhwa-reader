@@ -18,7 +18,7 @@ assert.match(html, /\.bs-section-head,\.bs-rack\{[^}]*max-width:100%/,
   'short desktop windows should keep the bookshelf content in the widened left column');
 assert.match(html, /\.shelf-title\{[^}]*font-size:16px/,
   'normal desktop cards should keep readable title text');
-assert.match(html, /\.bs-rack\{display:grid;grid-template-columns:repeat\(auto-fill,minmax\(198px,1fr\)\)/,
+assert.match(html, /\.bs-rack\{display:grid;grid-template-columns:repeat\(auto-fill,minmax\(168px,1fr\)\)/,
   'normal desktop cards should use a readable minimum width');
 assert.match(html, /\.shelf-cover-wrap\{aspect-ratio:5\/5\.6\}/,
   'short desktop cards should fit two rows without forcing an inner scrollbar');

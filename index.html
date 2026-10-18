@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#0D0D0F">
+<meta name="theme-color" content="#171B18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,39 +29,39 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
 
-/* ===== 夜间（默认）· iOS 深色 ===== */
+/* ===== 夜间（默认）· 墨青书房 · 低饱和 ===== */
 :root,[data-theme="night"]{
---bg:#0D0D0F;--surface:#1C1C1E;--surface2:#2C2C2E;--card:#1C1C1E;
---accent:#0A84FF;--accent-hover:#409CFF;
---accent-soft:rgba(10,132,255,.16);--accent-glow:rgba(10,132,255,.22);
---accent-ink:#FFFFFF;
---text:#F5F5F7;--text2:#AEAEB2;--text3:#7C7C82;
---border:rgba(255,255,255,.10);
---shadow:0 12px 32px rgba(0,0,0,.5);
---shadow-soft:0 6px 18px rgba(0,0,0,.38);
---shadow-inset:inset 0 1px 0 rgba(255,255,255,.06);
---shadow-pressed:inset 0 2px 6px rgba(0,0,0,.4);
---dot-unread:#48484C;--dot-reading:#0A84FF;--dot-read:#30D158;
---shelf:#161618;--shelf-edge:rgba(255,255,255,.08);--shelf-shadow:rgba(0,0,0,.5);
---book-shadow:rgba(0,0,0,.4);--book-spine:rgba(255,255,255,.08);
+--bg:#171B18;--surface:#1E2420;--surface2:#28302A;--card:#1F2621;
+--accent:#B7A987;--accent-hover:#C9BC9B;
+--accent-soft:rgba(183,169,135,.14);--accent-glow:rgba(183,169,135,.2);
+--accent-ink:#23281F;
+--text:#E9EBE4;--text2:#A3A99E;--text3:#727871;
+--border:rgba(230,240,225,.09);
+--shadow:0 12px 32px rgba(0,0,0,.44);
+--shadow-soft:0 6px 18px rgba(0,0,0,.32);
+--shadow-inset:inset 0 1px 0 rgba(255,255,255,.05);
+--shadow-pressed:inset 0 2px 6px rgba(0,0,0,.36);
+--dot-unread:#4A524B;--dot-reading:#B7A987;--dot-read:#7BA28C;
+--shelf:#222A24;--shelf-edge:rgba(230,240,225,.1);--shelf-shadow:rgba(0,0,0,.44);
+--book-shadow:rgba(0,0,0,.36);--book-spine:rgba(255,255,255,.08);
 --radius:14px;--radius-sm:10px;
 }
 
-/* ===== 日间 · iOS 浅色 ===== */
+/* ===== 日间 · 暖纸灰绿 · 低饱和 ===== */
 [data-theme="day"]{
---bg:#F2F2F7;--surface:#FFFFFF;--surface2:#F7F7FA;--card:#FFFFFF;
---accent:#007AFF;--accent-hover:#157EFF;
---accent-soft:rgba(0,122,255,.12);--accent-glow:rgba(0,122,255,.18);
---accent-ink:#FFFFFF;
---text:#1D1D1F;--text2:#6E6E73;--text3:#98989D;
---border:rgba(60,60,67,.14);
---shadow:0 12px 32px rgba(0,0,0,.10);
---shadow-soft:0 6px 18px rgba(0,0,0,.07);
---shadow-inset:inset 0 1px 0 rgba(255,255,255,.8);
---shadow-pressed:inset 0 2px 6px rgba(0,0,0,.1);
---dot-unread:#D1D1D6;--dot-reading:#007AFF;--dot-read:#34C759;
---shelf:#E8E8ED;--shelf-edge:rgba(60,60,67,.14);--shelf-shadow:rgba(60,60,67,.14);
---book-shadow:rgba(60,60,67,.16);--book-spine:rgba(255,255,255,.5);
+--bg:#F3F1EA;--surface:#FBFAF6;--surface2:#E9E6DC;--card:#FBFAF6;
+--accent:#4C6B5A;--accent-hover:#5A7D6A;
+--accent-soft:rgba(76,107,90,.13);--accent-glow:rgba(76,107,90,.18);
+--accent-ink:#F6F5EF;
+--text:#262B22;--text2:#686E5F;--text3:#90958A;
+--border:rgba(60,70,55,.13);
+--shadow:0 12px 32px rgba(60,70,55,.1);
+--shadow-soft:0 6px 18px rgba(60,70,55,.07);
+--shadow-inset:inset 0 1px 0 rgba(255,255,255,.75);
+--shadow-pressed:inset 0 2px 6px rgba(60,70,55,.09);
+--dot-unread:#C9C6B8;--dot-reading:#4C6B5A;--dot-read:#6FA087;
+--shelf:#E7E4DA;--shelf-edge:rgba(60,70,55,.14);--shelf-shadow:rgba(60,70,55,.13);
+--book-shadow:rgba(60,70,55,.15);--book-spine:rgba(255,255,255,.45);
 --radius:14px;--radius-sm:10px;
 }
 
@@ -349,7 +349,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .comic-panel-rule{height:1px;background:var(--border);position:relative}
 .comic-panel-rule::before,.comic-panel-rule::after{content:"";position:absolute;top:-2px;width:5px;height:5px;border:1px solid var(--accent);background:var(--surface)}
 .comic-panel-rule::before{left:0}.comic-panel-rule::after{right:0}
-.bs-rack{display:grid;grid-template-columns:repeat(auto-fill,minmax(198px,1fr));gap:36px 28px;align-items:start;justify-content:stretch;overflow:visible;padding:8px 0 24px;margin:0;max-width:1160px;perspective:none;transform-style:flat}
+.bs-rack{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:36px 28px;align-items:start;justify-content:stretch;overflow:visible;padding:8px 0 24px;margin:0;max-width:1160px;perspective:none;transform-style:flat}
 .bs-rack::after{display:none}
 .rack-book{width:auto;height:auto;min-width:0;margin:0;display:flex;flex-direction:column;gap:12px;cursor:pointer;isolation:auto;transform-style:flat;position:relative;z-index:1;outline:none}
 .rack-book:hover,.rack-book:focus-visible{z-index:3}
@@ -434,7 +434,7 @@ select{box-shadow:var(--shadow-soft)}
 @media(min-width:1100px){
   #bookshelf{padding-top:0}
   .bs-header{position:sticky;top:0;z-index:20;margin-bottom:16px;padding:22px 0 14px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px)}
-  .bs-rack{--colw:max(132px,min(198px,calc((100dvh - 396px)/4.2)));grid-template-columns:repeat(4,var(--colw));justify-content:center;gap:20px 26px;padding:4px 0 16px;width:100%;align-self:flex-start}
+  .bs-rack{--colw:max(118px,min(150px,calc((100dvh - 396px)/4.2)));grid-template-columns:repeat(4,var(--colw));justify-content:center;gap:20px 26px;padding:4px 0 16px;width:100%;align-self:flex-start}
   .bs-rack .rack-add{display:none}
 }
 
@@ -469,13 +469,16 @@ select{box-shadow:var(--shadow-soft)}
   .bs-header #bs-settings-btn,.bs-header #btn-cache-mgr{min-height:44px}
   .bs-group-rail.has-overflow .bs-groups{padding-inline:31px}
   .bs-group-scroll-btn{width:27px;height:27px;font-size:18px}
-  .bs-rack{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}
+  .bs-rack{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 10px}
+  .shelf-title{font-size:13px;line-height:1.35}
+  .shelf-meta{font-size:11px}
   #topbar{margin:max(8px,env(safe-area-inset-top)) 10px 0;padding:7px;gap:6px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;overflow:visible;flex-wrap:nowrap}
   #topbar .sep,#topbar .logo{display:none}
   #topbar .spacer{display:none}
   #topbar .back-btn{min-height:44px;padding:8px 10px}
   #topbar .info{max-width:none;min-width:0}
   #topbar .reader-secondary{display:none}
+  #topbar #btn-set-cover{display:none}
   #topbar #btn-reader-more{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:8px 10px}
   #topbar #zoom-select{grid-column:1 / -1;width:100%;min-height:44px;margin-top:1px}
   #main{padding:10px;gap:10px;min-height:0}
@@ -555,13 +558,13 @@ select{box-shadow:var(--shadow-soft)}
 .bs-rack.rack-enter .rack-book:nth-child(11){animation-delay:.5s}
 .bs-rack.rack-enter .rack-book:nth-child(12){animation-delay:.55s}
 
-/* ===== 氛围层：极淡晕影（iOS 纯净风）===== */
+/* ===== 氛围层：极淡暖晕 + 晕影（低饱和）===== */
 #bookshelf::before,#reader::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:
-  radial-gradient(120% 60% at 50% -10%,rgba(255,255,255,.05),transparent 55%),
-  radial-gradient(150% 130% at 50% 60%,transparent 60%,rgba(0,0,0,.32) 100%)}
+  radial-gradient(120% 60% at 50% -10%,rgba(183,169,135,.05),transparent 55%),
+  radial-gradient(150% 130% at 50% 60%,transparent 60%,rgba(0,0,0,.3) 100%)}
 [data-theme="day"] #bookshelf::before,[data-theme="day"] #reader::before{background:
-  radial-gradient(120% 60% at 50% -10%,rgba(255,255,255,.7),transparent 55%),
-  radial-gradient(150% 130% at 50% 60%,transparent 62%,rgba(60,60,67,.06) 100%)}
+  radial-gradient(120% 60% at 50% -10%,rgba(255,252,240,.7),transparent 55%),
+  radial-gradient(150% 130% at 50% 60%,transparent 62%,rgba(60,70,55,.05) 100%)}
 
 /* ===== 阅读器沉浸模式 ===== */
 body.reader-active #topbar,body.reader-active #bottombar,body.reader-active #sidebar{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease,margin .3s cubic-bezier(.4,0,.2,1)}
@@ -578,6 +581,8 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 
 /* ===== 阅读器顶栏减负：操作全部收进「更多」菜单（全宽度生效）===== */
 #topbar .reader-secondary{display:none!important}
+#topbar #btn-set-cover{display:inline-flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--accent) 16%,transparent);border:1px solid color-mix(in srgb,var(--accent) 42%,transparent);color:var(--accent);font-weight:600}
+#topbar #btn-set-cover:hover{background:var(--accent);color:var(--accent-ink)}
 
 /* ===== 桌面隐藏 PWA 安装说明（手机端保留）===== */
 @media(min-width:781px){#pwa-info{display:none}}
@@ -600,7 +605,7 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 <div id="startup-note">电脑本地使用：双击 <b>启动阅读器.bat</b>，打开 <b>http://localhost:8765</b>。手机安装请使用 HTTPS 测试入口。</div><p id="pwa-info" style="font-size:12px;line-height:1.7;color:var(--text3);margin-bottom:16px" role="status" hidden></p><div id="drag-hint">也可以将 PDF 文件或文件夹拖入窗口</div><div class="bs-rack" id="bs-grid"></div><div id="rack-pager" style="display:none"></div>
 </div>
 </div>
-<div id="reader" class="hidden"><div id="topbar"><button class="back-btn" id="btn-back">← 书架</button><span class="logo" aria-hidden="true">◈</span><span class="sep"></span><span class="info" id="ch-info">未加载章节</span><span class="spacer"></span><button class="reader-secondary" id="btn-settings">设置</button><button class="reader-secondary" id="btn-set-cover">设封面</button><button class="reader-secondary" id="btn-add-files-reader">追加文件</button><button class="reader-secondary" id="btn-add-folder-reader" style="display:none">追加文件夹</button><button class="reader-secondary" id="btn-toggle-sidebar">目录</button><button id="btn-reader-more" type="button" aria-label="更多阅读操作">更多</button><button id="btn-immersive" type="button">沉浸模式</button><select id="zoom-select"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5" selected>150%</option><option value="2">200%</option><option value="fit">适应宽度</option></select></div>
+<div id="reader" class="hidden"><div id="topbar"><button class="back-btn" id="btn-back">← 书架</button><span class="logo" aria-hidden="true">◈</span><span class="sep"></span><span class="info" id="ch-info">未加载章节</span><span class="spacer"></span><button class="reader-secondary" id="btn-settings">设置</button><button id="btn-set-cover" type="button">设封面</button><button class="reader-secondary" id="btn-add-files-reader">追加文件</button><button class="reader-secondary" id="btn-add-folder-reader" style="display:none">追加文件夹</button><button class="reader-secondary" id="btn-toggle-sidebar">目录</button><button id="btn-reader-more" type="button" aria-label="更多阅读操作">更多</button><button id="btn-immersive" type="button">沉浸模式</button><select id="zoom-select"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5" selected>150%</option><option value="2">200%</option><option value="fit">适应宽度</option></select></div>
 <div id="main"><div id="sidebar"><div id="sidebar-resizer"></div><div id="sidebar-header"><span>章节列表</span><span id="ch-count" style="font-size:11px;opacity:.6"></span></div><div id="chapter-list"></div></div><div id="viewer-area"><div id="loading"><div class="spinner"></div><div class="load-text" id="load-text">加载中...</div></div><div id="page-container"></div><div id="page-hud" aria-hidden="true"></div></div></div>
 <div id="bottombar"><button id="btn-prev-ch">◀◀ 上一章</button><button id="btn-prev-pg">◀</button><span class="page-info" id="page-info">- / -</span><input type="range" id="page-slider" min="1" value="1" step="1" disabled><button id="btn-next-pg">▶</button><button id="btn-next-ch">下一章 ▶▶</button></div></div>
 <div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-content"></div></div><div id="drop-overlay"><div class="drop-text">📥 松开以加载</div></div><div id="toast"></div>
