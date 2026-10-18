@@ -38,7 +38,7 @@ assert.match(app, /bs-empty-add/,
   'the empty bookshelf should expose a direct add action');
 assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*--colw:max\(132px,min\(198px,calc\(\(100dvh - 396px\)\/4\.2\)\)\)/,
   'wide desktop shelves should scale cover width from the viewport so a full rack fits one screen');
-assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*position:sticky;top:0;z-index:6/,
+assert.match(html, /@media\(min-width:1100px\)\{[\s\S]*position:sticky;top:0;z-index:20/,
   'the desktop shelf header should stay pinned with a translucent material while the rack scrolls under it');
 assert.match(html, /@media\(min-width:1100px\) and \(max-height:1200px\)\{[\s\S]*#bookshelf\{padding:0 clamp\(32px,4vw,72px\) 8px\}/,
   'normal-height desktop shelves should keep compact page edges without a top gap');
