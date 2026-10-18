@@ -1,0 +1,11 @@
+{
+  "appId": "com.lynnhub.manhwareader",
+  "appName": "韩漫阅读器",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

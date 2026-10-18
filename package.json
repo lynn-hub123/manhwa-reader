@@ -1,0 +1,34 @@
+{
+  "name": "manhwa-reader",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js",
+    "sync:www": "robocopy . www /E /XD node_modules android www .git design-mockups tests manhwa .trae /XF server.js 启动阅读器.bat package.json package-lock.json .gitignore capacitor.config.json & exit /b 0",
+    "cap:sync": "npm run sync:www && npx cap sync android",
+    "cap:apk": "npm run cap:sync && cd android && gradlew.bat assembleDebug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lynn-hub123/manhwa-reader.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lynn-hub123/manhwa-reader/issues"
+  },
+  "homepage": "https://github.com/lynn-hub123/manhwa-reader#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  }
+}

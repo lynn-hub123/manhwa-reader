@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">韩漫阅读器</string>
+    <string name="title_activity_main">韩漫阅读器</string>
+    <string name="package_name">com.lynnhub.manhwareader</string>
+    <string name="custom_url_scheme">com.lynnhub.manhwareader</string>
+</resources>

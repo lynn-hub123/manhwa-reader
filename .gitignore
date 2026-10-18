@@ -18,3 +18,13 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Capacitor / Android 打包链产物
+.jdk21/
+www/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/public/
