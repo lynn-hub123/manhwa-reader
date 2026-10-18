@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#171B18">
+<meta name="theme-color" content="#101113">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,40 +29,40 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html{min-height:100%;background:var(--bg)}
 
-/* ===== 夜间（默认）· 墨青书房 · 低饱和 ===== */
+/* ===== 夜间（默认）· 暗夜画廊 · 近黑+雾蓝 ===== */
 :root,[data-theme="night"]{
---bg:#171B18;--surface:#1E2420;--surface2:#28302A;--card:#1F2621;
---accent:#B7A987;--accent-hover:#C9BC9B;
---accent-soft:rgba(183,169,135,.14);--accent-glow:rgba(183,169,135,.2);
---accent-ink:#23281F;
---text:#E9EBE4;--text2:#A3A99E;--text3:#727871;
---border:rgba(230,240,225,.09);
---shadow:0 12px 32px rgba(0,0,0,.44);
---shadow-soft:0 6px 18px rgba(0,0,0,.32);
+--bg:#101113;--surface:#17181B;--surface2:#1D1F22;--card:#17181B;
+--accent:#8FA8C4;--accent-hover:#A3B8CF;
+--accent-soft:rgba(143,168,196,.12);--accent-glow:rgba(143,168,196,.2);
+--accent-ink:#0F1113;
+--text:#EDEDEB;--text2:#9B9DA1;--text3:#63656B;
+--border:rgba(237,237,235,.1);
+--shadow:0 16px 48px -16px rgba(0,0,0,.6);
+--shadow-soft:0 10px 30px -12px rgba(0,0,0,.5);
 --shadow-inset:inset 0 1px 0 rgba(255,255,255,.05);
 --shadow-pressed:inset 0 2px 6px rgba(0,0,0,.36);
---dot-unread:#4A524B;--dot-reading:#B7A987;--dot-read:#7BA28C;
---shelf:#222A24;--shelf-edge:rgba(230,240,225,.1);--shelf-shadow:rgba(0,0,0,.44);
---book-shadow:rgba(0,0,0,.36);--book-spine:rgba(255,255,255,.08);
+--dot-unread:#4A4D52;--dot-reading:#8FA8C4;--dot-read:#7FA08E;
+--shelf:#141517;--shelf-edge:rgba(237,237,235,.12);--shelf-shadow:rgba(0,0,0,.5);
+--book-shadow:rgba(0,0,0,.45);--book-spine:rgba(237,237,235,.07);
 --radius:14px;--radius-sm:10px;
 }
 
-/* ===== 日间 · 暖纸灰绿 · 低饱和 ===== */
+/* ===== 日间 · 暖纸书店 · 暖纸白+深绿 ===== */
 [data-theme="day"]{
---bg:#F3F1EA;--surface:#FBFAF6;--surface2:#E9E6DC;--card:#FBFAF6;
---accent:#4C6B5A;--accent-hover:#5A7D6A;
---accent-soft:rgba(76,107,90,.13);--accent-glow:rgba(76,107,90,.18);
---accent-ink:#F6F5EF;
---text:#262B22;--text2:#686E5F;--text3:#90958A;
---border:rgba(60,70,55,.13);
---shadow:0 12px 32px rgba(60,70,55,.1);
---shadow-soft:0 6px 18px rgba(60,70,55,.07);
---shadow-inset:inset 0 1px 0 rgba(255,255,255,.75);
---shadow-pressed:inset 0 2px 6px rgba(60,70,55,.09);
---dot-unread:#C9C6B8;--dot-reading:#4C6B5A;--dot-read:#6FA087;
---shelf:#E7E4DA;--shelf-edge:rgba(60,70,55,.14);--shelf-shadow:rgba(60,70,55,.13);
---book-shadow:rgba(60,70,55,.15);--book-spine:rgba(255,255,255,.45);
---radius:14px;--radius-sm:10px;
+--bg:#F6F2E8;--surface:#FCFAF3;--surface2:#EBE6D7;--card:#FCFAF3;
+--accent:#4C5F50;--accent-hover:#5A705E;
+--accent-soft:rgba(76,95,80,.12);--accent-glow:rgba(76,95,80,.18);
+--accent-ink:#F6F4EA;
+--text:#2F2C25;--text2:#7B7565;--text3:#A29B89;
+--border:rgba(47,44,37,.12);
+--shadow:0 12px 32px -12px rgba(60,52,38,.25);
+--shadow-soft:0 6px 18px -6px rgba(60,52,38,.16);
+--shadow-inset:inset 0 1px 0 rgba(255,255,255,.7);
+--shadow-pressed:inset 0 2px 6px rgba(60,52,38,.09);
+--dot-unread:#CFC9B6;--dot-reading:#4C5F50;--dot-read:#6E8F7B;
+--shelf:#EBE6D7;--shelf-edge:rgba(47,44,37,.16);--shelf-shadow:rgba(60,52,38,.18);
+--book-shadow:rgba(60,52,38,.16);--book-spine:rgba(255,255,255,.4);
+--radius:16px;--radius-sm:12px;
 }
 
 body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft YaHei",sans-serif;height:100vh;min-height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none;-webkit-user-select:none}
@@ -558,13 +558,13 @@ select{box-shadow:var(--shadow-soft)}
 .bs-rack.rack-enter .rack-book:nth-child(11){animation-delay:.5s}
 .bs-rack.rack-enter .rack-book:nth-child(12){animation-delay:.55s}
 
-/* ===== 氛围层：极淡暖晕 + 晕影（低饱和）===== */
+/* ===== 氛围层：画廊式极淡晕影 ===== */
 #bookshelf::before,#reader::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:
-  radial-gradient(120% 60% at 50% -10%,rgba(183,169,135,.05),transparent 55%),
-  radial-gradient(150% 130% at 50% 60%,transparent 60%,rgba(0,0,0,.3) 100%)}
+  radial-gradient(120% 60% at 50% -10%,rgba(255,255,255,.04),transparent 55%),
+  radial-gradient(150% 130% at 50% 60%,transparent 62%,rgba(0,0,0,.3) 100%)}
 [data-theme="day"] #bookshelf::before,[data-theme="day"] #reader::before{background:
-  radial-gradient(120% 60% at 50% -10%,rgba(255,252,240,.7),transparent 55%),
-  radial-gradient(150% 130% at 50% 60%,transparent 62%,rgba(60,70,55,.05) 100%)}
+  radial-gradient(120% 60% at 50% -10%,rgba(255,252,240,.6),transparent 55%),
+  radial-gradient(150% 130% at 50% 60%,transparent 62%,rgba(60,52,38,.05) 100%)}
 
 /* ===== 阅读器沉浸模式 ===== */
 body.reader-active #topbar,body.reader-active #bottombar,body.reader-active #sidebar{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease,margin .3s cubic-bezier(.4,0,.2,1)}
