@@ -10,9 +10,7 @@ assert.match(html, /#bookshelf\{[^}]*padding:34px clamp\(48px,5vw,96px\) 72px/,
   'the desktop bookshelf should keep generous page-edge breathing room');
 assert.match(html, /\.bs-header\{[^}]*margin-bottom:28px[^}]*padding:6px 0 20px[^}]*border:0[^}]*background:transparent[^}]*box-shadow:none/,
   'the bookshelf header should use the open reference layout');
-assert.match(html, /\.bs-continue\{[^}]*grid-template-rows:auto auto auto[^}]*min-height:222px[^}]*margin:0 0 34px[^}]*padding:26px 28px/,
-  'the continue-reading module should use readable dimensions');
-assert.match(html, /\.bs-section-head\{[^}]*margin:0 0 26px[^}]*padding:0 3px 16px/,
+assert.match(html, /\.bs-section-head\{[^}]*margin:0 0 16px[^}]*padding:0 3px 12px/,
   'the library section header should separate from the card grid');
 assert.match(html, /\.bs-rack\{[^}]*gap:36px 28px[^}]*padding:8px 0 24px/,
   'the cover grid should use a readable card rhythm');

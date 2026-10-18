@@ -162,7 +162,7 @@ function spineColor(name){
 
 let shelfEnterPending=true; // 书架首次渲染时播放入场交错浮现，之后重渲染（搜索/删除/翻页）不再重播
 function renderBookshelf(){
-  const grid=$('bs-grid'),total=$('bs-total'),continueEl=$('bs-continue'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf');
+  const grid=$('bs-grid'),total=$('bs-total'),libraryHead=$('bs-library-head'),libraryCount=$('bs-library-count'),libraryTitle=$('bs-library-title'),shelf=$('bookshelf');
   if(activeGroupId&&activeGroupId!==UNGROUPED_GROUP_ID&&!getGroupById(activeGroupId))activeGroupId=null;
   renderGroupBar();
   total.textContent=bookshelf.length+' 部';
@@ -179,7 +179,6 @@ function renderBookshelf(){
   if(libraryCount)libraryCount.textContent=sorted.length+' 部';
   if(libraryTitle)libraryTitle.textContent=getActiveGroupLabel();
   if(!sorted.length){
-    if(continueEl){continueEl.hidden=!0;continueEl.innerHTML=''}
     if(libraryHead)libraryHead.style.display='none';
     grid.dataset.count='0';
     const title=bookshelf.length?(searchQuery?'没有匹配漫画':'这个分组暂无漫画'):'书架空空';
@@ -190,21 +189,9 @@ function renderBookshelf(){
     return;
   }
   if(libraryHead)libraryHead.style.display='flex';
-  if(continueEl){
-    const recent=sorted.find(s=>s.lastChNum!==null&&s.lastChNum!==undefined&&isFinite(s.lastChNum));
-    if(!recent){continueEl.hidden=!0;continueEl.innerHTML=''}
-    else{
-      const recentCount=recent.chapters.length;
-      let recentPct=0;
-      if(recent.lastChNum&&recentCount>0){const rci=recent.chapters.findIndex(c=>c.chapterNum===recent.lastChNum);recentPct=rci>=0?Math.round((rci+1)/recentCount*100):0}
-      const recentCover=covers[recent.seriesId]?'<img class="shelf-cover-image" src="'+covers[recent.seriesId]+'" alt="">':'<div class="cover-fallback">'+recent.name.charAt(0)+'</div>';
-      const recentLabel=recent.lastChNum?'第 '+recent.lastChNum+' 话 · 已读 '+recentPct+'%':'尚未开始阅读';
-      const openRecent=()=>openSeries(recent.seriesId);
-      continueEl.hidden=!1;
-      continueEl.innerHTML='<div class="continue-cover">'+recentCover+'</div><div class="continue-copy"><span class="continue-kicker">继续阅读</span><h2>'+recent.name+'</h2><p class="continue-meta">'+recentLabel+'</p></div><div class="continue-action"><button id="bs-continue-open">继续阅读 <span aria-hidden="true">→</span></button></div>';
-      const continueButton=Qs('#bs-continue-open',continueEl);if(continueButton)continueButton.onclick=openRecent;
-    }
-  }
+  // 「继续阅读」融入书架：最近读过的一本书获得 resume 徽章（排序默认按 lastReadAt 置顶）
+  const resumeSeries=sorted.reduce((m,s)=>((s.lastReadAt||0)>((m&&m.lastReadAt)||0)?s:m),null);
+  const resumeId=resumeSeries&&resumeSeries.lastReadAt?resumeSeries.seriesId:null;
   const PAGE_SIZE=12;
   const pageCount=Math.max(1,Math.ceil(sorted.length/PAGE_SIZE));
   if(rackPage>=pageCount)rackPage=pageCount-1;
@@ -218,11 +205,13 @@ function renderBookshelf(){
     if(s.lastChNum&&isFinite(s.lastChNum)&&chCount>0){let ci=s.chapters.findIndex(c=>c.chapterNum===s.lastChNum);pct=ci>=0?Math.round((ci+1)/chCount*100):0}
     const coverHTML=covers[s.seriesId]?'<img class="shelf-cover-image" src="'+covers[s.seriesId]+'" alt="">':'<div class="cover-fallback">'+s.name.charAt(0)+'</div>';
     const sel=currentSeries===s.seriesId?' selected':'';
+    const res=s.seriesId===resumeId?' resume':'';
     const bg=spineColor(s.name||s.seriesId);
     const volume=String(rackPage*PAGE_SIZE+i+1).padStart(2,'0');
     const chapterLabel=s.lastChNum&&isFinite(s.lastChNum)?'第 '+s.lastChNum+' 话':'未开始';
-    const status=currentSeries===s.seriesId?'<span class="shelf-status">在读</span>':'';
-    html+='<article class="rack-book'+sel+'" data-id="'+s.seriesId+'" data-idx="'+i+'" tabindex="0" role="button" aria-label="打开 '+s.name+'" style="--spine-bg:'+bg+'"><div class="shelf-cover-wrap"><div class="shelf-cover-inner">'+coverHTML+'</div><span class="shelf-cover-frame" aria-hidden="true"></span><span class="shelf-cover-index">'+volume+'</span><span class="shelf-cover-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></span></div><div class="shelf-card-content"><strong class="shelf-title">'+s.name+'</strong><div class="shelf-meta"><span>'+chapterLabel+'</span>'+status+'</div><div class="shelf-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></div></div><div class="rack-book-shadow"></div><div class="rack-rigid-book"><div class="rack-pages"><span class="rack-face front"></span><span class="rack-face back"></span><span class="rack-face spine-side"></span><span class="rack-face fore"></span><span class="rack-face top"></span><span class="rack-face bottom"></span></div><div class="rack-cover-box back-cover"><span class="rack-cover-face front"></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-cover-box front-cover"><span class="rack-cover-face front">'+coverHTML+'<span class="rack-cover-frame"></span><span class="rack-cover-mark">VOL. '+volume+'</span></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-physics-spine"><span class="rack-spine-volume">'+volume+'</span><span class="rack-spine-band"></span><span class="rack-spine-title">'+s.name+'</span><span class="rack-spine-imprint">MANGA</span><div class="rack-progress"><div class="rack-progress-fill" style="width:'+pct+'%"></div></div></div></div><button class="rack-menu-btn" data-menu-sid="'+s.seriesId+'" title="菜单">⋯</button><button class="change-cover-btn" data-cover-sid="'+s.seriesId+'">换封面</button></article>'
+    const resumeBadge=s.seriesId===resumeId?'<span class="resume-badge">继续阅读</span>':'';
+    const status=(!resumeBadge)&&currentSeries===s.seriesId?'<span class="shelf-status">在读</span>':'';
+    html+='<article class="rack-book'+sel+res+'" data-id="'+s.seriesId+'" data-idx="'+i+'" tabindex="0" role="button" aria-label="打开 '+s.name+'" style="--spine-bg:'+bg+'"><div class="shelf-cover-wrap"><div class="shelf-cover-inner">'+coverHTML+'</div><span class="shelf-cover-frame" aria-hidden="true"></span><span class="shelf-cover-index">'+volume+'</span><span class="shelf-cover-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></span></div><div class="shelf-card-content"><strong class="shelf-title">'+s.name+'</strong><div class="shelf-meta"><span>'+chapterLabel+'</span>'+resumeBadge+status+'</div><div class="shelf-progress" aria-hidden="true"><span style="width:'+pct+'%"></span></div></div><div class="rack-book-shadow"></div><div class="rack-rigid-book"><div class="rack-pages"><span class="rack-face front"></span><span class="rack-face back"></span><span class="rack-face spine-side"></span><span class="rack-face fore"></span><span class="rack-face top"></span><span class="rack-face bottom"></span></div><div class="rack-cover-box back-cover"><span class="rack-cover-face front"></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-cover-box front-cover"><span class="rack-cover-face front">'+coverHTML+'<span class="rack-cover-frame"></span><span class="rack-cover-mark">VOL. '+volume+'</span></span><span class="rack-cover-face back"></span><span class="rack-cover-face top"></span><span class="rack-cover-face bottom"></span><span class="rack-cover-face left"></span><span class="rack-cover-face right"></span></div><div class="rack-physics-spine"><span class="rack-spine-volume">'+volume+'</span><span class="rack-spine-band"></span><span class="rack-spine-title">'+s.name+'</span><span class="rack-spine-imprint">MANGA</span><div class="rack-progress"><div class="rack-progress-fill" style="width:'+pct+'%"></div></div></div></div><button class="rack-menu-btn" data-menu-sid="'+s.seriesId+'" title="菜单">⋯</button><button class="change-cover-btn" data-cover-sid="'+s.seriesId+'">换封面</button></article>'
   });
   const addCardClass=pageBooks.length<4?' is-prominent':'';
   html+='<div class="rack-add'+addCardClass+'" id="bs-add-card"><div class="add-icon">＋</div><div class="add-label">添加</div></div>';

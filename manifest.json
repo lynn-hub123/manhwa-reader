@@ -6,8 +6,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#131A15",
-  "theme_color": "#131A15",
+  "background_color": "#0D0D0F",
+  "theme_color": "#0D0D0F",
   "description": "本地优先的漫画与 PDF 阅读器",
   "icons": [
     {

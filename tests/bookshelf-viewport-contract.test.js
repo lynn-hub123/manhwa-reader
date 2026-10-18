@@ -14,9 +14,7 @@ assert.match(html, /@media\(min-width:900px\) and \(max-height:820px\)\{[\s\S]*#
   'short desktop shelves should keep visible top and bottom page breathing room');
 assert.match(html, /\.bs-rack\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)[^}]*max-width:100%/,
   'short desktop windows should use the full widened library column for four readable covers');
-assert.match(html, /\.bs-continue\{[^}]*min-height:122px[^}]*margin:0 0 12px[^}]*padding:12px 16px/,
-  'short desktop windows should compact the continue-reading block without changing its hierarchy');
-assert.match(html, /\.bs-continue,\.bs-section-head,\.bs-rack\{[^}]*max-width:100%/,
+assert.match(html, /\.bs-section-head,\.bs-rack\{[^}]*max-width:100%/,
   'short desktop windows should keep the bookshelf content in the widened left column');
 assert.match(html, /\.shelf-title\{[^}]*font-size:16px/,
   'normal desktop cards should keep readable title text');
@@ -24,10 +22,8 @@ assert.match(html, /\.bs-rack\{display:grid;grid-template-columns:repeat\(auto-f
   'normal desktop cards should use a readable minimum width');
 assert.match(html, /\.shelf-cover-wrap\{aspect-ratio:5\/5\.6\}/,
   'short desktop cards should fit two rows without forcing an inner scrollbar');
-assert.match(app, /const recent=sorted\.find\(s=>s\.lastChNum!==null&&s\.lastChNum!==undefined&&isFinite\(s\.lastChNum\)\);/,
-  'continue reading should only select a series with saved progress');
-assert.match(app, /if\(!recent\)\{continueEl\.hidden=!0;continueEl\.innerHTML=''\}/,
-  'a fresh bookshelf should hide the empty continue-reading block');
+assert.doesNotMatch(app, /continueEl/,
+  'the continue-reading card logic was folded into the shelf resume badge');
 assert.match(html, /启动阅读器\.bat[\s\S]*http:\/\/localhost:8765/,
   'the startup hint should explain the supported local launcher');
 assert.match(app, /const isFileMode=window\.location\.protocol==='file:';/,
