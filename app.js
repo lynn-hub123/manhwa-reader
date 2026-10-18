@@ -5,9 +5,9 @@ let pdfDoc=null,renderTasks=[],zoom=1.5,fitWidth=!1;
 let renderedPages=new Set,scrollTimer=null;
 let prefetchQueue=[],prefetching=!1;
 let chapterLoadToken=0,hasFolderPicker=!1;
-let _pendingFiles=null,_pendingFilesMode='drop';
+let _pendingFiles=null,_pendingFilesMode='drop',_importBusy=!1;
 let covers={};
-let settings={zoom:'1.5',direction:'scroll',dualPage:!1,sidebarOpen:!0,theme:'night',webtoonAuto:!0,groups:[]};
+let settings={zoom:/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'fit':'1.5',direction:'scroll',dualPage:!1,sidebarOpen:!0,theme:'night',webtoonAuto:!0,groups:[]};
 let searchQuery='',sortMode='recent';
 const UNGROUPED_GROUP_ID='__ungrouped__';
 let activeGroupId=null;
@@ -921,8 +921,8 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions'+(type==='cove
    if(readerMoreFiles)readerMoreFiles.onclick=async function(){closeModal();if(currentSeries){const files=await pickFilesViaInput();if(files&&files.length)await importFilesToSeries(currentSeries,files)}};
    const readerMoreImmersive=Qs('#reader-more-immersive',mc);if(readerMoreImmersive)readerMoreImmersive.onclick=function(){closeModal();if(chromeHidden)chromeShow();else chromeHide()};
    const readerMoreFolder=Qs('#reader-more-folder',mc);if(readerMoreFolder)readerMoreFolder.onclick=async function(){closeModal();if(currentSeries){const files=await pickFolder();if(files&&files.length)await importFilesToSeries(currentSeries,files)}};
-  if(type==='add-choose'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let r=Qs('input[name="addType"]:checked',mc),isNew=!r||r.value==='new';closeModal();try{let files;if(_pendingFiles&&_pendingFiles.length){files=_pendingFiles;_pendingFiles=null}else{if(hasFolderPicker&&_pendingFilesMode!=='input')files=await pickFolder();else files=await pickFilesViaInput()}if(!files||!files.length)return;if(isNew){_pendingFiles=files;_pendingFilesMode='drop';showModal('add-name')}else{let sel=Qs('#modal-existing-select',mc);if(!sel){showToast('没有可用的系列');return}let sid=sel.value;if(sid)await importFilesToSeries(sid,files);else showToast('没有可用的系列')}}catch(e){console.error(e);showToast('操作失败')}}}
-  else if(type==='add-name'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let ni=$('modal-name');if(!ni){closeModal();return}let name=ni.value.trim();if(!name){showToast('请输入名称');return}closeModal();let files=_pendingFiles;_pendingFiles=null;if(files)await createSeries(name,files);else showToast('未找到文件，请重新选择')};setTimeout(()=>{let inp=$('modal-name');if(inp){inp.focus();inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&confirmBtn)confirmBtn.click()})}},100)}
+  if(type==='add-choose'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let r=Qs('input[name="addType"]:checked',mc),isNew=!r||r.value==='new';closeModal();try{let files;if(_pendingFiles&&_pendingFiles.length){files=_pendingFiles;_pendingFiles=null}else{if(hasFolderPicker&&_pendingFilesMode!=='input')files=await pickFolder();else files=await pickFilesViaInput()}if(!files||!files.length)return;showToast('已选择 '+files.length+' 个文件');if(isNew){_pendingFiles=files;_pendingFilesMode='drop';showModal('add-name')}else{if(_importBusy){showToast('正在导入中，请稍候');return}let sel=Qs('#modal-existing-select',mc);if(!sel){showToast('没有可用的系列');return}let sid=sel.value;if(!sid){showToast('没有可用的系列');return}_importBusy=!0;try{await importFilesToSeries(sid,files)}finally{_importBusy=!1}}}catch(e){console.error(e);showToast('操作失败')}}}
+  else if(type==='add-name'){if(!confirmBtn)return;confirmBtn.onclick=async function(){let ni=$('modal-name');if(!ni){closeModal();return}let name=ni.value.trim();if(!name){showToast('请输入名称');return}closeModal();if(_importBusy){showToast('正在导入中，请稍候');return}let files=_pendingFiles;_pendingFiles=null;if(files){_importBusy=!0;try{showToast('正在导入「'+name+'」，共 '+files.length+' 章，请稍候…');await createSeries(name,files)}finally{_importBusy=!1}}else showToast('未找到文件，请重新选择')};setTimeout(()=>{let inp=$('modal-name');if(inp){inp.focus();inp.addEventListener('keydown',function(e){if(e.key==='Enter'&&confirmBtn)confirmBtn.click()})}},100)}
   else if(type==='group-create'){if(!confirmBtn)return;confirmBtn.onclick=async function(){const input=$('modal-group-name');if(!input)return;if(await createGroup(input.value))closeModal()};setTimeout(()=>{const input=$('modal-group-name');if(input){input.focus();input.addEventListener('keydown',e=>{if(e.key==='Enter')confirmBtn.click()})}},80)}
   else if(type==='group-rename'){if(!confirmBtn)return;confirmBtn.onclick=async function(){const input=$('modal-group-name');if(!input)return;if(await renameGroup(data.id,input.value))closeModal()};setTimeout(()=>{const input=$('modal-group-name');if(input){input.focus();input.select();input.addEventListener('keydown',e=>{if(e.key==='Enter')confirmBtn.click()})}},80)}
   else if(type==='group-delete-confirm'){if(!confirmBtn)return;confirmBtn.onclick=async function(){closeModal();await deleteGroup(data.id)}}
@@ -1192,7 +1192,7 @@ function chromeShow(){chromeHidden=!1;document.body.classList.remove('reader-chr
 function chromeHide(){if(chromeHidden)return;chromeHidden=!0;document.body.classList.add('reader-chrome-hidden');updateImmersiveBtn()}
 function stopReaderChrome(){chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden');updateImmersiveBtn()}
 function updateImmersiveBtn(){const label=chromeHidden?'退出沉浸':'沉浸模式';const b=$('btn-immersive');if(b)b.textContent=label;const m=$('reader-more-immersive');if(m)m.textContent=label}
-(function(){const rd=$('reader');rd.addEventListener('pointerdown',function(e){if(e.target.closest('#topbar,#bottombar,#sidebar'))return;if(chromeHidden)chromeShow()})})();
+(function(){const rd=$('reader');rd.addEventListener('click',function(e){if(e.target.closest('#topbar,#bottombar,#sidebar'))return;if(chromeHidden)chromeShow()})})();
 async function saveProgress(pageProgressOverride){if(currentChIdx<0||!currentSeries||restoringProgress)return;let s=findSeries(currentSeries);if(s){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastReadAt=Date.now();s.lastPage=isWebtoon?getScrollProgress():currentPage;if(!isWebtoon){let ratio=pageProgressOverride===undefined?getNormalPageProgress():window.ReadingProgress.normalizePageRatio(pageProgressOverride);if(ratio!==null)s.lastPageProgress=ratio}saveSeriesBg(s)}}
 
 // ===== Event Bindings =====
