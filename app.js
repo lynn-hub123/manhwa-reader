@@ -31,7 +31,7 @@ async function initApp(){
   if(window.ManhwaPWA)ManhwaPWA.init();
   if(typeof indexedDB==='undefined'){$('bookshelf').style.display='none';$('browser-warning').classList.add('show');return}
   $('browser-warning').style.display='none';
-  hasFolderPicker=typeof window.showDirectoryPicker==='function';
+  hasFolderPicker=typeof window.showDirectoryPicker==='function'&&!/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
   if(hasFolderPicker){try{$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display=''}catch(e){}let h=$('drag-hint');if(h){h.className='';h.textContent='也可以将 PDF 文件或文件夹拖入窗口'}}
   else{try{$('bs-add-btn').style.display='';$('btn-add-folder-reader').style.display='none'}catch(e){}let h=$('drag-hint');if(h){h.className='prominent';h.textContent='点击「添加漫画」或直接将 PDF 文件拖入此窗口'}}
   try{const s=await db.getSettings();if(Object.keys(s).length>0)Object.assign(settings,s)}catch(e){}
