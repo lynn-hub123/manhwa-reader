@@ -159,20 +159,17 @@ class ManhwaDB {
 
   async savePDF(seriesId, chapterNum, data) {
     await this.open();
-    // Blob 存储（低内存占用）；base64 全量编码在移动端会 OOM，已弃用。读取时有 %PDF- 头校验兜底
-    const payload = data instanceof Blob ? data : new Blob([data], { type: 'application/pdf' });
-    const record = {
-      cacheKey: this.makeCacheKey(seriesId, chapterNum),
-      seriesId: seriesId,
-      chapterNum: chapterNum,
-      data: payload,
-      size: payload.size,
-      encoding: 'blob',
-      timestamp: Date.now()
-    };
+    // 分块存储：大文件单条 IndexedDB 记录在 WebKit（iPad）上有损坏案例，切成 4MB 小块逐条写入
+    const buf = data instanceof Blob ? new Uint8Array(await data.arrayBuffer()) : new Uint8Array(data);
+    const CHUNK = 4 * 1024 * 1024;
+    const total = Math.max(1, Math.ceil(buf.length / CHUNK));
+    const baseKey = this.makeCacheKey(seriesId, chapterNum);
     const tx = this._db.transaction(PDF_CACHE_STORE, 'readwrite');
     const store = tx.objectStore(PDF_CACHE_STORE);
-    store.put(record);
+    store.put({ cacheKey: baseKey, seriesId: seriesId, chapterNum: chapterNum, kind: 'chunks', chunks: total, size: buf.length, timestamp: Date.now() });
+    for (let i = 0; i < total; i++) {
+      store.put({ cacheKey: baseKey + '#c' + i, seriesId: seriesId, chapterNum: chapterNum, kind: 'chunk', index: i, data: new Blob([buf.subarray(i * CHUNK, Math.min((i + 1) * CHUNK, buf.length))]) });
+    }
     await this._txComplete(tx);
   }
 
@@ -185,26 +182,48 @@ class ManhwaDB {
 
   async loadPDF(seriesId, chapterNum) {
     await this.open();
+    const checkBytes = (ab) => {
+      if (!ab || ab.byteLength < 10) return '存储数据为空，请删除本书重新导入';
+      try {
+        if (String.fromCharCode.apply(null, new Uint8Array(ab.slice(0, 5))) !== '%PDF-') return '存储数据损坏（非 PDF 内容），请删除本书重新导入';
+        if (String.fromCharCode.apply(null, new Uint8Array(ab.slice(Math.max(0, ab.byteLength - 2048)))).indexOf('%%EOF') === -1) return '存储数据不完整（尾部缺失），请删除本书重新导入';
+      } catch (err) { return '存储数据无法读取，请删除本书重新导入'; }
+      return null;
+    };
     return new Promise((resolve, reject) => {
       const tx = this._db.transaction(PDF_CACHE_STORE, 'readonly');
       const store = tx.objectStore(PDF_CACHE_STORE);
       const req = store.get(this.makeCacheKey(seriesId, chapterNum));
       req.onsuccess = async () => {
-        const data = req.result && req.result.data;
-        if (!data) { reject(new Error('PDF not cached')); return; }
+        const rec = req.result;
+        if (!rec) { reject(new Error('PDF not cached')); return; }
         try {
           let ab;
-          if (req.result.encoding === 'base64') { ab = this._b64ToArrayBuffer(data); }
-          else if (data instanceof Blob) {
-            ab = data.arrayBuffer ? await data.arrayBuffer() : await new Promise((res, rej) => {
+          if (rec.kind === 'chunks') {
+            const tx2 = this._db.transaction(PDF_CACHE_STORE, 'readonly');
+            const st2 = tx2.objectStore(PDF_CACHE_STORE);
+            const baseKey = this.makeCacheKey(seriesId, chapterNum);
+            const parts = await Promise.all(Array.from({ length: rec.chunks }, (_, i) => new Promise((res, rej) => {
+              const r = st2.get(baseKey + '#c' + i);
+              r.onsuccess = () => { r.result && r.result.data ? res(r.result.data) : rej(new Error('分块 ' + (i + 1) + '/' + rec.chunks + ' 缺失，请删除本书重新导入')); };
+              r.onerror = () => rej(r.error || new Error('分块读取失败'));
+            })));
+            const buffers = await Promise.all(parts.map(p => p instanceof Blob ? (p.arrayBuffer ? p.arrayBuffer() : new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error); fr.readAsArrayBuffer(p); })) : p));
+            let totalLen = 0; for (const b of buffers) totalLen += b.byteLength;
+            const merged = new Uint8Array(totalLen);
+            let off = 0; for (const b of buffers) { merged.set(new Uint8Array(b), off); off += b.byteLength; }
+            ab = merged.buffer;
+          } else if (rec.encoding === 'base64') { ab = this._b64ToArrayBuffer(rec.data); }
+          else if (rec.data instanceof Blob) {
+            ab = rec.data.arrayBuffer ? await rec.data.arrayBuffer() : await new Promise((res, rej) => {
               const fr = new FileReader();
               fr.onload = () => res(fr.result);
               fr.onerror = () => rej(fr.error || new Error('FileReader failed'));
-              fr.readAsArrayBuffer(data);
+              fr.readAsArrayBuffer(rec.data);
             });
-          } else { ab = data; }
-          if (!ab || ab.byteLength === 0) reject(new Error('存储数据为空，请删除本书重新导入'));
-          else if (ab.byteLength <= 5 || String.fromCharCode.apply(null, new Uint8Array(ab.slice(0, 5))) !== '%PDF-') reject(new Error('存储数据损坏（非 PDF 内容），请删除本书重新导入'));
+          } else { ab = rec.data; }
+          const problem = checkBytes(ab);
+          if (problem) reject(new Error(problem));
           else resolve(ab);
         } catch (err) { reject(err); }
       };

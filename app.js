@@ -7,7 +7,7 @@ let prefetchQueue=[],prefetching=!1;
 let chapterLoadToken=0,hasFolderPicker=!1;
 let _pendingFiles=null,_pendingFilesMode='drop',_importBusy=!1;
 let sessionPDFCache=new Map(); // 导入后的会话内直读缓存：绕开 IndexedDB 读取环节，iOS Safari 兼容
-function pdfHeaderOk(ab){try{return !!ab&&ab.byteLength>5&&String.fromCharCode.apply(null,new Uint8Array(ab.slice(0,5)))==='%PDF-'}catch(e){return !1}}
+function pdfHeaderOk(ab){try{if(!ab||ab.byteLength<10)return !1;if(String.fromCharCode.apply(null,new Uint8Array(ab.slice(0,5)))!=='%PDF-')return !1;return String.fromCharCode.apply(null,new Uint8Array(ab.slice(Math.max(0,ab.byteLength-2048)))).indexOf('%%EOF')!==-1}catch(e){return !1}}
 let covers={};
 let settings={zoom:/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'fit':'1.5',direction:'scroll',dualPage:!1,sidebarOpen:!0,theme:'night',webtoonAuto:!0,groups:[]};
 let searchQuery='',sortMode='recent';
