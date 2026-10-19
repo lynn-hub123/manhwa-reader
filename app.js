@@ -1107,7 +1107,7 @@ async function loadChapter(i,restoreState){
   $('chapter-list').style.pointerEvents='none';$('page-slider').disabled=!0;
   try{let ab=sessionPDFCache.get(currentSeries+'_'+c.chapterNum);if(ab&&!pdfHeaderOk(ab))ab=null;if(!ab){if(c.cached){ab=await db.loadPDF(currentSeries,c.chapterNum)}else{let exists=!1;try{exists=await db.pdfExists(currentSeries,c.chapterNum)}catch(e){}if(exists){try{ab=await db.loadPDF(currentSeries,c.chapterNum);c.cached=!0}catch(e){}}}}if(!ab){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('该章节未缓存，请重新导入');return}
   if(myToken!==chapterLoadToken){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
-  pdfDoc=await ManhwaPdf.getDocument({data:ab}).promise;if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
+  pdfDoc=await ManhwaPdf.getDocument({data:ab}).promise;sessionPDFCache.delete(currentSeries+'_'+c.chapterNum);if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
   c.pages=pdfDoc.numPages;
   // Detect webtoon
   isWebtoon=await detectWebtoon();c.isWebtoon=isWebtoon;

@@ -159,20 +159,32 @@ class ManhwaDB {
 
   async savePDF(seriesId, chapterNum, data) {
     await this.open();
-    const tx = this._db.transaction(PDF_CACHE_STORE, 'readwrite');
-    const store = tx.objectStore(PDF_CACHE_STORE);
-    // iOS Safari 读 IndexedDB 里的大 ArrayBuffer 可能得到 detached/空缓冲，改存 Blob 规避
-    const payload = data instanceof Blob ? data : new Blob([data], { type: 'application/pdf' });
+    // iOS Safari 对 IndexedDB 里的大 Blob/ArrayBuffer 存取有损坏案例，base64 字符串全平台可靠
+    const buf = data instanceof Blob ? await data.arrayBuffer() : data;
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK, bytes.length)));
     const record = {
       cacheKey: this.makeCacheKey(seriesId, chapterNum),
       seriesId: seriesId,
       chapterNum: chapterNum,
-      data: payload,
-      size: payload.size,
+      data: btoa(binary),
+      size: bytes.length,
+      encoding: 'base64',
       timestamp: Date.now()
     };
+    const tx = this._db.transaction(PDF_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(PDF_CACHE_STORE);
     store.put(record);
     await this._txComplete(tx);
+  }
+
+  _b64ToArrayBuffer(b64) {
+    const bin = atob(b64);
+    const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u.buffer;
   }
 
   async loadPDF(seriesId, chapterNum) {
@@ -186,7 +198,8 @@ class ManhwaDB {
         if (!data) { reject(new Error('PDF not cached')); return; }
         try {
           let ab;
-          if (data instanceof Blob) {
+          if (req.result.encoding === 'base64') { ab = this._b64ToArrayBuffer(data); }
+          else if (data instanceof Blob) {
             ab = data.arrayBuffer ? await data.arrayBuffer() : await new Promise((res, rej) => {
               const fr = new FileReader();
               fr.onload = () => res(fr.result);
