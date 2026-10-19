@@ -161,12 +161,14 @@ class ManhwaDB {
     await this.open();
     const tx = this._db.transaction(PDF_CACHE_STORE, 'readwrite');
     const store = tx.objectStore(PDF_CACHE_STORE);
+    // iOS Safari 读 IndexedDB 里的大 ArrayBuffer 可能得到 detached/空缓冲，改存 Blob 规避
+    const payload = data instanceof Blob ? data : new Blob([data], { type: 'application/pdf' });
     const record = {
       cacheKey: this.makeCacheKey(seriesId, chapterNum),
       seriesId: seriesId,
       chapterNum: chapterNum,
-      data: data,
-      size: data.byteLength,
+      data: payload,
+      size: payload.size,
       timestamp: Date.now()
     };
     store.put(record);
@@ -179,9 +181,22 @@ class ManhwaDB {
       const tx = this._db.transaction(PDF_CACHE_STORE, 'readonly');
       const store = tx.objectStore(PDF_CACHE_STORE);
       const req = store.get(this.makeCacheKey(seriesId, chapterNum));
-      req.onsuccess = () => {
-        if (req.result && req.result.data) resolve(req.result.data);
-        else reject(new Error('PDF not cached'));
+      req.onsuccess = async () => {
+        const data = req.result && req.result.data;
+        if (!data) { reject(new Error('PDF not cached')); return; }
+        try {
+          let ab;
+          if (data instanceof Blob) {
+            ab = data.arrayBuffer ? await data.arrayBuffer() : await new Promise((res, rej) => {
+              const fr = new FileReader();
+              fr.onload = () => res(fr.result);
+              fr.onerror = () => rej(fr.error || new Error('FileReader failed'));
+              fr.readAsArrayBuffer(data);
+            });
+          } else { ab = data; }
+          if (!ab || ab.byteLength === 0) reject(new Error('存储数据为空（浏览器存储受限），请重新导入'));
+          else resolve(ab);
+        } catch (err) { reject(err); }
       };
       req.onerror = (e) => reject(e.target.error);
     });

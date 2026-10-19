@@ -1109,7 +1109,7 @@ async function loadChapter(i,restoreState){
   c.pages=pdfDoc.numPages;
   // Detect webtoon
   isWebtoon=await detectWebtoon();c.isWebtoon=isWebtoon;
-  }catch(e){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('加载失败');console.error(e);return}
+  }catch(e){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('加载失败：'+((e&&e.message)||'未知错误'));console.error(e);return}
   $('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';$('page-slider').disabled=!1;
   currentPage=1;if(!isWebtoon){$('page-slider').max=c.pages;$('page-slider').value=1;updatePageInfo()}else{$('page-slider').style.display='none';updatePageInfo()}let pc=$('page-container');pc.innerHTML='';
   for(let p=1;p<=c.pages;p++){let w=document.createElement('div');w.className='page-wrapper';w.dataset.page=p;w.dataset.captureRenderState='idle';let cv=document.createElement('canvas');cv.dataset.captureRenderState='idle';w.appendChild(cv);let l=document.createElement('div');l.className='page-label';l.textContent=isWebtoon?'':(p+' / '+c.pages);pc.appendChild(w);pc.appendChild(l)}
