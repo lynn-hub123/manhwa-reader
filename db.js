@@ -194,7 +194,8 @@ class ManhwaDB {
               fr.readAsArrayBuffer(data);
             });
           } else { ab = data; }
-          if (!ab || ab.byteLength === 0) reject(new Error('存储数据为空（浏览器存储受限），请重新导入'));
+          if (!ab || ab.byteLength === 0) reject(new Error('存储数据为空，请删除本书重新导入'));
+          else if (ab.byteLength <= 5 || String.fromCharCode.apply(null, new Uint8Array(ab.slice(0, 5))) !== '%PDF-') reject(new Error('存储数据损坏（非 PDF 内容），请删除本书重新导入'));
           else resolve(ab);
         } catch (err) { reject(err); }
       };
