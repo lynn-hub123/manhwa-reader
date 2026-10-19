@@ -159,19 +159,15 @@ class ManhwaDB {
 
   async savePDF(seriesId, chapterNum, data) {
     await this.open();
-    // iOS Safari 对 IndexedDB 里的大 Blob/ArrayBuffer 存取有损坏案例，base64 字符串全平台可靠
-    const buf = data instanceof Blob ? await data.arrayBuffer() : data;
-    const bytes = new Uint8Array(buf);
-    let binary = '';
-    const CHUNK = 0x8000;
-    for (let i = 0; i < bytes.length; i += CHUNK) binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK, bytes.length)));
+    // Blob 存储（低内存占用）；base64 全量编码在移动端会 OOM，已弃用。读取时有 %PDF- 头校验兜底
+    const payload = data instanceof Blob ? data : new Blob([data], { type: 'application/pdf' });
     const record = {
       cacheKey: this.makeCacheKey(seriesId, chapterNum),
       seriesId: seriesId,
       chapterNum: chapterNum,
-      data: btoa(binary),
-      size: bytes.length,
-      encoding: 'base64',
+      data: payload,
+      size: payload.size,
+      encoding: 'blob',
       timestamp: Date.now()
     };
     const tx = this._db.transaction(PDF_CACHE_STORE, 'readwrite');
