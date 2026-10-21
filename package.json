@@ -33,6 +33,7 @@
     "@capawesome/capacitor-file-picker": "^8.1.0"
   },
   "devDependencies": {
+    "playwright-core": "^1.64.1",
     "sharp": "^0.35.5"
   }
 }
