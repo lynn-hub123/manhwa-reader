@@ -54,6 +54,7 @@ async function initApp(){
   await Promise.all(bookshelf.filter(s=>!covers[s.seriesId]).map(s=>persistTextCover(s.seriesId,s.name,{refresh:false})));
   console.log('Loaded '+bookshelf.length+' series, theme='+settings.theme+', webtoonAuto='+settings.webtoonAuto);
   renderBookshelf();
+  refreshLegacyTextCovers();
 }
 
 function getGroupById(id){return settings.groups.find(g=>g.id===id)||null}
@@ -155,11 +156,12 @@ function renderGroupBar(){
 }
 
 
+const SHELF_PALETTE=[[152,20,26],[212,24,28],[24,28,32],[6,28,33],[192,18,29],[20,12,22]]; // 装帧色板：墨绿/藏蓝/赭棕/砖红/黛青/炭棕（低饱和书店系，避免随机色相撞出刺眼配色）
 function spineColor(name){
   let hash=0;
   for(let i=0;i<name.length;i++){hash=name.charCodeAt(i)+((hash<<5)-hash);hash=hash&hash}
-  const hue=Math.abs(hash%360);
-  return 'hsl('+hue+',42%,42%)';
+  const t=SHELF_PALETTE[Math.abs(hash)%SHELF_PALETTE.length];
+  return 'hsl('+t[0]+','+t[1]+'%,'+t[2]+'%)';
 }
 
 let shelfEnterPending=true; // 书架首次渲染时播放入场交错浮现，之后重渲染（搜索/删除/翻页）不再重播
@@ -458,47 +460,75 @@ function makeTextCover(name){
     const cv=document.createElement('canvas');cv.width=W;cv.height=H;
     const ctx=cv.getContext('2d');
     let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
-    const hue=h%360,sat=26+(h>>3)%16,li=22+(h>>6)%10;
-    // 布面书壳：按书名散列出不同色相，像一排不同封布的书
+    // 装帧封面：从策划色板挑一组低饱和深底，哈希只负责选组不赌色相
+    const tone=SHELF_PALETTE[h%SHELF_PALETTE.length];
     const g=ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'hsl('+hue+' '+sat+'% '+(li+9)+'%)');g.addColorStop(1,'hsl('+hue+' '+(sat+8)+'% '+(li-9)+'%)');
+    g.addColorStop(0,'hsl('+tone[0]+' '+tone[1]+'% '+(tone[2]+8)+'%)');g.addColorStop(1,'hsl('+tone[0]+' '+(tone[1]+4)+'% '+(tone[2]-7)+'%)');
     ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
     // subtle paper grain
-    ctx.globalAlpha=.04;ctx.fillStyle='#fff';
+    ctx.globalAlpha=.05;ctx.fillStyle='#fff';
     for(let i=0;i<120;i++){ctx.fillRect(Math.random()*W,Math.random()*H,2,2)}
     ctx.globalAlpha=1;
-    // frame line
-    ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=4;
-    ctx.strokeRect(28,28,W-56,H-56);
-    // decorative seal
-    ctx.globalAlpha=.25;ctx.strokeStyle='#fff';ctx.lineWidth=3;
-    ctx.beginPath();ctx.arc(W*.5,H*.3,110,0,Math.PI*2);ctx.stroke();
-    ctx.beginPath();ctx.arc(W*.5,H*.3,86,0,Math.PI*2);ctx.stroke();
-    ctx.globalAlpha=1;
+    // 细装帧双线框
+    ctx.strokeStyle='rgba(244,241,230,.30)';ctx.lineWidth=2;
+    ctx.strokeRect(26,26,W-52,H-52);
+    ctx.strokeStyle='rgba(244,241,230,.14)';ctx.lineWidth=1;
+    ctx.strokeRect(36,36,W-72,H-72);
     // title
     const chars=String(name||'未命名').trim().replace(/\s+/g,'').slice(0,8)||'未命名';
     const twoCols=chars.length>4;
     const colLen=twoCols?Math.ceil(chars.length/2):chars.length;
     const colH=H*.5;
     const spacing=Math.min(132,Math.floor(colH/colLen));
-    const fontSize=Math.max(118,Math.min(205,Math.round(spacing*1.55)));
+    const fontSize=Math.max(92,Math.min(160,Math.round(spacing*1.4)));
     const colGap=Math.max(120,Math.round(fontSize*.85));
     const leftX=W/2-(twoCols?colGap/2:0);
     const rightX=W/2+(twoCols?colGap/2:0);
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';ctx.miterLimit=2;
-    ctx.shadowColor='rgba(24,27,34,.38)';ctx.shadowBlur=0;ctx.shadowOffsetX=8;ctx.shadowOffsetY=10;
-    ctx.strokeStyle='rgba(24,27,34,.72)';ctx.lineWidth=Math.max(8,Math.round(fontSize*.06));
-    ctx.fillStyle='#fff';
-    ctx.font='900 '+fontSize+'px "Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Arial Black",sans-serif';
+    ctx.shadowColor='rgba(15,17,19,.5)';ctx.shadowBlur=16;ctx.shadowOffsetX=0;ctx.shadowOffsetY=4;
+    ctx.strokeStyle='rgba(15,17,19,.4)';ctx.lineWidth=Math.max(5,Math.round(fontSize*.045));
+    ctx.fillStyle='#F4F1E6';
+    ctx.font='700 '+fontSize+'px "Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Arial Black",sans-serif';
     function drawCol(colChars,x,off){const arr=Array.from(colChars);const sy=H*.34-(arr.length-1)*spacing/2+off;arr.forEach((ch,i)=>{const y=sy+i*spacing;const rot=((i%3)-1)*0.012;ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeText(ch,0,0);ctx.fillText(ch,0,0);ctx.restore()})}
     drawCol(chars.slice(0,colLen),leftX,0);
     if(twoCols)drawCol(chars.slice(colLen),rightX,spacing*0.06);
     ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
-    // small subtitle
-    ctx.font='26px "Microsoft YaHei",sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';
-    ctx.fillText('· MANHWA ·',W/2,H*.82);
+    // 底部细线 + 印记
+    ctx.strokeStyle='rgba(244,241,230,.38)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(W*.37,H*.775);ctx.lineTo(W*.63,H*.775);ctx.stroke();
+    ctx.font='500 24px "Microsoft YaHei",sans-serif';ctx.fillStyle='rgba(244,241,230,.75)';
+    ctx.fillText('M A N H W A',W/2,H*.815);
     return cv.toDataURL('image/jpeg',0.92);
   }catch(e){console.warn('text cover fail',e);return null}
+}
+// 旧版文字封面识别（600×840 + 28px 白框特征）：仅用于一次性换装，用户自设封面不会命中
+function isLegacyTextCover(dataUrl){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const c=document.createElement('canvas');c.width=240;c.height=336;
+        const x=c.getContext('2d');x.drawImage(img,0,0,240,336);
+        const d=x.getImageData(0,0,240,336).data;
+        const lum=(px,py)=>{let s=0,n=0;for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){const i=((py+oy)*240+(px+ox))*4;s+=d[i]*.299+d[i+1]*.587+d[i+2]*.114;n++}return s/n};
+        const bright=v=>v>112,bgOk=lum(120,30)<108;
+        const edges=[lum(120,11),lum(120,325),lum(11,168),lum(229,168)].filter(bright).length;
+        res(bgOk&&edges>=3);
+      }catch(e){res(false)}
+    };
+    img.onerror=()=>res(false);
+    img.src=dataUrl;
+  });
+}
+async function refreshLegacyTextCovers(){
+  try{
+    if(localStorage.getItem('textcover-v5-refresh'))return;
+    const legacy=[];
+    for(const s of bookshelf){if(covers[s.seriesId]&&await isLegacyTextCover(covers[s.seriesId]))legacy.push(s)}
+    for(const s of legacy)await persistTextCover(s.seriesId,s.name,{force:true,refresh:false});
+    localStorage.setItem('textcover-v5-refresh','1');
+    if(legacy.length)renderBookshelf();
+  }catch(e){}
 }
 async function persistTextCover(sid,name,options){
   const opts=options||{};

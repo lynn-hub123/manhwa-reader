@@ -15,12 +15,16 @@ assert.match(app, /function makeTextCover\(name\)/,
   'the default cover generator should use the entered series name');
 assert.match(app, /function persistTextCover\(sid,name,options\)/,
   'text cover persistence should have one shared default-cover path');
-assert.match(app, /ctx\.font='900 '\+fontSize\+'px "Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Arial Black",sans-serif'/,
+assert.match(app, /ctx\.font='700 '\+fontSize\+'px "Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Arial Black",sans-serif'/,
   'the generated cover should use a bold comic-friendly Chinese font stack');
 assert.match(app, /ctx\.lineJoin='round'/,
   'the generated title should use rounded comic lettering');
-assert.match(app, /ctx\.shadowOffsetX=8;ctx\.shadowOffsetY=10/,
-  'the generated title should keep a small dimensional offset shadow');
+assert.match(app, /ctx\.shadowBlur=16;ctx\.shadowOffsetX=0;ctx\.shadowOffsetY=4/,
+  'the generated title should keep a soft dimensional glow instead of a harsh offset');
+assert.match(app, /SHELF_PALETTE=\[\[152,20,26\]/,
+  'cover and spine colors should come from the curated low-saturation palette');
+assert.match(app, /refreshLegacyTextCovers\(\)/,
+  'startup should repaint legacy random-hue text covers once');
 
 assert(init, 'initApp should remain discoverable');
 assert.match(init[0], /persistTextCover\(s\.seriesId,s\.name/,
