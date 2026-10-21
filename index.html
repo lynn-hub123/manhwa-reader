@@ -507,6 +507,14 @@ select{box-shadow:var(--shadow-soft)}
   .rack-actions .rack-menu-btn,.rack-book .change-cover-btn{position:static;transform:none;width:auto;height:auto;min-height:34px;line-height:1.2;background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:8px}
   .rack-actions .rack-menu-btn{width:44px;flex:0 0 auto;font-size:16px;line-height:32px}
   .rack-book .change-cover-btn{flex:1 1 auto;padding:7px 14px;font-size:13px}
+  #pwa-info,#startup-note,#drag-hint,.bs-rack .rack-add{display:none}
+  .bs-subtitle,.bs-header .bs-count{display:none}
+  #bs-library-head{margin-bottom:10px;padding-bottom:6px;border-bottom:0}
+  #bs-library-head>div:first-child{display:none}
+  .bs-section-tools{width:100%;display:flex;justify-content:flex-end}
+  .bs-brand h1{font-size:18px}
+  .bs-brand .bs-title-mark{font-size:20px}
+  .bs-header{padding:14px 0 10px}
 }
 
 @media(min-width:900px) and (max-height:820px){
@@ -573,9 +581,10 @@ select{box-shadow:var(--shadow-soft)}
 
 /* ===== 阅读器沉浸模式 ===== */
 body.reader-active #topbar,body.reader-active #bottombar,body.reader-active #sidebar{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease,margin .3s cubic-bezier(.4,0,.2,1)}
-body.reader-chrome-hidden #topbar{transform:translateY(-100%);margin-top:-80px;opacity:0;pointer-events:none}
-body.reader-chrome-hidden #bottombar{transform:translateY(100%);margin-bottom:-80px;opacity:0;pointer-events:none}
-@media(min-width:781px){body.reader-chrome-hidden #sidebar{transform:translateX(-105%);margin-left:-300px;opacity:0;pointer-events:none}}
+body.reader-chrome-hidden #topbar,body.reader-chrome-hidden #bottombar{display:none}
+body.reader-chrome-hidden #main{padding-top:0;padding-bottom:0}
+body.reader-chrome-hidden #viewer-area{padding:0}
+body.reader-chrome-hidden #sidebar{display:none}
 #page-hud{display:none;position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;background:var(--surface);color:var(--text2);font-size:12px;line-height:1;padding:7px 14px;border-radius:999px;border:1px solid var(--border);box-shadow:var(--shadow-soft);pointer-events:none}
 body.reader-active.reader-chrome-hidden #page-hud{display:block}
 
