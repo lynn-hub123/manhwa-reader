@@ -1,8 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#181B22"/>
-  <rect x="92" y="78" width="328" height="356" rx="34" fill="#29303C" stroke="#8B62D9" stroke-width="18"/>
-  <path d="M124 118h264v276H124z" fill="#222732"/>
-  <path d="M164 166h184M164 218h118M164 270h162M164 322h92" fill="none" stroke="#F3F4F7" stroke-linecap="round" stroke-width="22"/>
-  <path d="M354 164v176" stroke="#8B62D9" stroke-linecap="round" stroke-width="18"/>
-  <circle cx="354" cy="366" r="18" fill="#57C3D1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3B5C49"/>
+      <stop offset="1" stop-color="#22352A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(256 262) scale(1.22) translate(-256 -262)">
+    <path d="M256 172c-40-26-95-34-135-30-8 1-14 7-14 15v192c0 9 8 16 17 15 36-3 87 4 122 28 6 4 14 4 20 0 35-24 86-31 122-28 9 1 17-6 17-15V157c0-8-6-14-14-15-40-4-95 4-135 30z" fill="#F6F3E7"/>
+    <path d="M256 176v214" stroke="#2E4638" stroke-width="10" opacity=".22"/>
+    <path d="M292 118h40v92l-20-15-20 15z" fill="#D8C48E"/>
+  </g>
 </svg>

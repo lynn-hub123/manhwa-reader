@@ -195,6 +195,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft
 .cover-opt:hover{border-color:var(--accent);transform:translateY(-2px)}
 .cover-opt.is-loading{opacity:.55;cursor:wait;transform:none}
 .cover-opt.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.cover-opt.is-selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft),var(--shadow-soft)}
+.cover-opt.is-selected::after{content:"✓";position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:13px;line-height:22px;text-align:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .cover-opt img{width:100%;height:120px;object-fit:cover;display:block}
 .cover-opt span{display:block;font-size:10px;color:var(--text3);text-align:center;padding:2px 0}
 
@@ -302,7 +304,8 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .bs-header{display:flex;align-items:center;gap:24px;margin-bottom:28px;flex-wrap:wrap;padding:6px 0 20px;border:0;border-bottom:1px solid var(--border);border-radius:0;background:transparent;box-shadow:none;position:relative;overflow:visible;flex-shrink:0}
 .bs-header::after{content:"";position:absolute;left:0;bottom:-1px;width:92px;height:2px;background:var(--accent);opacity:.85;transform:skewX(-34deg);transform-origin:left center}
 .bs-brand{display:flex;align-items:center;gap:14px;min-width:220px}
-.bs-title-mark{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--accent);border-radius:10px;color:var(--accent);font-size:18px;box-shadow:var(--shadow-inset);transform:rotate(45deg)}
+.bs-title-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#33503F,#243A2E);color:#F4F1E6;box-shadow:0 2px 10px rgba(0,0,0,.28)}
+.bs-title-mark svg{display:block}
 .bs-title-mark::first-letter{display:block}
 .bs-brand h1{font-size:28px;font-weight:700;line-height:1.15;color:var(--text);letter-spacing:-.02em;text-shadow:none}
 .bs-subtitle{display:block;margin-top:5px;color:var(--text3);font-size:12px;letter-spacing:.16em;text-transform:uppercase}
@@ -514,7 +517,10 @@ select{box-shadow:var(--shadow-soft)}
   .bs-section-tools{width:100%;display:flex;justify-content:flex-end}
   .bs-brand h1{font-size:18px}
   .bs-brand .bs-title-mark{font-size:20px}
-  .bs-header{padding:14px 0 10px}
+  .bs-header{padding:14px 0 10px;gap:10px}
+  .bs-brand{min-width:0;flex:1 1 100%}
+  .bs-header > button.icon-only{order:2;flex:0 0 auto;min-width:44px;width:44px;min-height:44px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+  .bs-header input.bs-search{order:3;flex:1 1 150px;min-width:0;width:auto}
 }
 
 @media(min-width:900px) and (max-height:820px){
@@ -611,7 +617,7 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 <div id="browser-warning"><div class="bw-icon">⚠️</div><h2>浏览器不兼容</h2><p>请使用支持 IndexedDB 的现代浏览器，并允许保存网站数据。</p></div>
 <div id="bookshelf">
 <div id="bs-library-pane">
-<div class="bs-header"><div class="bs-brand"><span class="bs-title-mark" aria-hidden="true">◈</span><div><h1>我的书架</h1><span class="bs-subtitle">漫画阅读器</span></div></div><span class="bs-count" id="bs-total">共 0 部</span>
+<div class="bs-header"><div class="bs-brand"><span class="bs-title-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 512 512" fill="none" aria-hidden="true"><path d="M256 172c-40-26-95-34-135-30-8 1-14 7-14 15v192c0 9 8 16 17 15 36-3 87 4 122 28 6 4 14 4 20 0 35-24 86-31 122-28 9 1 17-6 17-15V157c0-8-6-14-14-15-40-4-95 4-135 30z" fill="#F4F1E6"/><path d="M256 176v214" stroke="#2E4638" stroke-width="10" opacity=".22"/><path d="M292 118h40v92l-20-15-20 15z" fill="#D8C48E"/></svg></span><div><h1>我的书架</h1><span class="bs-subtitle">漫画阅读器</span></div></div><span class="bs-count" id="bs-total">共 0 部</span>
 <input class="bs-search" id="bs-search" placeholder="搜索漫画"><span class="spacer"></span>
 <button class="ghost icon-only" id="bs-theme-toggle" aria-label="切换日夜主题" title="切换日夜主题"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button><button class="ghost icon-only" id="bs-settings-btn" aria-label="设置" title="设置"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button><button class="ghost icon-only" id="btn-cache-mgr" aria-label="缓存管理" title="缓存管理"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></button><div class="btn-group"><button id="bs-add-btn">＋ 添加漫画</button></div></div>
 <div id="bs-group-rail" class="bs-group-rail"><button class="bs-group-scroll-btn" id="bs-group-prev" type="button" aria-label="向左查看分组">‹</button><nav id="bs-groups" class="bs-groups" aria-label="漫画分组"></nav><button class="bs-group-scroll-btn" id="bs-group-next" type="button" aria-label="向右查看分组">›</button></div>
