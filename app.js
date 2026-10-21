@@ -490,7 +490,7 @@ function makeTextCover(name){
     ctx.strokeStyle='rgba(24,27,34,.72)';ctx.lineWidth=Math.max(8,Math.round(fontSize*.06));
     ctx.fillStyle='#fff';
     ctx.font='900 '+fontSize+'px "Microsoft YaHei UI","Microsoft YaHei","Noto Sans CJK SC","Arial Black",sans-serif';
-    function drawCol(colChars,x,off){const sy=H*.34-(colChars.length-1)*spacing/2+off;colChars.forEach((ch,i)=>{const y=sy+i*spacing;const rot=((i%3)-1)*0.012;ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeText(ch,0,0);ctx.fillText(ch,0,0);ctx.restore()})}
+    function drawCol(colChars,x,off){const arr=Array.from(colChars);const sy=H*.34-(arr.length-1)*spacing/2+off;arr.forEach((ch,i)=>{const y=sy+i*spacing;const rot=((i%3)-1)*0.012;ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.strokeText(ch,0,0);ctx.fillText(ch,0,0);ctx.restore()})}
     drawCol(chars.slice(0,colLen),leftX,0);
     if(twoCols)drawCol(chars.slice(colLen),rightX,spacing*0.06);
     ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;
