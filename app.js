@@ -1285,6 +1285,20 @@ $('zoom-select').addEventListener('change',function(){let v=this.value;requestZo
 $('btn-back').addEventListener('click',closeReader);
 $('btn-reader-more').addEventListener('click',function(){showModal('reader-more')});
 $('btn-toggle-sidebar').addEventListener('click',function(){$('sidebar').classList.toggle('hidden')});
+// 手机端：侧栏打开时，点外部 / 点章节自动收起（抽屉语义）
+(function bindSidebarAutoClose(){
+  function isMobile(){return window.matchMedia&&window.matchMedia('(max-width:780px)').matches}
+  function onDocPointerDown(e){const sb=$('sidebar');if(!sb||sb.classList.contains('hidden')){document.removeEventListener('pointerdown',onDocPointerDown,!0);return}
+    if(e.target.closest('#sidebar'))return;  // 侧栏内部点击不关
+    if(e.target.closest('#btn-toggle-sidebar'))return;  // 按钮自己的 toggle 已处理
+    sb.classList.add('hidden');document.removeEventListener('pointerdown',onDocPointerDown,!0)}
+  function onSidebarMutation(){const sb=$('sidebar');if(!isMobile()||!sb)return;
+    if(!sb.classList.contains('hidden')){document.addEventListener('pointerdown',onDocPointerDown,!0)}
+    else{document.removeEventListener('pointerdown',onDocPointerDown,!0)}}
+  if(typeof MutationObserver!=='undefined'){
+    const mo=new MutationObserver(onSidebarMutation);
+    const sb=$('sidebar');if(sb)mo.observe(sb,{attributes:!0,attributeFilter:['class']})}
+  window.addEventListener('resize',onSidebarMutation)})();
 $('btn-prev-pg').addEventListener('click',prevPage);$('btn-next-pg').addEventListener('click',nextPage);
 $('btn-prev-ch').addEventListener('click',prevChapter);$('btn-next-ch').addEventListener('click',nextChapter);
 $('btn-cache-mgr').addEventListener('click',async function(){let stats=await db.getCacheStats(),si=await db.getStorageEstimate();showModal('cache-mgr',{stats,storageInfo:si})});$('bs-settings-btn').addEventListener('click',function(){showModal('settings')});

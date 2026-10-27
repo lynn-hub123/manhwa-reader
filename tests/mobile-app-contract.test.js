@@ -42,9 +42,9 @@ test('mobile reader keeps controls reachable and wires touch interactions', () =
   assert.match(html, /id="hidden-file-input"[^>]+accept="application\/pdf,\.pdf"/);
   assert.match(html, /100dvh/);
   assert.match(html, /safe-area-inset-bottom/);
-  assert.match(html, /#topbar \.spacer\{display:none\}/);
+  assert.match(html, /#topbar \.spacer\{display:block;flex:1\}/);
   assert.match(html, /touch-action:\s*pan-y/);
-  assert.match(html, /#bottombar[^}]*grid-template/);
+  assert.match(html, /#bottombar\{display:flex[^}]*margin:0[^}]*height:56px/);
   assert.match(app, /ManhwaPWA\.init/);
   assert.match(app, /bindMobileReaderGestures/);
   assert.match(app, /MobileReader\.swipeDirection/);
