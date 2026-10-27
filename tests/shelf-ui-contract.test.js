@@ -8,16 +8,16 @@ const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 
-assert.match(html, /--accent:#C96B5A/i,
-  'the comic ink-night palette should use a vermilion accent, not a bookstore green');
+assert.match(html, /--accent:#6B8FA8/i,
+  'the shelf should use the cool blue-gray status accent, not a vermilion accent');
 assert.match(html, /#bookshelf\{[^}]*background:var\(--bg\)/,
   'the bookshelf needs an explicit surface background');
 assert.match(html, /\.bs-rack\{[^}]*display:grid[^}]*grid-template-columns:repeat\(auto-fill,minmax\(/,
   'the shelf should render as a responsive cover grid');
-assert.match(html, /grid-template-columns:repeat\(auto-fill,minmax\(168px,1fr\)/,
+assert.match(html, /grid-template-columns:repeat\(auto-fill,minmax\(160px,1fr\)/,
   'desktop cover cards should stay large enough for titles and artwork');
-assert.match(html, /\.bs-header\{[^}]*flex-shrink:0/,
-  'the shelf header should keep its height when the grid overflows');
+assert.match(html, /\.bs-header\{[^}]*position:sticky/,
+  'the shelf header should stay pinned above the grid');
 assert.match(html, /\.resume-badge\{/,
   'the shelf should style a dedicated resume badge for the most recently read series');
 assert.match(app, /resume-badge/,

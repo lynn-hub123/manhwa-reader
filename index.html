@@ -374,7 +374,7 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .rack-book .rack-rigid-book,.rack-book .rack-book-shadow{display:none!important}
 #rack-overlay .rack-rigid-book{display:none!important}
 .shelf-cover-wrap{position:relative;aspect-ratio:5/7;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2);box-shadow:none;transition:border-color .16s ease}
-.rack-book:hover .shelf-cover-wrap,.rack-book:focus-visible .shelf-cover-wrap{border-color:var(--accent)}
+.rack-book:hover .shelf-cover-wrap,.rack-book:focus-visible .shelf-cover-wrap{border-color:var(--accent);transform:none}
 .rack-book.selected .shelf-cover-wrap{border-color:var(--accent);box-shadow:none}
 .shelf-cover-inner{position:absolute;inset:0;overflow:hidden}
 .shelf-cover-image,.shelf-cover-inner .cover-fallback{display:block;width:100%;height:100%;object-fit:cover}
@@ -627,10 +627,23 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 .rack-cover-box img{filter:brightness(1.02) saturate(1.02)}
 
 /* ===== UI-2 阅读器：通栏玻璃条 + 贴边舞台 + 右侧抽屉 ===== */
+/* 重置旧软 UI 的浮卡外框 */
+#topbar{margin:0;border:0;border-radius:0;box-shadow:none;overflow:visible}
+#topbar::after{display:none}
+#topbar button,#topbar select{box-shadow:none}
+#topbar button:hover,#topbar select:hover{box-shadow:none}
+#btn-reader-more{display:inline-flex}
+#main{margin:0;padding:0;gap:0}
+#sidebar{margin:0;border:0;border-radius:0;box-shadow:none;overflow:hidden}
+#viewer-area{margin:0;border:0;border-radius:0;box-shadow:none}
+#viewer-area::before{display:none}
+.page-wrapper{border:0}
+#bottombar{margin:0;border:0;border-radius:0;box-shadow:none}
+#bottombar button,#bottombar button:hover{box-shadow:none}
 #reader{background:var(--bg)}
 #topbar{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-height:56px;padding:0 16px;background:var(--bg);background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid var(--line)}
-#topbar .back-btn{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 8px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--text2);font-size:12px}
-#topbar .back-btn:hover{background:var(--surface2);border-color:var(--line);color:var(--text)}
+#topbar .back-btn{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 8px;border-radius:999px;border:1px solid transparent;box-shadow:none;background:transparent;color:var(--text2);font-size:12px}
+#topbar .back-btn:hover{background:var(--surface2);border-color:var(--line);box-shadow:none;color:var(--text)}
 #topbar .sep{width:1px;height:18px;background:var(--line);flex-shrink:0}
 .reader-heading{display:flex;flex-direction:column;justify-content:center;min-width:0;line-height:1.25}
 .reader-book{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -670,17 +683,20 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 #bottombar input[type=range]:disabled{opacity:.4}
 #bottombar .page-info{min-width:56px;text-align:right;color:var(--text3);font-variant-numeric:tabular-nums}
 @media(max-width:780px){
-  #topbar{height:52px;min-height:52px;padding:0 10px;gap:8px}
+  #topbar{display:flex;flex-wrap:nowrap;margin:0;height:52px;min-height:52px;padding:0 10px;gap:8px;border-radius:0;box-shadow:none;overflow:visible}
+  #topbar .back-btn{min-height:0;padding:0 6px}
+  #topbar .spacer{display:block;flex:1}
   #topbar .back-btn .lbl{display:none}
   #topbar #btn-set-cover,#topbar #btn-immersive{display:none}
   #topbar .sep{display:none}
   #topbar .reader-ch{font-size:12px}
-  #sidebar{position:absolute;right:0;top:0;bottom:0;width:86vw;max-width:320px;transform:translateX(0);border-left:1px solid var(--line);box-shadow:-100vmax 0 0 100vmax rgba(0,0,0,.5)}
+  #topbar .zoom-pill #zoom-select{width:auto;min-width:0;min-height:0;height:30px;padding:0 16px 0 2px;margin:0;grid-column:auto}
+  #sidebar{position:absolute;left:auto;right:0;top:0;bottom:0;width:86vw;max-width:320px;transform:translateX(0);border-left:1px solid var(--line);box-shadow:-100vmax 0 0 100vmax rgba(0,0,0,.5)}
   #sidebar.hidden{transform:translateX(100%);box-shadow:none}
-  #bottombar{height:56px;gap:8px;padding:0 10px}
+  #bottombar{display:flex;margin:0;height:56px;gap:8px;padding:0 10px;border-radius:0;box-shadow:none}
+  #bottombar .bb-nav{min-height:32px;width:34px;padding:0;font-size:14px}
   .bb-nav .lbl{display:none}
   .bb-nav .ico{display:inline}
-  .bb-nav{width:34px;padding:0;font-size:14px}
   .bb-step{display:none}
   #bottombar .page-info{min-width:48px;font-size:11px}
 }

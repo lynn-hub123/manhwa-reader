@@ -16,16 +16,16 @@ assert.match(html, /\.bs-rack\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1f
   'short desktop windows should use the full widened library column for four readable covers');
 assert.match(html, /\.bs-section-head,\.bs-rack\{[^}]*max-width:100%/,
   'short desktop windows should keep the bookshelf content in the widened left column');
-assert.match(html, /\.shelf-title\{[^}]*font-size:16px/,
+assert.match(html, /\.shelf-title\{[^}]*font-size:14px/,
   'normal desktop cards should keep readable title text');
-assert.match(html, /\.bs-rack\{display:grid;grid-template-columns:repeat\(auto-fill,minmax\(168px,1fr\)\)/,
+assert.match(html, /\.bs-rack\{display:grid;grid-template-columns:repeat\(auto-fill,minmax\(160px,1fr\)\)/,
   'normal desktop cards should use a readable minimum width');
 assert.match(html, /\.shelf-cover-wrap\{aspect-ratio:5\/5\.6\}/,
   'short desktop cards should fit two rows without forcing an inner scrollbar');
 assert.doesNotMatch(app, /continueEl/,
   'the continue-reading card logic was folded into the shelf resume badge');
-assert.match(html, /启动阅读器\.bat[\s\S]*http:\/\/localhost:8765/,
-  'the startup hint should explain the supported local launcher');
+assert.match(html, /<div id="startup-note" hidden><\/div>/,
+  'the developer launcher hint should stay hidden in the public build');
 assert.match(app, /const isFileMode=window\.location\.protocol==='file:';/,
   'direct file opens should keep the launcher hint visible');
 assert.match(app, /window\.location\.replace\('http:\/\/localhost:8765\/'\)/,
