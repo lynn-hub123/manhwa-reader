@@ -75,7 +75,9 @@
     updateNetworkStatus();
     root.addEventListener('online', () => { updateNetworkStatus(); if (root.navigator.serviceWorker) checkOfflineResources(); });
     root.addEventListener('offline', () => { updateNetworkStatus(); if (root.navigator.serviceWorker) checkOfflineResources(); });
-    if (root.navigator.serviceWorker) root.navigator.serviceWorker.addEventListener('controllerchange', () => checkOfflineResources());
+    // When a new SW takes over (either first install or version update), reload so
+    // the page runs under the new controller and fetches the latest shell.
+    if (root.navigator.serviceWorker) root.navigator.serviceWorker.addEventListener('controllerchange', () => root.location.reload());
     initialized = Promise.all([requestPersistentStorage(), registerServiceWorker()]).then(getState);
     return initialized;
   }

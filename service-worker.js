@@ -30,13 +30,32 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  // Sites owns authentication; never substitute cached HTML for its routes.
   if (/^\/(signin-with-chatgpt|signout-with-chatgpt|callback)(\/|$)/.test(url.pathname)) return;
+  // HTML navigation: network-first so updates land on next open, fall back to cache offline.
+  // Everything else stays cache-first — static assets are immutable within the versioned shell.
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const resp = await fetch(request);
+        if (resp && resp.ok) {
+          const copy = resp.clone();
+          caches.open(SHELL_CACHE).then(cache => cache.put(absolute('./index.html'), copy));
+          return resp;
+        }
+      } catch (error) { /* Network down — fall through to cache */ }
+      try {
+        const cache = await caches.open(SHELL_CACHE);
+        const cached = await cache.match(absolute('./index.html'));
+        if (cached) return cached;
+      } catch (error) { /* Storage failure */ }
+      return new Response('Offline — no cached shell available.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    })());
+    return;
+  }
   event.respondWith((async () => {
     try {
       const cache = await caches.open(SHELL_CACHE);
-      // HTML and dependencies belong to the same immutable installed shell version.
-      const cached = await cache.match(request.mode === 'navigate' ? absolute('./index.html') : request);
+      const cached = await cache.match(request);
       if (cached) return cached;
     } catch (error) { /* Storage failure must not prevent ordinary online use. */ }
     try { return await fetch(request); }
