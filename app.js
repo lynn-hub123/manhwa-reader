@@ -182,6 +182,8 @@ function renderBookshelf(){
   else sorted.sort((a,b)=>(b.lastReadAt||0)-(a.lastReadAt||0));
   if(searchQuery)sorted=sorted.filter(s=>s.name.toLowerCase().includes(searchQuery.toLowerCase()));
   if(libraryCount)libraryCount.textContent=sorted.length+' 部';
+  const footerCount=Qs('#bs-footer-count');
+  if(footerCount)footerCount.textContent='· '+bookshelf.length+' 部';
   if(libraryTitle)libraryTitle.textContent=getActiveGroupLabel();
   if(!sorted.length){
     if(libraryHead)libraryHead.style.display='none';
