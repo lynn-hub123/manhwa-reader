@@ -1127,7 +1127,7 @@ function openSeries(id){let s=findSeries(id);if(!s)return;currentSeries=id;chapt
 function closeReader(fromPop){// Fire-and-forget: UI first, save in background
   let s=null;if(currentSeries){s=findSeries(currentSeries);if(s&&currentChIdx>=0&&currentChIdx<chapters.length){s.lastChNum=chapters[currentChIdx].chapterNum;s.lastReadAt=Date.now();s.lastPage=isWebtoon?getScrollProgress():currentPage;if(!isWebtoon){let ratio=getNormalPageProgress();if(ratio!==null)s.lastPageProgress=ratio}if(chapters[currentChIdx].status==='reading')chapters[currentChIdx].status='read'}}
   chapterLoadToken++;markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;currentSeries=null;chapters=[];currentChIdx=-1;isWebtoon=!1;renderedPages.clear();
-  (function fadeClose(){let rd=$('reader'),bs=$('bookshelf');rd.style.transition='opacity .2s ease';rd.style.opacity='0';setTimeout(function(){rd.classList.add('hidden');rd.style.opacity='';$('page-container').innerHTML='';bs.classList.remove('hidden');bs.style.opacity='0';void bs.offsetWidth;bs.style.transition='opacity .2s ease';bs.style.opacity='1';renderBookshelf();document.body.classList.remove('reader-active');stopReaderChrome()},200)})();
+  (function fadeClose(){let rd=$('reader'),bs=$('bookshelf');rd.style.transition='opacity .2s ease';rd.style.opacity='0';setTimeout(function(){rd.classList.add('hidden');rd.style.opacity='';$('page-container').innerHTML='';bs.classList.remove('hidden');bs.style.opacity='0';void bs.offsetWidth;bs.style.transition='opacity .2s ease';bs.style.opacity='1';renderBookshelf();document.body.classList.remove('reader-active');stopReaderChrome();document.body.classList.remove('is-webtoon')},200)})();
   if(s)saveSeriesBg(s);
   if(!fromPop&&history.state&&history.state.mrReader){try{history.back()}catch(e){}}
 }
@@ -1164,7 +1164,17 @@ async function loadChapter(i,restoreState){
   isWebtoon=await detectWebtoon();c.isWebtoon=isWebtoon;
   }catch(e){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('加载失败：'+((e&&e.message)||'未知错误'));console.error(e);return}
   $('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';$('page-slider').disabled=!1;
-  currentPage=1;if(!isWebtoon){$('page-slider').max=c.pages;$('page-slider').value=1;updatePageInfo()}else{$('page-slider').style.display='none';updatePageInfo()}let pc=$('page-container');pc.innerHTML='';
+  currentPage=1;
+  if(!isWebtoon){
+    document.body.classList.remove('is-webtoon');
+    $('page-slider').max=c.pages;$('page-slider').value=1;$('page-slider').style.display='';
+    updatePageInfo();
+  }else{
+    document.body.classList.add('is-webtoon');
+    $('page-slider').style.display='';$('page-slider').value=0;
+    updatePageInfo();
+    bindWebtoonProgress();
+  }let pc=$('page-container');pc.innerHTML='';
   for(let p=1;p<=c.pages;p++){let w=document.createElement('div');w.className='page-wrapper';w.dataset.page=p;w.dataset.captureRenderState='idle';let cv=document.createElement('canvas');cv.dataset.captureRenderState='idle';w.appendChild(cv);let l=document.createElement('div');l.className='page-label';l.textContent=isWebtoon?'':(p+' / '+c.pages);pc.appendChild(w);pc.appendChild(l)}
   $('viewer-area').scrollTop=0;
   if(restoreState&&!isWebtoon){
@@ -1236,10 +1246,40 @@ function goToPage(n,options){if(!pdfDoc||isWebtoon)return;options=options||{};n=
 function nextPage(){if(!pdfDoc)return;if(isWebtoon){scrollWebtoon(.5);return}if(currentPage<pdfDoc.numPages)goToPage(currentPage+1);else nextChapter()}
 function prevPage(){if(!pdfDoc)return;if(isWebtoon){scrollWebtoon(-.5);return}if(currentPage>1)goToPage(currentPage-1);else prevChapter()}
 function scrollWebtoon(dir){let va=$('viewer-area'),h=va.clientHeight*.7;va.scrollBy({top:dir*h,behavior:'smooth'})}
+function bindWebtoonProgress(){
+  const va=$('viewer-area');if(!va||va._progressBound)return;
+  va._progressBound=true;
+  va.addEventListener('scroll',function(){
+    if(!isWebtoon)return;
+    if(scrollTimer)return;
+    scrollTimer=requestAnimationFrame(function(){scrollTimer=null;updatePageInfo()});
+  },{passive:true});
+}
 async function nextChapter(){if(currentChIdx+1<chapters.length){setChapterStatus(currentChIdx,'read');await loadChapter(currentChIdx+1);showToast('▶ 第'+chapters[currentChIdx].chapterNum+'话')}else showToast('已经是最后一章了')}
 async function prevChapter(){if(currentChIdx>0){setChapterStatus(currentChIdx,'read');await loadChapter(currentChIdx-1);if(!isWebtoon)goToPage(chapters[currentChIdx].pages||1);showToast('◀ 第'+chapters[currentChIdx].chapterNum+'话')}else showToast('已经是第一章了')}
 function updateNavButtons(){$('btn-prev-ch').disabled=currentChIdx<=0;$('btn-next-ch').disabled=currentChIdx>=chapters.length-1}
-function updatePageInfo(){let t='- / -';if(pdfDoc)t=isWebtoon?'滚动 '+getScrollProgress()+'%':currentPage+' / '+pdfDoc.numPages;$('page-info').textContent=t;const hud=$('page-hud');if(hud)hud.textContent=t}
+function updatePageInfo(){
+  let t='- / -',hud='';
+  const curCh=chapters[currentChIdx];
+  const chLabel=curCh?('第'+curCh.chapterNum+'话'):'';
+  if(pdfDoc){
+    if(isWebtoon){
+      const pct=getScrollProgress();
+      t=pct+'%';
+      hud=chLabel?chLabel+' · 滚动 '+pct+'%':'滚动 '+pct+'%';
+      // webtoon 进度条：CSS var(--pct) 控制填充
+      const slider=$('page-slider');
+      if(slider)slider.style.setProperty('--pct',pct+'%');
+    }else{
+      t=currentPage+' / '+pdfDoc.numPages;
+      hud=chLabel?(chLabel+' · 第 '+currentPage+' 页 / 共 '+pdfDoc.numPages+' 页'):'第 '+currentPage+' / '+pdfDoc.numPages+' 页';
+      const slider=$('page-slider');
+      if(slider)slider.style.removeProperty('--pct');
+    }
+  }
+  $('page-info').textContent=t;
+  const hudEl=$('page-hud');if(hudEl)hudEl.textContent=hud;
+}
 let chromeHidden=!1;
 function chromeShow(){chromeHidden=!1;document.body.classList.remove('reader-chrome-hidden');updateImmersiveBtn()}
 function chromeHide(){if(chromeHidden)return;chromeHidden=!0;document.body.classList.add('reader-chrome-hidden');updateImmersiveBtn()}
