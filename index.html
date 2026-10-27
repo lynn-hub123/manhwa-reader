@@ -638,6 +638,7 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 #sidebar.hidden{transform:translateX(100%);position:absolute;right:0;top:0;height:100%}
 #sidebar-resizer{display:none}
 #sidebar-header{padding:16px;font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--text3);border-bottom:1px solid var(--line)}
+#sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:95}
 #chapter-list{padding:4px 0}
 .chapter-item{padding:10px 16px;font-size:12px;border-left-width:2px}
 .chapter-item.active{background:var(--accent-soft)}
@@ -692,6 +693,7 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 </div>
 </div>
 <div id="reader" class="hidden"><div id="topbar"><button class="back-btn" id="btn-back" type="button" aria-label="返回书架"><span class="ico">‹</span><span class="lbl">书架</span></button><span class="sep"></span><div class="reader-heading"><span class="reader-book" id="ch-book">未加载</span><span class="reader-ch" id="ch-info">章节</span></div><span class="spacer"></span><button class="tbtn" id="btn-set-cover" type="button">设封面</button><button class="tbtn" id="btn-toggle-sidebar" type="button">目录</button><span class="zoom-pill"><select id="zoom-select"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5" selected>150%</option><option value="2">200%</option><option value="fit">适应宽度</option></select></span><button class="tbtn icon-only" id="btn-reader-more" type="button" aria-label="更多阅读操作">···</button><button class="tbtn" id="btn-immersive" type="button">沉浸模式</button><button class="reader-secondary" id="btn-settings">设置</button><button class="reader-secondary" id="btn-add-files-reader">追加文件</button><button class="reader-secondary" id="btn-add-folder-reader" style="display:none">追加文件夹</button></div>
+<div id="sidebar-backdrop" hidden></div>
 <div id="main"><div id="sidebar"><div id="sidebar-resizer"></div><div id="sidebar-header"><span>章节列表</span><span id="ch-count" style="font-size:11px;opacity:.6"></span></div><div id="chapter-list"></div></div><div id="viewer-area"><div id="loading"><div class="spinner"></div><div class="load-text" id="load-text">加载中...</div></div><div id="page-container"></div><div id="page-hud" aria-hidden="true"></div></div></div>
 <div id="bottombar"><button class="bb-nav" id="btn-prev-ch" type="button" aria-label="上一话"><span class="lbl">上一话</span><span class="ico">‹‹</span></button><button class="bb-step" id="btn-prev-pg" type="button" aria-label="上一页">‹</button><div class="bb-mid"><input type="range" id="page-slider" min="1" value="1" step="1" disabled><span class="page-info" id="page-info">- / -</span></div><button class="bb-step" id="btn-next-pg" type="button" aria-label="下一页">›</button><button class="bb-nav" id="btn-next-ch" type="button" aria-label="下一话"><span class="lbl">下一话</span><span class="ico">››</span></button></div></div>
 <div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-content"></div></div><div id="drop-overlay"><div class="drop-text">📥 松开以加载</div></div><div id="toast"></div>

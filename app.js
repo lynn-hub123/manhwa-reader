@@ -1113,7 +1113,7 @@ function closeReader(fromPop){// Fire-and-forget: UI first, save in background
   if(!fromPop&&history.state&&history.state.mrReader){try{history.back()}catch(e){}}
 }
 
-function renderChapterList(){const cl=$('chapter-list');cl.innerHTML=chapters.map((c,i)=>{let lab=c.chapterNum!==Infinity?'第'+String(c.chapterNum)+'话':'?',dot='<span class="ch-dot dot-'+c.status+'"></span>',wTag=c.isWebtoon?'<span class="ch-type">条漫</span>':'',cls=c.status==='read'?'chapter-item read-item':'chapter-item';return '<div class="'+cls+'" data-idx="'+i+'">'+dot+'<span class="ch-num">'+lab+'</span><span class="ch-name">'+c.name+'</span>'+wTag+'</div>'}).join('');$('ch-count').textContent=chapters.length+' 话 · 已读 '+chapters.filter(c=>c.status==='read').length+' 话';cl.querySelectorAll('.chapter-item').forEach(e=>e.addEventListener('click',function(){loadChapter(parseInt(this.dataset.idx));if(window.matchMedia&&window.matchMedia('(max-width:780px)').matches)$('sidebar').classList.add('hidden')}))}
+function renderChapterList(){const cl=$('chapter-list');cl.innerHTML=chapters.map((c,i)=>{let lab=c.chapterNum!==Infinity?'第'+String(c.chapterNum)+'话':'?',dot='<span class="ch-dot dot-'+c.status+'"></span>',wTag=c.isWebtoon?'<span class="ch-type">条漫</span>':'',cls=c.status==='read'?'chapter-item read-item':'chapter-item';return '<div class="'+cls+'" data-idx="'+i+'">'+dot+'<span class="ch-num">'+lab+'</span><span class="ch-name">'+c.name+'</span>'+wTag+'</div>'}).join('');$('ch-count').textContent=chapters.length+' 话 · 已读 '+chapters.filter(c=>c.status==='read').length+' 话';cl.querySelectorAll('.chapter-item').forEach(e=>e.addEventListener('click',function(){if(typeof snapSidebarDrawer==='function')snapSidebarDrawer();loadChapter(parseInt(this.dataset.idx))}))}
 function highlightChapter(i){const cl=$('chapter-list');cl.querySelectorAll('.chapter-item').forEach(e=>e.classList.remove('active'));let e=cl.querySelector('[data-idx="'+i+'"]');if(e){e.classList.add('active');e.scrollIntoView({block:'nearest',behavior:'smooth'})}}
 function setChapterStatus(i,status){let c=chapters[i];if(c)c.status=status;let el=$('chapter-list').querySelector('[data-idx="'+i+'"] .ch-dot');if(el)el.className='ch-dot dot-'+status}
 
@@ -1131,7 +1131,7 @@ async function renderPagesForRestore(page,token){for(let start=1;start<=page;sta
 async function restoreNormalPageProgress(state,token){if(!state||isWebtoon||!pdfDoc)return!1;let page=Math.max(1,Math.min(pdfDoc.numPages,parseInt(state.page,10)||1));if(!await renderPagesForRestore(page,token))return!1;let va=$('viewer-area'),w=$('page-container').querySelector('[data-page="'+page+'"]');if(!va||!w)return!1;currentPage=page;$('page-slider').value=page;updatePageInfo();if(page===pdfDoc.numPages)setChapterStatus(currentChIdx,'read');let ratio=window.ReadingProgress.normalizePageRatio(state.pageProgress);if(ratio===null)withInstantScroll(va,()=>w.scrollIntoView({behavior:'auto',block:'start'}));else{let vr=va.getBoundingClientRect();vr={top:vr.top,height:vr.height,scrollTop:va.scrollTop};let target=window.ReadingProgress.scrollTopForPageRatio(vr,w.getBoundingClientRect(),ratio),maxTop=Math.max(0,va.scrollHeight-va.clientHeight);if(target!==null)withInstantScroll(va,()=>{va.scrollTop=Math.max(0,Math.min(maxTop,target))})}return!0}
 
 async function loadChapter(i,restoreState){
-  if(i<0||i>=chapters.length)return;if(currentChIdx>=0&&currentChIdx<chapters.length&&currentChIdx!==i&&chapters[currentChIdx].status==='reading')setChapterStatus(currentChIdx,'read');
+  if(i<0||i>=chapters.length)return;if(typeof snapSidebarDrawer==='function')snapSidebarDrawer();if(currentChIdx>=0&&currentChIdx<chapters.length&&currentChIdx!==i&&chapters[currentChIdx].status==='reading')setChapterStatus(currentChIdx,'read');
   markCaptureCanvasesIneligible($('page-container'));renderTasks.forEach(t=>{try{t.cancel()}catch(e){}});renderTasks=[];if(pdfDoc){try{pdfDoc.destroy()}catch(e){}}pdfDoc=null;renderedPages.clear();isWebtoon=!1;webtoonScrollPct=0;
   const myToken=++chapterLoadToken;restoringProgress=!1;currentChIdx=i;let c=chapters[i];setChapterStatus(i,'reading');
   const chBookEl=$('ch-book'),chInfoEl=$('ch-info');if(chBookEl)chBookEl.textContent=currentSeries?(findSeries(currentSeries)?.name||'未命名'):'未加载';if(chInfoEl)chInfoEl.textContent='第'+c.chapterNum+'话 · '+c.name;highlightChapter(i);updateNavButtons();
@@ -1285,20 +1285,25 @@ $('zoom-select').addEventListener('change',function(){let v=this.value;requestZo
 $('btn-back').addEventListener('click',closeReader);
 $('btn-reader-more').addEventListener('click',function(){showModal('reader-more')});
 $('btn-toggle-sidebar').addEventListener('click',function(){$('sidebar').classList.toggle('hidden')});
-// 手机端：侧栏打开时，点外部 / 点章节自动收起（抽屉语义）
-(function bindSidebarAutoClose(){
+// 手机端抽屉：统一收起 / 遮罩同步 / 点遮罩关闭
+(function wireSidebarDrawer(){
   function isMobile(){return window.matchMedia&&window.matchMedia('(max-width:780px)').matches}
-  function onDocPointerDown(e){const sb=$('sidebar');if(!sb||sb.classList.contains('hidden')){document.removeEventListener('pointerdown',onDocPointerDown,!0);return}
-    if(e.target.closest('#sidebar'))return;  // 侧栏内部点击不关
-    if(e.target.closest('#btn-toggle-sidebar'))return;  // 按钮自己的 toggle 已处理
-    sb.classList.add('hidden');document.removeEventListener('pointerdown',onDocPointerDown,!0)}
-  function onSidebarMutation(){const sb=$('sidebar');if(!isMobile()||!sb)return;
-    if(!sb.classList.contains('hidden')){document.addEventListener('pointerdown',onDocPointerDown,!0)}
-    else{document.removeEventListener('pointerdown',onDocPointerDown,!0)}}
+  function syncBackdrop(){
+    const sb=$('sidebar'),bd=$('sidebar-backdrop');if(!bd)return;
+    if(isMobile()&&sb&&!sb.classList.contains('hidden')){bd.hidden=false;bd.style.display='block'}
+    else{bd.hidden=true;bd.style.display='none'}
+  }
+  // drawer class 变化 → 同步 backdrop
   if(typeof MutationObserver!=='undefined'){
-    const mo=new MutationObserver(onSidebarMutation);
-    const sb=$('sidebar');if(sb)mo.observe(sb,{attributes:!0,attributeFilter:['class']})}
-  window.addEventListener('resize',onSidebarMutation)})();
+    const sb=$('sidebar'),mo=new MutationObserver(syncBackdrop);
+    if(sb)mo.observe(sb,{attributes:!0,attributeFilter:['class']})}
+  window.addEventListener('resize',syncBackdrop);
+  // 点遮罩关闭
+  const bd=$('sidebar-backdrop');
+  if(bd)bd.addEventListener('click',()=>{const sb=$('sidebar');if(sb)sb.classList.add('hidden')});
+  // 暴露给导航函数用
+  window.snapSidebarDrawer=function(){if(isMobile()){const sb=$('sidebar');if(sb)sb.classList.add('hidden')}}
+})();
 $('btn-prev-pg').addEventListener('click',prevPage);$('btn-next-pg').addEventListener('click',nextPage);
 $('btn-prev-ch').addEventListener('click',prevChapter);$('btn-next-ch').addEventListener('click',nextChapter);
 $('btn-cache-mgr').addEventListener('click',async function(){let stats=await db.getCacheStats(),si=await db.getStorageEstimate();showModal('cache-mgr',{stats,storageInfo:si})});$('bs-settings-btn').addEventListener('click',function(){showModal('settings')});
