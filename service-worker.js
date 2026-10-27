@@ -1,4 +1,5 @@
 'use strict';
+// shell build: study-v5-20261027-02 (bump pwa-assets version together with this line so cached app.js is replaced)
 importScripts('./pwa-assets.js');
 const SHELL_CACHE = 'manhwa-reader-shell-' + self.ManhwaAssets.version;
 const APP_SHELL = self.ManhwaAssets.assets;

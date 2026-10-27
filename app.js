@@ -1285,24 +1285,34 @@ $('zoom-select').addEventListener('change',function(){let v=this.value;requestZo
 $('btn-back').addEventListener('click',closeReader);
 $('btn-reader-more').addEventListener('click',function(){showModal('reader-more')});
 $('btn-toggle-sidebar').addEventListener('click',function(){$('sidebar').classList.toggle('hidden')});
-// 手机端抽屉：统一收起 / 遮罩同步 / 点遮罩关闭
+// 抽屉：真实遮罩 + 统一外部点击收起（触控设备一律生效，不依赖 780px 断点）
 (function wireSidebarDrawer(){
-  function isMobile(){return window.matchMedia&&window.matchMedia('(max-width:780px)').matches}
-  function syncBackdrop(){
-    const sb=$('sidebar'),bd=$('sidebar-backdrop');if(!bd)return;
-    if(isMobile()&&sb&&!sb.classList.contains('hidden')){bd.hidden=false;bd.style.display='block'}
-    else{bd.hidden=true;bd.style.display='none'}
+  const sb=$('sidebar'),bd=$('sidebar-backdrop');
+  if(!sb||!bd)return;
+  function isOpen(){return !sb.classList.contains('hidden')}
+  function overlayMode(){
+    if(window.innerWidth<=780)return true;
+    if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)return true;
+    try{return getComputedStyle(sb).position==='absolute'}catch(e){return false}
   }
-  // drawer class 变化 → 同步 backdrop
-  if(typeof MutationObserver!=='undefined'){
-    const sb=$('sidebar'),mo=new MutationObserver(syncBackdrop);
-    if(sb)mo.observe(sb,{attributes:!0,attributeFilter:['class']})}
+  function syncBackdrop(){
+    const show=isOpen()&&overlayMode();
+    bd.hidden=!show;
+    bd.style.display=show?'block':'none';
+  }
+  function snapDrawer(){if(isOpen()&&overlayMode())sb.classList.add('hidden')}
+  window.snapSidebarDrawer=snapDrawer;
+  // 统一规则：只要抽屉是覆盖态且打开，点击不在侧栏/目录按钮内就收起
+  document.addEventListener('click',function(e){
+    if(!isOpen()||!overlayMode())return;
+    const t=e.target;
+    if(t&&t.closest&&(t.closest('#sidebar')||t.closest('#btn-toggle-sidebar')))return;
+    snapDrawer();
+  },true);
+  if(typeof MutationObserver!=='undefined')new MutationObserver(syncBackdrop).observe(sb,{attributes:!0,attributeFilter:['class']});
   window.addEventListener('resize',syncBackdrop);
-  // 点遮罩关闭
-  const bd=$('sidebar-backdrop');
-  if(bd)bd.addEventListener('click',()=>{const sb=$('sidebar');if(sb)sb.classList.add('hidden')});
-  // 暴露给导航函数用
-  window.snapSidebarDrawer=function(){if(isMobile()){const sb=$('sidebar');if(sb)sb.classList.add('hidden')}}
+  bd.addEventListener('click',snapDrawer);
+  syncBackdrop();
 })();
 $('btn-prev-pg').addEventListener('click',prevPage);$('btn-next-pg').addEventListener('click',nextPage);
 $('btn-prev-ch').addEventListener('click',prevChapter);$('btn-next-ch').addEventListener('click',nextChapter);
