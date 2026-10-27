@@ -666,12 +666,14 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 #bottombar input[type=range]::-moz-range-track{height:2px;border-radius:2px;background:var(--line)}
 #bottombar input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
 #bottombar input[type=range]:disabled{opacity:.4}
-/* webtoon 模式：滑块变成纯视觉进度条（不可交互，JS 写入 --pct 填充） */
-body.is-webtoon #bottombar input[type=range]{pointer-events:none;height:3px;border-radius:3px;background:linear-gradient(to right,var(--accent) var(--pct,0%),var(--line) var(--pct,0%));overflow:hidden}
+/* 两种模式共用：reader 激活时滑块变成有填充的进度指示 */
+body.reader-active #bottombar input[type=range]{height:3px;border-radius:3px;background:linear-gradient(to right,var(--accent) var(--pct,0%),var(--line) var(--pct,0%));overflow:hidden}
+/* webtoon 模式额外：滑块不可交互，thumb 隐藏 */
+body.is-webtoon #bottombar input[type=range]{pointer-events:none}
 body.is-webtoon #bottombar input[type=range]::-webkit-slider-thumb{width:0;height:0;margin:0;border:0;background:transparent;box-shadow:none}
 body.is-webtoon #bottombar input[type=range]::-webkit-slider-runnable-track{height:3px;background:transparent}
 body.is-webtoon #bottombar input[type=range]::-moz-range-thumb{width:0;height:0;border:0;background:transparent}
-body.is-webtoon #bottombar input[type=range]::-moz-range-track{height:3px;background:linear-gradient(to right,var(--accent) var(--pct,0%),var(--line) var(--pct,0%))}
+body.is-webtoon #bottombar input[type=range]::-moz-range-track{height:3px;background:transparent}
 #bottombar .page-info{min-width:56px;text-align:right;color:var(--text3);font-variant-numeric:tabular-nums}
 @media(max-width:780px){
   #topbar{display:flex;flex-wrap:nowrap;margin:0;height:auto;min-height:52px;padding:0 10px;padding-top:env(safe-area-inset-top);gap:8px;border-radius:0;box-shadow:none;overflow:visible}

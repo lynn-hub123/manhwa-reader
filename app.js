@@ -1262,20 +1262,20 @@ function updatePageInfo(){
   let t='- / -',hud='';
   const curCh=chapters[currentChIdx];
   const chLabel=curCh?('第'+curCh.chapterNum+'话'):'';
+  const slider=$('page-slider');
   if(pdfDoc){
     if(isWebtoon){
       const pct=getScrollProgress();
       t=pct+'%';
       hud=chLabel?chLabel+' · 滚动 '+pct+'%':'滚动 '+pct+'%';
-      // webtoon 进度条：CSS var(--pct) 控制填充
-      const slider=$('page-slider');
       if(slider)slider.style.setProperty('--pct',pct+'%');
     }else{
       t=currentPage+' / '+pdfDoc.numPages;
       hud=chLabel?(chLabel+' · 第 '+currentPage+' 页 / 共 '+pdfDoc.numPages+' 页'):'第 '+currentPage+' / '+pdfDoc.numPages+' 页';
-      const slider=$('page-slider');
-      if(slider)slider.style.removeProperty('--pct');
+      if(slider)slider.style.setProperty('--pct',Math.round(currentPage/pdfDoc.numPages*100)+'%');
     }
+  }else{
+    if(slider)slider.style.removeProperty('--pct');
   }
   $('page-info').textContent=t;
   const hudEl=$('page-hud');if(hudEl)hudEl.textContent=hud;
