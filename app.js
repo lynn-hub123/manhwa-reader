@@ -188,10 +188,29 @@ function renderBookshelf(){
   if(!sorted.length){
     if(libraryHead)libraryHead.style.display='none';
     grid.dataset.count='0';
-    const title=bookshelf.length?(searchQuery?'没有匹配漫画':'这个分组暂无漫画'):'书架空空';
-    const desc=bookshelf.length?(searchQuery?'换个关键词试试':'可以把漫画移入这个分组'):'选择 PDF 文件或文件夹开始导入';
-    grid.innerHTML='<div class="bs-empty"><div class="empty-icon"></div><h2>'+title+'</h2><p>'+desc+'</p><button class="empty-action" id="bs-empty-add">+ 添加漫画</button></div>';
-    const emptyAdd=Qs('#bs-empty-add',grid);if(emptyAdd)emptyAdd.onclick=()=>showAddModal();
+    const firstRun=!bookshelf.length&&!searchQuery;
+    grid.innerHTML='';
+    const tpl=document.getElementById(firstRun?'tpl-empty-firstrun':'tpl-empty-lean');
+    if(tpl&&tpl.content)grid.appendChild(tpl.content.cloneNode(true));
+    if(firstRun){
+      const addBtn=Qs('#bs-empty-add',grid);if(addBtn)addBtn.onclick=()=>showAddModal();
+      const folderBtn=Qs('#bs-empty-folder',grid);
+      if(folderBtn){
+        if(!hasFolderPicker)folderBtn.hidden=true;
+        else folderBtn.onclick=()=>{_pendingFilesMode='folder';showAddModal()};
+      }
+    }else{
+      const h2=Qs('h2',grid),p=Qs('p',grid),btn=Qs('#bs-empty-reset',grid);
+      if(searchQuery){
+        if(h2)h2.textContent='没有匹配的漫画';
+        if(p)p.textContent='换个关键词，或者清空搜索看看全部藏书';
+        if(btn){btn.textContent='清空搜索';btn.onclick=()=>{const s=$('bs-search');if(s)s.value='';searchQuery='';renderBookshelf()}}
+      }else{
+        if(h2)h2.textContent='这个分组还是空的';
+        if(p)p.textContent='把书架里的漫画移进这个分组，就能在这里看到';
+        if(btn){btn.textContent='查看全部';btn.onclick=()=>{activeGroupId=null;renderBookshelf();renderGroupBar()}}
+      }
+    }
     try{$('bs-add-btn').style.display='none'}catch(e){}
     $('rack-pager').style.display='none';
     return;

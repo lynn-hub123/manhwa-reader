@@ -188,10 +188,6 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft
 .rack-meta{display:none}
 
 /* 空书架 */
-.bs-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--text2);padding:60px 0}
-.bs-empty .empty-icon{font-size:64px;opacity:.3}
-.bs-empty h2{font-size:21px;font-weight:700;color:var(--text);margin-top:8px;letter-spacing:-.01em}
-.bs-empty p{font-size:14px;color:var(--text3);max-width:360px;text-align:center;line-height:1.7}
 /* ===== cover picker ===== */
 .cover-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;max-height:320px;overflow-y:auto}
 .cover-pick-actions{justify-content:center!important;flex-wrap:wrap}
@@ -403,13 +399,25 @@ select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .rack-add .add-label{font-size:13px;color:var(--text3);font-weight:500}
 .rack-pager{display:flex;align-items:center;justify-content:center;gap:12px;margin:12px auto 2px;color:var(--text2)}
 .rack-pager button{min-width:36px;box-shadow:var(--shadow-soft)}
-.bs-empty{min-height:300px;grid-column:1/-1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:40px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow-soft);position:relative;overflow:hidden}
-.bs-empty::after{content:"";position:absolute;right:8%;bottom:18%;width:82px;height:82px;background:radial-gradient(circle,var(--accent-soft) 0 2px,transparent 2.5px 8px);background-size:13px 13px;opacity:.6}
-.bs-empty .empty-icon{width:42px;height:42px;border:1px solid var(--accent);border-radius:10px;box-shadow:var(--shadow-inset);position:relative;transform:rotate(45deg)}
-.bs-empty .empty-icon::after{content:"+";position:absolute;inset:0;display:grid;place-items:center;color:var(--accent);font-size:22px;transform:rotate(-45deg)}
-.bs-empty h2{font-size:19px;color:var(--text)}
-.bs-empty p{font-size:13px;color:var(--text3);max-width:360px;text-align:center;line-height:1.7}
-.bs-empty .empty-action{position:relative;z-index:1;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-soft);font-weight:700}
+/* ===== 空书架：首次开馆引导 / 无结果轻提示 ===== */
+.bs-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:320px;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);position:relative;overflow:hidden}
+.bs-empty::after{content:"";position:absolute;top:-26px;right:-20px;width:132px;height:132px;background:radial-gradient(circle,var(--accent-soft) 0 1.5px,transparent 2px 9px);background-size:11px 11px;opacity:.7;pointer-events:none}
+.bs-empty-kicker{font-size:10px;letter-spacing:.16em;color:var(--text3);text-transform:uppercase}
+.bs-empty h2{font-size:22px;font-weight:600;color:var(--text);letter-spacing:-.01em;text-align:center}
+.bs-empty-lead{font-size:13px;color:var(--text2);max-width:380px;text-align:center;line-height:1.7}
+.bs-empty-paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;max-width:560px;margin-top:4px}
+.bs-path{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:16px 18px;text-align:left;border:1px solid var(--border);border-radius:8px;background:transparent;cursor:pointer;transition:border-color .16s,background .16s}
+.bs-path:hover{border-color:var(--accent);background:var(--accent-soft)}
+.bs-path-idx{font-size:10px;letter-spacing:.1em;color:var(--text3);font-variant-numeric:tabular-nums}
+.bs-path-title{font-size:14px;font-weight:600;color:var(--text)}
+.bs-path-desc{font-size:12px;color:var(--text3);line-height:1.55}
+.bs-empty-foot{font-size:11px;color:var(--text3);opacity:.75}
+.bs-empty-lean{min-height:240px;border-style:dashed;background:transparent;gap:12px}
+.bs-empty-lean::after{display:none}
+.bs-empty-lean h2{font-size:16px;font-weight:500}
+.bs-empty-lean p{font-size:13px;color:var(--text3);max-width:360px;text-align:center;line-height:1.7}
+.bs-empty-lean .empty-action{border:1px solid var(--border);background:transparent;color:var(--text2);padding:8px 16px;border-radius:999px;font-size:12px;cursor:pointer;transition:border-color .16s,color .16s,background .16s}
+.bs-empty-lean .empty-action:hover{border-color:var(--accent);color:var(--text);background:var(--accent-soft)}
 #startup-note{background:transparent;border:0;border-radius:0;padding:0;margin:0 0 16px;color:var(--text3);font-size:12px;line-height:1.5}
 #startup-note b{color:var(--text2);font-weight:600}
 #drag-hint{color:var(--text3);font-size:12px;opacity:.7;margin-bottom:14px}
@@ -484,6 +492,9 @@ select{box-shadow:var(--shadow-soft)}
   .bs-group-rail.has-overflow .bs-groups{padding-inline:31px}
   .bs-group-scroll-btn{width:27px;height:27px;font-size:18px}
   .bs-rack{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:18px 12px}
+  .bs-empty{padding:32px 18px;min-height:260px}
+  .bs-empty-paths{grid-template-columns:1fr}
+  .bs-empty h2{font-size:19px}
   .shelf-title{font-size:13px;line-height:1.35}
   .shelf-meta{font-size:11px}
   .rack-menu-btn,.rack-book .change-cover-btn{opacity:1;pointer-events:auto}
@@ -712,6 +723,25 @@ body.reader-active.reader-chrome-hidden #page-hud{display:block}
 <div id="startup-note" hidden></div><p id="pwa-info" style="font-size:12px;line-height:1.7;color:var(--text3);margin-bottom:16px" role="status" hidden></p><div id="drag-hint">也可以将 PDF 文件或文件夹拖入窗口</div><div class="bs-rack" id="bs-grid"></div><div id="rack-pager" style="display:none"></div><footer id="bs-footer" class="bs-footer"><span>本地书库</span><span class="bs-footer-count" id="bs-footer-count">· 0 部</span><span class="bs-footer-note">数据只存本机</span></footer>
 </div>
 </div>
+<template id="tpl-empty-firstrun">
+<div class="bs-empty bs-empty-first">
+<span class="bs-empty-kicker">本地书库 · 第一步</span>
+<h2>书架还是空的</h2>
+<p class="bs-empty-lead">把 PDF 漫画丢进来就能看，不上传、不登录。</p>
+<div class="bs-empty-paths">
+<button class="bs-path" id="bs-empty-add" type="button"><span class="bs-path-idx">01</span><span class="bs-path-title">选择 PDF 文件</span><span class="bs-path-desc">点击选择，或直接把文件拖进窗口</span></button>
+<button class="bs-path" id="bs-empty-folder" type="button"><span class="bs-path-idx">02</span><span class="bs-path-title">导入整个文件夹</span><span class="bs-path-desc">一部漫画一次选完，不用逐个挑</span></button>
+</div>
+<p class="bs-empty-foot">文件只保存在这台设备上</p>
+</div>
+</template>
+<template id="tpl-empty-lean">
+<div class="bs-empty bs-empty-lean">
+<h2></h2>
+<p></p>
+<button class="empty-action" id="bs-empty-reset" type="button"></button>
+</div>
+</template>
 <div id="reader" class="hidden"><div id="topbar"><button class="back-btn" id="btn-back" type="button" aria-label="返回书架"><span class="ico">‹</span><span class="lbl">书架</span></button><span class="sep"></span><div class="reader-heading"><span class="reader-book" id="ch-book">未加载</span><span class="reader-ch" id="ch-info">章节</span></div><span class="spacer"></span><button class="tbtn" id="btn-set-cover" type="button">设封面</button><button class="tbtn" id="btn-toggle-sidebar" type="button">目录</button><span class="zoom-pill"><select id="zoom-select"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1">100%</option><option value="1.25">125%</option><option value="1.5" selected>150%</option><option value="2">200%</option><option value="fit">适应宽度</option></select></span><button class="tbtn icon-only" id="btn-reader-more" type="button" aria-label="更多阅读操作">···</button><button class="tbtn" id="btn-immersive" type="button">沉浸模式</button><button class="reader-secondary" id="btn-settings">设置</button><button class="reader-secondary" id="btn-add-files-reader">追加文件</button><button class="reader-secondary" id="btn-add-folder-reader" style="display:none">追加文件夹</button></div>
 <div id="sidebar-backdrop" hidden></div>
 <div id="main"><div id="sidebar"><div id="sidebar-resizer"></div><div id="sidebar-header"><span>章节列表</span><span id="ch-count" style="font-size:11px;opacity:.6"></span></div><div id="chapter-list"></div></div><div id="viewer-area"><div id="loading"><div class="spinner"></div><div class="load-text" id="load-text">加载中...</div></div><div id="page-container"></div><div id="page-hud" aria-hidden="true"></div></div></div>
