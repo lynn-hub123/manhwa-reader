@@ -10,7 +10,7 @@
   "scripts": {
     "test": "node --test",
     "start": "node server.js",
-    "sync:www": "robocopy . www /E /XD node_modules android www .git design-mockups tests manhwa .trae /XF server.js 启动阅读器.bat package.json package-lock.json .gitignore capacitor.config.json & exit /b 0",
+    "sync:www": "robocopy . www /E /XD node_modules android www .git design-mockups tests manhwa .trae .superpowers .worktrees .jdk21 .cache .trae-html-share-packages tmp tools capacitor docs .github .screenshots /XF *.apk *.bak *.md *.txt *.tmp package.json package-lock.json .gitignore capacitor.config.json 启动阅读器.bat gen-icons.temp.js MANHWA-DATA.txt CURRENT-PROGRESS.md CURRENTPROGRESS.md PROJECT-SPEC.md PHASE-2C-REPORT.md PHASE-2D-REPORT.md README* AGENTS.md 韩漫阅读器-架构规划交接.md server.js & exit /b 0",
     "cap:sync": "npm run sync:www && npx cap sync android",
     "cap:apk": "npm run cap:sync && cd android && gradlew.bat assembleDebug"
   },

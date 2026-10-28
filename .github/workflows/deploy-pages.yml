@@ -23,12 +23,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Assemble Pages artifact (runtime-only whitelist)
+        shell: bash
+        run: |
+          rm -rf _deploy
+          mkdir -p _deploy
+          # Runtime files only — deliberately exclude docs, tests, cap shell, deps, APKs, drafts.
+          cp index.html manifest.json pwa-assets.js pwa.js service-worker.js \
+             pdf-engine.js cover-capture.js rack-interaction.js reading-progress.js \
+             reader-mode.js mobile-reader.js app.js db.js _deploy/
+          cp -r fonts icons vendor _deploy/
+          # Sanity: _deploy must not contain markdown, APK, tests, or build artifacts.
+          test ! -f _deploy/*.apk
+          test ! -f _deploy/*.bak
+          test ! -d _deploy/docs
+          test ! -d _deploy/tests
+          find _deploy -type f | wc -l
+          find _deploy -type f -name '*.md' | wc -l | xargs -I{} test {} -eq 0
+          echo "artifact tree:"
+          find _deploy -type f | sort
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_deploy'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

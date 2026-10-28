@@ -5,7 +5,7 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#101113",
   "theme_color": "#101113",
   "description": "本地优先的漫画与 PDF 阅读器",

@@ -1,0 +1,6 @@
+# 本文件放入正式 keystore 的路径和密码，release 构建时会自动读取。
+# 提交时请把它加入 .gitignore；仅作为模板提供，不要填真实值提交。
+storeFile=your-release-key.jks
+storePassword=REPLACE_ME
+keyAlias=REPLACE_ME
+keyPassword=REPLACE_ME

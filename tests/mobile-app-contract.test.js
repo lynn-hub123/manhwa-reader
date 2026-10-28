@@ -20,7 +20,7 @@ test('mobile shell exposes installable PWA metadata and offline entry points', (
   assert.match(pwa, /service-worker\.js/);
   assert.match(html, /id="network-status"/);
   assert.equal(manifest.display, 'standalone');
-  assert.equal(manifest.orientation, 'portrait');
+  assert.equal(manifest.orientation, 'any');
   assert.ok(manifest.icons.some((icon) => icon.purpose.includes('maskable')));
   assert.match(worker, /cache\.addAll/);
   assert.match(worker, /index\.html/);
