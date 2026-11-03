@@ -63,6 +63,7 @@ html{min-height:100%;background:var(--bg)}
 --code-font:"JetBrains Mono","SF Mono",ui-monospace,Consolas,monospace;
 }
 
+*{-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,"Microsoft YaHei",sans-serif;height:100vh;min-height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none;-webkit-user-select:none}
 @supports (height:100dvh){body{height:100dvh;min-height:100dvh}}
 ::-webkit-scrollbar{width:6px}
@@ -708,9 +709,13 @@ body.is-webtoon #bottombar input[type=range]::-moz-range-track{height:3px;backgr
 .chapter-item.read-item:hover{opacity:.85}
 
 /* 键盘焦点：仅键盘操作时出现，鼠标点击不出现 */
-:where(button,select,input,textarea,a,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* 触摸设备上 button/select/[tabindex] 会持续匹配 :focus-visible，导致点击后残留蓝框；焦点框只在桌面键盘场景出现 */
+@media (hover:hover) and (pointer:fine){
+:where(input,textarea,a,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #sidebar :where(.chapter-item):focus-visible{outline-offset:-2px}
+}
 :where(button,select,input,textarea,a,[tabindex]):focus:not(:focus-visible){outline:none}
+button:focus,select:focus,[tabindex]:focus{outline:none}
 </style>
 </head>
 <body>

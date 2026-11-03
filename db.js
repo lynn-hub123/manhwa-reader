@@ -1,11 +1,12 @@
 'use strict';
 
 const DB_NAME = 'manhwa-reader-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const BOOKSHELF_STORE = 'bookshelf';
 const PDF_CACHE_STORE = 'pdf-cache';
 const SETTINGS_STORE = 'settings';
 const COVERS_STORE = 'covers';
+const PAGE_CACHE_STORE = 'page-cache';
 
 class ManhwaDB {
   constructor() {
@@ -35,6 +36,12 @@ class ManhwaDB {
         if (!db.objectStoreNames.contains(COVERS_STORE)) {
           const store = db.createObjectStore(COVERS_STORE, { keyPath: 'seriesId' });
           store.createIndex('seriesId', 'seriesId', { unique: true });
+        }
+        // v3: 已渲染页面的图片缓存，避免每次打开都重新解码整张长图
+        if (!db.objectStoreNames.contains(PAGE_CACHE_STORE)) {
+          const store = db.createObjectStore(PAGE_CACHE_STORE, { keyPath: 'key' });
+          store.createIndex('seriesId', 'seriesId', { unique: false });
+          store.createIndex('savedAt', 'savedAt', { unique: false });
         }
         console.log('DB upgraded from v' + oldVersion + ' to v' + DB_VERSION);
       };
@@ -252,6 +259,108 @@ class ManhwaDB {
       const cursor = e.target.result;
       if (cursor) { cursor.delete(); cursor.continue(); }
     };
+    await this._txComplete(tx);
+  }
+
+  // ==================== Rendered page cache ====================
+  // 条漫单页可能高达数万像素，PDF.js 每次打开都要整体解码（实测 12s+）。
+  // 把渲染结果按瓦片存成图片，第二次打开直接贴图，不再解码。
+  _pageCacheKey(seriesId, chapterNum, page, width, tile) {
+    return seriesId + '|' + chapterNum + '|' + page + '|' + width + '|' + tile;
+  }
+
+  async savePageTiles(seriesId, chapterNum, page, width, blobs) {
+    if (!blobs || !blobs.length) return;
+    await this.open();
+    const tx = this._db.transaction(PAGE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(PAGE_CACHE_STORE);
+    const now = Date.now();
+    blobs.forEach((blob, tile) => {
+      if (!blob) return;
+      store.put({
+        key: this._pageCacheKey(seriesId, chapterNum, page, width, tile),
+        seriesId, chapterNum, page, width, tile,
+        blob, size: blob.size || 0, savedAt: now
+      });
+    });
+    await this._txComplete(tx);
+  }
+
+  async loadPageTiles(seriesId, chapterNum, page, width, count) {
+    await this.open();
+    const tx = this._db.transaction(PAGE_CACHE_STORE, 'readonly');
+    const store = tx.objectStore(PAGE_CACHE_STORE);
+    const out = [];
+    for (let tile = 0; tile < count; tile++) {
+      const value = await new Promise((resolve, reject) => {
+        const req = store.get(this._pageCacheKey(seriesId, chapterNum, page, width, tile));
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      if (!value || !value.blob) return null;
+      out.push(value.blob);
+    }
+    return out;
+  }
+
+  async deleteChapterPageCache(seriesId, chapterNum) {
+    await this.open();
+    const tx = this._db.transaction(PAGE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(PAGE_CACHE_STORE);
+    const req = store.index('seriesId').openCursor(IDBKeyRange.only(seriesId));
+    req.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (cursor.value.chapterNum === chapterNum) cursor.delete();
+        cursor.continue();
+      }
+    };
+    await this._txComplete(tx);
+  }
+
+  async deleteSeriesPageCache(seriesId) {
+    await this.open();
+    const tx = this._db.transaction(PAGE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(PAGE_CACHE_STORE);
+    const req = store.index('seriesId').openCursor(IDBKeyRange.only(seriesId));
+    req.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) { cursor.delete(); cursor.continue(); }
+    };
+    await this._txComplete(tx);
+  }
+
+  async clearPageCache() {
+    await this.open();
+    const tx = this._db.transaction(PAGE_CACHE_STORE, 'readwrite');
+    tx.objectStore(PAGE_CACHE_STORE).clear();
+    await this._txComplete(tx);
+  }
+
+  async prunePageCache(maxBytes = 150 * 1024 * 1024) {
+    await this.open();
+    const tx = this._db.transaction(PAGE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(PAGE_CACHE_STORE);
+    const entries = [];
+    await new Promise((resolve, reject) => {
+      const req = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          entries.push({ key: cursor.value.key, size: cursor.value.size || 0, savedAt: cursor.value.savedAt || 0 });
+          cursor.continue();
+        } else resolve();
+      };
+      req.onerror = () => reject(req.error);
+    });
+    let total = entries.reduce((sum, e) => sum + e.size, 0);
+    if (total <= maxBytes) return;
+    entries.sort((a, b) => a.savedAt - b.savedAt);
+    for (const entry of entries) {
+      if (total <= maxBytes) break;
+      store.delete(entry.key);
+      total -= entry.size;
+    }
     await this._txComplete(tx);
   }
 

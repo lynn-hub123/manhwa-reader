@@ -982,8 +982,8 @@ mc.innerHTML='<h3>'+title+'</h3>'+body+'<div class="modal-actions'+(type==='cove
   else if(type==='group-delete-confirm'){if(!confirmBtn)return;confirmBtn.onclick=async function(){closeModal();await deleteGroup(data.id)}}
   else if(type==='move-group'){if(!confirmBtn)return;confirmBtn.onclick=async function(){const selected=Qs('input[name="moveGroup"]:checked',mc);closeModal();if(selected)await moveSeriesToGroup(data.sid,selected.value||UNGROUPED_GROUP_ID)}}
   else if(type==='delete-confirm'){if(!confirmBtn)return;confirmBtn.onclick=function(){let dc=Qs('#modal-delete-cache',mc),shouldDelete=dc?dc.checked:!0;closeModal();let idx=bookshelf.findIndex(s=>s.seriesId===data.id);if(idx>=0){let s=bookshelf[idx];if(currentSeries===data.id)closeReader();bookshelf.splice(idx,1);renderBookshelf();delete covers[data.id];showToast('已删除「'+s.name+'」');// Background async cleanup
-(async()=>{if(shouldDelete){try{await db.deleteSeriesPDFs(data.id)}catch(e){}try{await db.deleteCover(data.id)}catch(e){}}try{await db.deleteSeries(data.id)}catch(e){}})()}}}
-  else if(type==='cache-mgr'){setTimeout(()=>{mc.querySelectorAll('.cache-clear-btn').forEach(btn=>{btn.addEventListener('click',async function(){let sid=this.dataset.sid,s=findSeries(sid),name=s?s.name:sid;try{await db.deleteSeriesPDFs(sid);await db.deleteCover(sid);delete covers[sid];showToast('已清除「'+name+'」的缓存');renderBookshelf()}catch(e){showToast('清除失败')}let stats=await db.getCacheStats(),si=await db.getStorageEstimate();closeModal();showModal('cache-mgr',{stats,storageInfo:si})})})},100)}
+(async()=>{if(shouldDelete){try{await db.deleteSeriesPDFs(data.id)}catch(e){}try{await db.deleteSeriesPageCache(data.id)}catch(e){}try{await db.deleteCover(data.id)}catch(e){}}try{await db.deleteSeries(data.id)}catch(e){}})()}}}
+  else if(type==='cache-mgr'){setTimeout(()=>{mc.querySelectorAll('.cache-clear-btn').forEach(btn=>{btn.addEventListener('click',async function(){let sid=this.dataset.sid,s=findSeries(sid),name=s?s.name:sid;try{await db.deleteSeriesPDFs(sid);await db.deleteSeriesPageCache(sid);await db.deleteCover(sid);delete covers[sid];showToast('已清除「'+name+'」的缓存');renderBookshelf()}catch(e){showToast('清除失败')}let stats=await db.getCacheStats(),si=await db.getStorageEstimate();closeModal();showModal('cache-mgr',{stats,storageInfo:si})})})},100)}
   else if(type==='settings'){const saveBtn=Qs('#modal-save-settings',mc);if(saveBtn)saveBtn.onclick=async function(){let z=$('setting-zoom').value,d=$('setting-direction').value,dp=$('setting-dual').value==='1',sb=$('setting-sidebar').value==='1',t=$('setting-theme').value,wa=$('setting-webtoon').value==='1',zoomChanged=settings.zoom!==z;Object.assign(settings,{zoom:z,direction:d,dualPage:dp,sidebarOpen:sb,theme:t,webtoonAuto:wa});$('zoom-select').value=z;if(zoomChanged)requestZoomChange(z);document.documentElement.setAttribute('data-theme',t);await db.saveSetting('zoom',z);await db.saveSetting('direction',d);await db.saveSetting('dualPage',dp);await db.saveSetting('sidebarOpen',sb);await db.saveSetting('theme',t);await db.saveSetting('webtoonAuto',wa);closeModal();showToast('设置已保存')};if(cancelBtn)cancelBtn.onclick=closeModal}
 }
 
@@ -1025,7 +1025,7 @@ async function createSeries(name,files){if(!files||!files.length)return;let sid=
 
 async function importFilesToSeries(sid,files){let s=findSeries(sid);if(!s)return;let en=new Set(s.chapters.map(c=>c.name)),vf=files.filter(f=>f.name.toLowerCase().endsWith('.pdf')),nc=vf.filter(f=>!en.has(f.name.replace(/\.pdf$/i,''))).map(f=>({name:f.name.replace(/\.pdf$/i,''),chapterNum:extractChapterNumber(f.name),pages:null,cached:!1,loaded:!1,status:'unread',isWebtoon:!1}));if(!nc.length){showToast('没有新的PDF文件');return}assignFallbackChapterNums(nc,s.chapters);s.chapters.push(...nc);s.chapters.sort((a,b)=>a.chapterNum-b.chapterNum);await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList();prefetchNextSafe(currentChIdx)}renderBookshelf();let fm=[];for(let f of vf){let fn=f.name.replace(/\.pdf$/i,''),ch=s.chapters.find(c=>c.name===fn);if(ch)fm.push({file:f,ch:ch})}let okChs=await cachePDFs(sid,fm.map(x=>x.file),fm.map(x=>x.ch));s=findSeries(sid);if(s){fm.forEach(({ch})=>{if(!okChs.includes(ch.chapterNum))return;let c=s.chapters.find(sc=>sc.chapterNum===ch.chapterNum&&sc.name===ch.name);if(c){c.cached=!0;c.loaded=!1}});await db.saveSeries(s);if(currentSeries===sid){chapters=s.chapters;renderChapterList()}}showToast('已追加 '+nc.length+' 章')}
 
-async function cachePDFs(sid,files,chs){if(!files.length)return[];showProgress(0,files.length);let ok=[];for(let i=0;i<files.length;i++){try{let ab=await files[i].arrayBuffer(),cn=i<chs.length?chs[i].chapterNum:i+1;if(!pdfHeaderOk(ab)){showToast('文件读取异常，已跳过：'+files[i].name);continue}await db.savePDF(sid,cn,ab);sessionPDFCache.set(sid+'_'+cn,ab);if(sessionPDFCache.size>3){sessionPDFCache.delete(sessionPDFCache.keys().next().value)}ok.push(cn)}catch(e){console.warn('Cache fail:',files[i].name,e);showToast('「'+files[i].name+'」存储失败：'+((e&&e.message)||'未知错误'))}showProgress(i+1,files.length)}setTimeout(()=>hideProgress(),800);return ok}
+async function cachePDFs(sid,files,chs){if(!files.length)return[];showProgress(0,files.length);let ok=[];for(let i=0;i<files.length;i++){try{let ab=await files[i].arrayBuffer(),cn=i<chs.length?chs[i].chapterNum:i+1;if(!pdfHeaderOk(ab)){showToast('文件读取异常，已跳过：'+files[i].name);continue}await db.deleteChapterPageCache(sid,cn);await db.savePDF(sid,cn,ab);sessionPDFCache.set(sid+'_'+cn,ab);if(sessionPDFCache.size>3){sessionPDFCache.delete(sessionPDFCache.keys().next().value)}ok.push(cn)}catch(e){console.warn('Cache fail:',files[i].name,e);showToast('「'+files[i].name+'」存储失败：'+((e&&e.message)||'未知错误'))}showProgress(i+1,files.length)}setTimeout(()=>hideProgress(),800);return ok}
 function showProgress(done,total){let p=$('import-progress');if(!p){p=document.createElement('div');p.id='import-progress';p.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);padding:12px 24px;border-radius:12px;z-index:1500;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,0.1)';p.innerHTML='<span id="import-progress-text" style="color:var(--text);font-size:13px"></span><div style="width:120px;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div id="import-progress-bar" style="height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .2s"></div></div>';document.body.appendChild(p)}Qs('#import-progress-text',p).textContent='正在导入 '+done+'/'+total;Qs('#import-progress-bar',p).style.width=(done/total*100)+'%'}
 function hideProgress(){let p=$('import-progress');if(p){Qs('#import-progress-text',p).textContent='导入完成 ✓';setTimeout(()=>{if(p.parentNode)p.parentNode.removeChild(p)},1500)}}
 
@@ -1176,10 +1176,12 @@ async function loadChapter(i,restoreState){
   const chBookEl=$('ch-book'),chInfoEl=$('ch-info');if(chBookEl)chBookEl.textContent=currentSeries?(findSeries(currentSeries)?.name||'未命名'):'未加载';if(chInfoEl)chInfoEl.textContent='第'+c.chapterNum+'话 · '+c.name;highlightChapter(i);updateNavButtons();
   $('loading').classList.add('show');$('load-text').textContent='正在加载 第'+c.chapterNum+'话...';
   $('chapter-list').style.pointerEvents='none';$('page-slider').disabled=!0;
+  const openT0=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
   try{let ab=sessionPDFCache.get(currentSeries+'_'+c.chapterNum);if(ab&&!pdfHeaderOk(ab))ab=null;if(!ab){if(c.cached){ab=await db.loadPDF(currentSeries,c.chapterNum)}else{let exists=!1;try{exists=await db.pdfExists(currentSeries,c.chapterNum)}catch(e){}if(exists){try{ab=await db.loadPDF(currentSeries,c.chapterNum);c.cached=!0}catch(e){}}}}if(!ab){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('该章节未缓存，请重新导入');return}
   if(myToken!==chapterLoadToken){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
   pdfDoc=await ManhwaPdf.getDocument({data:ab}).promise;sessionPDFCache.delete(currentSeries+'_'+c.chapterNum);if(myToken!==chapterLoadToken){try{pdfDoc.destroy()}catch(e){}pdfDoc=null;$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';return}
   c.pages=pdfDoc.numPages;
+  console.log('[timing] pdf parsed at',Math.round(((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())-openT0),'ms');
   // Detect webtoon
   isWebtoon=await detectWebtoon();c.isWebtoon=isWebtoon;
   }catch(e){$('loading').classList.remove('show');$('chapter-list').style.pointerEvents='';showToast('加载失败：'+((e&&e.message)||'未知错误'));console.error(e);return}
@@ -1223,20 +1225,101 @@ function waitForReaderViewport(canvas,version){
     measure();
   });
 }
+// 单块 canvas 高度上限。Android WebView 的 canvas 上限约 32768px，超过会被静默截断；
+// 同时一次性分配几十兆的巨型位图会拖慢首屏并可能被系统回收。条漫单页常有数万像素高，
+// 因此按 8000px 切块渲染，先画视口附近的分块，其余顺延。
 async function renderPage(pn){
+  const TILE_MAX_H=8000;
+  const tileRenderOrder=(count,start)=>{
+    const order=[];
+    for(let d=0;d<count;d++){
+      const a=start-d,b=start+d;
+      if(a>=0&&a<count)order.push(a);
+      if(d>0&&b>=0&&b<count)order.push(b);
+    }
+    return order;
+  };
   if(!pdfDoc||renderedPages.has(pn))return;
   const w=$('page-container').querySelector('[data-page="'+pn+'"]');if(!w)return;
-  const cv=w.querySelector('canvas');if(!cv)return;
-  const renderVersion=setCaptureRenderState(cv,'rendering');renderedPages.add(pn);
+  if(!w.querySelector('canvas'))return;
+  const myToken=w._renderToken=(w._renderToken||0)+1;
+  const rt0=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
+  renderedPages.add(pn);
   try{
-    const pg=await pdfDoc.getPage(pn);if(cv._captureRenderVersion!==renderVersion)return;
-    const vp=pg.getViewport({scale:zoom});let task;
-    if(fitWidth){let width=$('viewer-area').clientWidth;if(width<=40){width=await waitForReaderViewport(cv,renderVersion);if(width===null||cv._captureRenderVersion!==renderVersion)return}let cw=width-40,base=pg.getViewport({scale:1}),sc=cw/base.width,fvp=pg.getViewport({scale:sc});cv.dataset.pdfScale=String(sc);cv.width=fvp.width;cv.height=fvp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:fvp})}
-    else{cv.dataset.pdfScale=String(zoom);cv.width=vp.width;cv.height=vp.height;task=pg.render({canvasContext:cv.getContext('2d'),viewport:vp})}
-    renderTasks.push(task);await task.promise;
-    if(setCaptureRenderState(cv,'complete',renderVersion)!==null)w.style.width=cv.style.width||cv.width+'px';
+    const pg=await pdfDoc.getPage(pn);if(w._renderToken!==myToken)return;
+    if(pn<=3)console.log('[timing] page',pn,'getPage',Math.round(((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())-rt0),'ms');
+    const baseVp=pg.getViewport({scale:1});
+    let vp,sc;
+    if(fitWidth){
+      let width=$('viewer-area').clientWidth;
+      if(width<=40){
+        const probe=w.querySelector('canvas'),probeVersion=setCaptureRenderState(probe,'rendering');
+        width=await waitForReaderViewport(probe,probeVersion);
+        if(width===null||probe._captureRenderVersion!==probeVersion||w._renderToken!==myToken)return;
+      }
+      sc=(width-40)/baseVp.width;
+      vp=pg.getViewport({scale:sc});
+    }else{
+      sc=zoom;
+      vp=pg.getViewport({scale:zoom});
+    }
+    const totalW=Math.max(1,Math.floor(vp.width)),totalH=Math.max(1,Math.floor(vp.height));
+    const count=Math.max(1,Math.ceil(totalH/TILE_MAX_H));
+    let canvases=[].slice.call(w.querySelectorAll('canvas'));
+    if(canvases.length!==count){
+      w.innerHTML='';
+      for(let i=0;i<count;i++){
+        const c=document.createElement('canvas');
+        c.dataset.tile=String(i);c.dataset.captureRenderState='idle';
+        w.appendChild(c);
+      }
+      canvases=[].slice.call(w.querySelectorAll('canvas'));
+    }
+    w.style.width=totalW+'px';
+    for(let i=0;i<count;i++){
+      const c=canvases[i],h=Math.min(TILE_MAX_H,totalH-i*TILE_MAX_H);
+      c.width=totalW;c.height=h;c.dataset.pdfScale=String(sc);
+    }
+    let cacheSid='',cacheChn=0,cacheHit=false;
+    if(typeof db!=='undefined'&&db.loadPageTiles&&typeof currentSeries!=='undefined'&&currentSeries&&typeof chapters!=='undefined'&&chapters[currentChIdx]){
+      cacheSid=currentSeries;cacheChn=chapters[currentChIdx].chapterNum;
+      try{
+        const blobs=await db.loadPageTiles(cacheSid,cacheChn,pn,totalW,count);
+        if(blobs&&w._renderToken===myToken){
+          for(let i=0;i<count;i++){
+            const bmp=await createImageBitmap(blobs[i]);
+            canvases[i].getContext('2d').drawImage(bmp,0,0);
+            if(bmp.close)bmp.close();
+            setCaptureRenderState(canvases[i],'complete');
+          }
+          cacheHit=true;
+          if(pn<=3)console.log('[cache] page',pn,'hit',Math.round(((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())-rt0),'ms');
+        }
+      }catch(e){console.warn('[cache] load fail',e&&e.message||e)}
+    }
+    if(!cacheHit){
+    // 先渲染当前视口附近的分块，避免用户盯着空白等整页画完
+    const va=$('viewer-area');
+    let start=0;
+    if(va&&va.getBoundingClientRect){const vaTop=va.getBoundingClientRect().top,wr=w.getBoundingClientRect();start=Math.floor((vaTop-wr.top)/TILE_MAX_H);start=Math.max(0,Math.min(count-1,start))}
+    for(const i of tileRenderOrder(count,start)){
+      const c=canvases[i];if(w._renderToken!==myToken||!c.isConnected)return;
+      const y=i*TILE_MAX_H,version=setCaptureRenderState(c,'rendering');
+      const task=pg.render({canvasContext:c.getContext('2d'),viewport:vp,background:'#fff',transform:y?[1,0,0,1,0,-y]:undefined});
+      renderTasks.push(task);
+      try{await task.promise}catch(e){if(!e||e.name!=='RenderingCancelledException')throw e;return}
+      if(w._renderToken!==myToken)return;
+      setCaptureRenderState(c,'complete',version);
+      if(pn<=3&&i===start)console.log('[timing] page',pn,'first tile done',Math.round(((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())-rt0),'ms');
+    }
+    if(pn<=3)console.log('[timing] page',pn,'all tiles done',Math.round(((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())-rt0),'ms','canvas',totalW+'x'+totalH,'tiles='+count);
+    // 首次渲染完成后把结果存成图片，下次打开直接贴图
+    if(cacheSid&&typeof db.savePageTiles==='function'){try{const blobs=[];for(const c of canvases){const blob=typeof c.toBlob==='function'?await new Promise(res=>{try{c.toBlob(b=>res(b),'image/jpeg',.9)}catch(e){res(null)}}):null;blobs.push(blob)}if(blobs.every(Boolean)){await db.savePageTiles(cacheSid,cacheChn,pn,totalW,blobs);if(db.prunePageCache)await db.prunePageCache()}}catch(e){console.warn('[cache] save fail',e&&e.message||e)}}
+    }
   }catch(e){
-    if(setCaptureRenderState(cv,'idle',renderVersion)!==null)renderedPages.delete(pn);
+    renderedPages.delete(pn);
+    [].slice.call(w.querySelectorAll('canvas')).forEach(c=>setCaptureRenderState(c,'idle'));
+    if(!e||e.name!=='RenderingCancelledException')console.error('[renderPage] page',pn,'FAIL',e&&e.message||e);
     throw e;
   }
 }

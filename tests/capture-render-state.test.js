@@ -36,13 +36,18 @@ async function flushAsyncWork() {
 }
 
 async function main() {
-  const canvas = { width: 0, height: 0, style: {}, dataset: {}, getContext() { return {}; } };
-  const wrapper = { style: {}, dataset: {}, querySelector(selector) { assert.strictEqual(selector, 'canvas'); return canvas; } };
+  const canvas = { width: 0, height: 0, style: {}, dataset: {}, isConnected: true, getContext() { return {}; } };
+  const wrapper = {
+    style: {}, dataset: {}, innerHTML: '',
+    getBoundingClientRect() { return { top: 0 }; },
+    querySelector(selector) { assert.strictEqual(selector, 'canvas'); return canvas; },
+    querySelectorAll(selector) { assert.strictEqual(selector, 'canvas'); return [canvas]; }
+  };
   const pageContainer = {
     querySelector(selector) { assert.strictEqual(selector, '[data-page="1"]'); return wrapper; },
     querySelectorAll(selector) { assert.strictEqual(selector, '.page-wrapper canvas'); return [canvas]; }
   };
-  const viewer = { clientWidth: 500 };
+  const viewer = { clientWidth: 500, getBoundingClientRect() { return { top: 0 }; } };
   let renderDeferred = deferred();
   let renderCancelCalled = false;
   let renderVisibleCalls = 0;

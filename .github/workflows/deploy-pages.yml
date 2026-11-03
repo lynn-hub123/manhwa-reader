@@ -34,6 +34,10 @@ jobs:
              pdf-engine.js cover-capture.js rack-interaction.js reading-progress.js \
              reader-mode.js mobile-reader.js app.js db.js _deploy/
           cp -r fonts icons vendor _deploy/
+          # 每次部署自动打唯一版本号，保证 Service Worker 丢弃旧缓存、线上用户自动更新
+          STAMP="build-$(date -u +%Y%m%d-%H%M%S)"
+          sed -i "s/version: '[^']*'/version: '$STAMP'/" _deploy/pwa-assets.js
+          grep -o "version: '[^']*'" _deploy/pwa-assets.js
           # Sanity: _deploy must not contain markdown, APK, tests, or build artifacts.
           test ! -f _deploy/*.apk
           test ! -f _deploy/*.bak

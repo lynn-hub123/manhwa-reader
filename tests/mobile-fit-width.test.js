@@ -10,13 +10,13 @@ const end = source.indexOf('\nfunction renderVisiblePages', start);
 
 for (const previousZoom of [0.6, 1, 1.5, 2]) {
   test(`fit width uses unscaled PDF dimensions after ${previousZoom * 100}% zoom`, async () => {
-    const canvas = { style: {}, dataset: {}, getContext: () => ({}),
+    const canvas = { style: {}, dataset: {}, getContext: () => ({}), isConnected: true,
       set width(value) { this._width = Math.trunc(value); }, get width() { return this._width; },
       set height(value) { this._height = Math.trunc(value); }, get height() { return this._height; } };
-    const wrapper = { style: {}, querySelector: () => canvas };
+    const wrapper = { style: {}, querySelector: () => canvas, querySelectorAll: () => [canvas], getBoundingClientRect: () => ({ top: 0 }) };
     const ctx = {
       zoom: previousZoom, fitWidth: true, renderedPages: new Set(), renderTasks: [],
-      $: id => id === 'viewer-area' ? { clientWidth: 369 } : { querySelector: () => wrapper },
+      $: id => id === 'viewer-area' ? { clientWidth: 369, getBoundingClientRect: () => ({ top: 0 }) } : { querySelector: () => wrapper },
       setCaptureRenderState(cv) { cv._captureRenderVersion = 1; return 1; },
       pdfDoc: { getPage: async () => ({
         getViewport: ({ scale }) => ({ width: 300 * scale, height: 420 * scale }),
@@ -53,11 +53,11 @@ test('switching from a horizontally panned zoom to fit clears horizontal offset 
 
 test('reopening with fit waits until the formerly hidden reader has a measurable viewport', async () => {
   let width = 0; const frames = []; const viewports = [];
-  const canvas = { dataset: {}, style: {}, getContext: () => ({}) };
-  const wrapper = { style: {}, querySelector: () => canvas };
+  const canvas = { dataset: {}, style: {}, getContext: () => ({}), isConnected: true };
+  const wrapper = { style: {}, querySelector: () => canvas, querySelectorAll: () => [canvas], getBoundingClientRect: () => ({ top: 0 }) };
   const ctx = {
     fitWidth: true, zoom: 1.5, renderedPages: new Set(), renderTasks: [],
-    $: id => id === 'viewer-area' ? { get clientWidth() { return width; } } : { querySelector: () => wrapper },
+    $: id => id === 'viewer-area' ? { get clientWidth() { return width; }, getBoundingClientRect: () => ({ top: 0 }) } : { querySelector: () => wrapper },
     requestAnimationFrame: fn => frames.push(fn), cancelAnimationFrame() {}, setTimeout, clearTimeout, Date, Promise,
     setCaptureRenderState(cv) { cv._captureRenderVersion = 1; return 1; },
     pdfDoc: { getPage: async () => ({ getViewport: ({ scale }) => ({ width: 600 * scale, height: 840 * scale }),
@@ -79,11 +79,11 @@ test('reopening with fit waits until the formerly hidden reader has a measurable
 
 test('invalidating a canvas after viewport measurement prevents the awaited stale render from starting', async () => {
   let width = 0; let renderCalls = 0; const frames = [];
-  const canvas = { dataset: {}, style: {}, getContext: () => ({}) };
-  const wrapper = { style: {}, querySelector: () => canvas };
+  const canvas = { dataset: {}, style: {}, getContext: () => ({}), isConnected: true };
+  const wrapper = { style: {}, querySelector: () => canvas, querySelectorAll: () => [canvas], getBoundingClientRect: () => ({ top: 0 }) };
   const ctx = {
     fitWidth: true, zoom: 1, renderedPages: new Set(), renderTasks: [],
-    $: id => id === 'viewer-area' ? { get clientWidth() { return width; } } : { querySelector: () => wrapper },
+    $: id => id === 'viewer-area' ? { get clientWidth() { return width; }, getBoundingClientRect: () => ({ top: 0 }) } : { querySelector: () => wrapper },
     requestAnimationFrame: fn => frames.push(fn), cancelAnimationFrame() {}, setTimeout, clearTimeout, Promise,
     setCaptureRenderState(cv, state, expected) {
       if (expected !== undefined && cv._captureRenderVersion !== expected) return null;
